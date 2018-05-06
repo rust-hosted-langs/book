@@ -6,7 +6,7 @@ cache: cargo
 env: MDBOOK=0.1 GHP_UPLOAD=0.3
 
 install:
-- cargo install --version $MDBOOK mdbook
-- cargo install --version $GHP_UPLOAD cargo-ghp-upload
+    - (test -x $HOME/.cargo/bin/mdbook || cargo install --version $MDBOOK mdbook)
+    - (test -x $HOME/.cargo/bin/cargo-ghp-upload || cargo install --version $GHP_UPLOAD cargo-ghp-upload)
 
-script: mdbook build && cargo ghp-upload --directory book -vv
+script: mdbook build && touch book/.nojekyll && cargo ghp-upload --directory book -vv
