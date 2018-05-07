@@ -9,4 +9,8 @@ install:
     - (test -x $HOME/.cargo/bin/mdbook || cargo install --version $MDBOOK mdbook)
     - (test -x $HOME/.cargo/bin/cargo-ghp-upload || cargo install --version $GHP_UPLOAD cargo-ghp-upload)
 
-script: mdbook build && touch book/.nojekyll && cargo ghp-upload --directory book -vvvv
+before_script:
+    - rm -rf $CARGO_MANIFEST_DIR/target/ghp
+
+script:
+    - mdbook build && touch book/.nojekyll && cargo ghp-upload --directory book -vvvv
