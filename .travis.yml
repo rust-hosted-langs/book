@@ -10,7 +10,7 @@ install:
     - (test -x $HOME/.cargo/bin/cargo-ghp-upload || cargo install --version $GHP_UPLOAD cargo-ghp-upload)
 
 before_script:
-    - rm -rf $CARGO_MANIFEST_DIR/target/ghp
+    - rm -rf target
 
 script:
     - mdbook build && touch book/.nojekyll && cargo ghp-upload --directory book -vvvv
