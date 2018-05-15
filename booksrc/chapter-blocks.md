@@ -5,9 +5,9 @@ is the desired block alignment?*
 
 * One factor is that using an alignment that is a multiple of the page size
   can make it easier to return memory to the operating system.
-* Another factor is that it is fast to do bitwise arithmetic on a pointer
-  to an object in an aligned block to compute the block boundary and therefore
-  the location of any block metadata.
+* Another factor is that if the block is aligned to it's size, it is fast to
+  do bitwise arithmetic on a pointer to an object in a block to compute the
+  block boundary and therefore the location of any block metadata.
 
 With both these in mind we'll look at how to allocate blocks that are
 aligned to the size of the block.
@@ -80,15 +80,17 @@ Where `BlockPtr` and `BlockSize` are defined as:
 {{#include ../blockalloc/src/lib.rs:11:12}}
 ```
 
-To obtain a `Block`, functions are provided:
+To obtain a `Block`, we have the `Block::new()` function which, along with
+`Block::drop()`, is implemented in terms of platform-specific allocation
+routines.
 
 ```rust
-let block = Block::new(size)?;
+{{#include ../blockalloc/src/lib.rs:34:39}}
 ```
 
 Where:
 
-* `size` must be a power of two
+* parameter `size` must be a power of two
 * and errors take one of two forms, an invalid block-size or out-of-memory:
 
 ```rust
