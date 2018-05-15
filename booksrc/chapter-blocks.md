@@ -1,28 +1,36 @@
-# Block-size-aligned Blocks of Memory
+# Blocks of Memory
 
-## The simplest case
+When requesting blocks of memory at a time, one of the questions is *what
+is the desired block alignment?*
 
-In normal Rust code we'd write code such as
+* One factor is that using an alignment that is a multiple of the page size
+  can make it easier to return memory to the operating system.
+* Another factor is that it is fast to do bitwise arithmetic on a pointer
+  to an object in an aligned block to compute the block boundary and therefore
+  the location of any block metadata.
 
-```rust
-let shared_vec = Rc::new(vec![3, 4, 5]);
-```
+With both these in mind we'll look at how to allocate blocks that are
+aligned to the size of the block.
 
-In the case of both `Vec` and `Rc`, memory is allocated on the global heap
-using the system allocator. In order to efficiently allocate and
-garbage collect managed objects, we need to manage our own heap and
-so need somewhere to allocate any object type into.
+
+## When block alignment is not important
+
+There are plenty of case where we will not care about block alignment.
+For example, providing arenas for immutable interned objects. In such a
+case, the only guarantee needed is that the objects don't ever move
+and can be reliably freed at the end of the arena life.
 
 The simplest option is to use `Vec` and reinterpret it as a `*mut u8` that
 can be used as raw bytes of memory.
 
-In using a `Vec` we must be careful never to resize it as that could cause
-reallocation of the backing array, possibly causing the objects in it to move.
-If we manage our own objects independently of compile-time lifetime
-information, we can easily end up with broken pointers if objects can be
-moved by something other than the garbage collector.
+In using a `Vec`, we must be careful never to resize it as that could cause
+reallocation of the backing array, causing the objects in it to be moved.
 
-Using `Vec` this way looks like:
+If we manage our own objects independently of compile-time lifetime
+information, we can easily end up with broken pointers something other than
+the garbage collector can move objects.
+
+Using `Vec` looks like this:
 
 ```rust
 fn alloc(block_size: usize) -> *mut u8 {
@@ -43,15 +51,11 @@ unsafe fn dealloc(ptr: *mut u8, block_size: usize) {
 }
 ```
 
-In many cases this might be entirely sufficient, for example, providing arenas
-for interned objects that last the lifetime of a virtual machine. In such
-a case, the only guarantee needed *is* that the objects don't ever move.
-
 
 ## A basic library interface
 
-A block of memory, as evidenced in the `Vec` example, is comprised of two pieces
-of information:
+A block of memory, as evidenced in the above `Vec` example, is comprised of
+two pieces of information:
 
 * the address in memory of the block
 * the size of the block
@@ -60,8 +64,8 @@ It's worth taking a moment to look at how `Vec`
 [is implemented](https://doc.rust-lang.org/stable/nomicon/vec.html) and how
 what we want is slightly different. Two obvious points are
 
-*  Since `Unique<T>` is still unstable, we won't use it here
-*  We aren't concerned with being able to change the capacity of a block
+* Since `Unique<T>` is still unstable, we won't use it here
+* We aren't concerned with being able to change the capacity of a block
 
 Similarly to `RawVec`, we can build on a struct that contains the two basic
 items of information we need:
@@ -79,13 +83,12 @@ Where `BlockPtr` and `BlockSize` are defined as:
 To obtain a `Block`, functions are provided:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:45:52}}
+let block = Block::new(size)?;
 ```
 
 Where:
 
-* the `internal` mod contains the platform-specific implementations
-* deallocation consumes the `Block`
+* `size` must be a power of two
 * and errors take one of two forms, an invalid block-size or out-of-memory:
 
 ```rust
@@ -93,7 +96,7 @@ Where:
 ```
 
 
-## Allocation on unstable Rust
+## Block-aligned allocation on unstable Rust
 
 On the unstable rustc channel we have access to the
 [Alloc](https://doc.rust-lang.org/alloc/allocator/trait.Alloc.html) API. This
@@ -101,21 +104,20 @@ is the ideal option since it abstracts platform specifics for us - with an
 appropriate underlying implementation this code should compile and execute
 for any target.
 
-The allocation function, implemented in the `internal` mod and feature gated
-reads:
+The allocation function, implemented in the `internal` mod, reads:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:80:102}}
+{{#include ../blockalloc/src/lib.rs:92:111}}
 ```
 
 And deallocation:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:104:114}}
+{{#include ../blockalloc/src/lib.rs:113:121}}
 ```
 
 
-## Stable Rust on Unix-like platforms
+## Block-aligned allocation on stable Rust on Unix-like platforms
 
 As of writing, the stable Rust channel does not provide access directly to the
 allocation APIs in the previous section.  In order to get block-size
@@ -125,40 +127,41 @@ On all Unix platforms, we'll use `posix_memalign(**ptr, size, align)` for
 block allocation.
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:130:152}}
+{{#include ../blockalloc/src/lib.rs:137:149}}
 ```
 
 And deallocation:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:147:152}}
+{{#include ../blockalloc/src/lib.rs:151:155}}
 ```
 
 
-## Stable Rust on Windows
+## Block-aligned allocation in stable Rust on Windows
 
 Allocation:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:162:164}}
+{{#include ../blockalloc/src/lib.rs:165:167}}
 ```
 
 And deallocation:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:166:168}}
+{{#include ../blockalloc/src/lib.rs:169:171}}
 ```
 
 
 ## Testing
 
-The most crucial test is that the block we allocate is indeed aligned to it's
-size.
+We want to be sure that the system level allocation APIs do indeed return
+block-size-aligned blocks. Checking for this is straightforward.
 
-Testing this is straightforward - the block address should have it's low bits
-set to `0` for a number of bits that represents the size of the block minus
-one. A bitwise XOR will highlight any bits that shouldn't be set:
+A correctly aligned block should have it's low bits
+set to `0` for a number of bits that represents the range of the block
+size - that is, the block size minus one. A bitwise XOR will highlight any
+bits that shouldn't be set:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:194:195}}
+{{#include ../blockalloc/src/lib.rs:197:198}}
 ```

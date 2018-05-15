@@ -22,7 +22,7 @@ pub enum BlockError {
 }
 
 
-/// A pointer to a block along with it's size in bytes
+/// A block-size-aligned block of memory
 pub struct Block {
     ptr: BlockPtr,
     size: BlockSize,
@@ -30,6 +30,14 @@ pub struct Block {
 
 
 impl Block {
+
+    pub fn new(size: BlockSize) -> Result<Block, BlockError> {
+        Ok(Block {
+            ptr: internal::alloc_block(size)?,
+            size
+        })
+    }
+
     /// Consume and return the pointer only
     pub fn into_mut_ptr(self) -> BlockPtr {
         self.ptr
@@ -39,16 +47,20 @@ impl Block {
     pub fn size(&self) -> BlockSize {
         self.size
     }
+
+    /// Reassemble from pointer and size
+    pub unsafe fn from_raw_parts(ptr: BlockPtr, size: BlockSize) -> Block {
+        Block {
+            ptr, size
+        }
+    }
 }
 
 
-pub fn alloc_block(size: BlockSize) -> Result<Block, BlockError> {
-    internal::alloc_block(size)
-}
-
-
-pub fn dealloc_block(block: Block) -> Result<(), BlockError> {
-    internal::dealloc_block(block)
+impl Drop for Block {
+    fn drop(&mut self) {
+        internal::dealloc_block(self.ptr, self.size);
+    }
 }
 
 
@@ -71,21 +83,18 @@ mod internal {
 
     use alloc::heap::{Alloc, AllocErr, Global, Layout};
     use std::ptr::NonNull;
-    use {Block, BlockError, BlockPtr, BlockSize, BlockSource};
+    use {BlockError, BlockPtr, BlockSize, BlockSource};
 
 
     pub const BLOCK_SOURCE: BlockSource = BlockSource::RustAlloc;
 
 
-    pub fn alloc_block(size: BlockSize) -> Result<Block, BlockError> {
+    pub fn alloc_block(size: BlockSize) -> Result<BlockPtr, BlockError> {
         unsafe {
             let layout = Layout::from_size_align_unchecked(size, size);
 
             match Global.alloc(layout) {
-                Ok(ptr) => Ok(Block {
-                        ptr: ptr.as_ptr() as BlockPtr,
-                        size: size,
-                    }),
+                Ok(ptr) => Ok(ptr.as_ptr() as BlockPtr),
 /*
                 // TODO AllocErr API - how to use? The compiler complains
                 // that the enum variants are ambiguous or don't exist
@@ -101,16 +110,14 @@ mod internal {
         }
     }
 
-    pub fn dealloc_block(block: Block) -> Result<(), BlockError> {
+    pub fn dealloc_block(ptr: BlockPtr, size: BlockSize) {
         unsafe {
-            let layout = Layout::from_size_align_unchecked(block.size, block.size);
+            let layout = Layout::from_size_align_unchecked(size, size);
 
-            let ptr = NonNull::new_unchecked(block.ptr as *mut u8).as_opaque();
+            let ptr = NonNull::new_unchecked(ptr as *mut u8).as_opaque();
 
             Global.dealloc(ptr, layout);
         }
-
-        Ok(())
     }
 }
 
@@ -119,7 +126,7 @@ mod internal {
 mod internal {
     extern crate libc;
 
-    use {Block, BlockError, BlockPtr, BlockSize, BlockSource};
+    use {BlockError, BlockPtr, BlockSize, BlockSource};
     use self::libc::{c_void, EINVAL, ENOMEM, free, posix_memalign};
     use std::ptr;
 
@@ -127,16 +134,13 @@ mod internal {
     pub const BLOCK_SOURCE: BlockSource = BlockSource::PosixMemalign;
 
 
-    pub fn alloc_block(size: BlockSize) -> Result<Block, BlockError> {
+    pub fn alloc_block(size: BlockSize) -> Result<BlockPtr, BlockError> {
         unsafe {
             let mut address = ptr::null_mut();
             let rval = posix_memalign(&mut address, size, size);
 
             match rval {
-                0 => Ok(Block {
-                    ptr: address as BlockPtr,
-                    size: size,
-                }),
+                0 => Ok(address as BlockPtr),
                 EINVAL => Err(BlockError::BadRequest),
                 ENOMEM => Err(BlockError::OOM),
                 _ => unreachable!()
@@ -144,11 +148,10 @@ mod internal {
         }
     }
 
-    pub fn dealloc_block(block: Block) -> Result<(), BlockError> {
+    pub fn dealloc_block(ptr: BlockPtr, _size: BlockSize) {
         unsafe {
-            free(block.ptr as *mut c_void);
+            free(ptr as *mut c_void);
         }
-        Ok(())
     }
 }
 
@@ -159,11 +162,11 @@ mod internal {
 
     use {Block, BlockError, BlockPtr, BlockSize, BlockSource};
 
-    pub fn alloc_block(size: BlockSize) -> Block {
+    pub fn alloc_block(size: BlockSize) -> Result<BlockPtr, BlockError> {
         // TODO
     }
 
-    pub fn dealloc_block(block: Block) {
+    pub fn dealloc_block(ptr: BlockPtr, size: BlockSize) {
         // TODO
     }
 }
@@ -172,7 +175,7 @@ mod internal {
 #[cfg(test)]
 mod tests {
 
-    use {BlockError, BlockSize, BlockSource, block_source, alloc_block, dealloc_block};
+    use {Block, BlockError, BlockSize, BlockSource, block_source};
 
     #[test]
     fn test_block_source() {
@@ -187,14 +190,15 @@ mod tests {
     }
 
     fn alloc_dealloc(size: BlockSize) -> Result<(), BlockError> {
-        let block = alloc_block(size)?;
+        let block = Block::new(size)?;
 
         // the block address bitwise AND the alignment bits (size - 1) should
         // be a mutually exclusive set of bits
-        let lowbits_mask = size - 1;
-        assert!((block.ptr as usize & lowbits_mask) ^ lowbits_mask == lowbits_mask);
+        let mask = size - 1;
+        assert!((block.ptr as usize & mask) ^ mask == mask);
 
-        dealloc_block(block)
+        drop(block);
+        Ok(())
     }
 
     #[test]
