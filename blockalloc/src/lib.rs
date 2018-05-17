@@ -1,14 +1,14 @@
 #![cfg_attr(feature = "alloc", feature(alloc, allocator_api, global_allocator, heap_api))]
 
-#[cfg(feature = "alloc")]
-extern crate alloc;
-
 /// Turn on `--features "unstable"` for use of alloc crate and traits.
 /// Otherwise, platform-specific (Unix or Windows) system calls will
 /// be used to allocate block-aligned blocks.
 
 
-pub type BlockPtr = *mut u8;
+use std::ptr::NonNull;
+
+
+pub type BlockPtr = NonNull<u8>;
 pub type BlockSize = usize;
 
 
@@ -30,8 +30,12 @@ pub struct Block {
 
 
 impl Block {
-
+    /// Instantiate a new block of the given size. Size must be a power of two.
     pub fn new(size: BlockSize) -> Result<Block, BlockError> {
+        if !(size > 0 && (size & (size -1) == 0)) {
+            return Err(BlockError::BadRequest)
+        }
+
         Ok(Block {
             ptr: internal::alloc_block(size)?,
             size
@@ -48,7 +52,7 @@ impl Block {
         self.size
     }
 
-    /// Reassemble from pointer and size
+    /// Unsafely reassemble from pointer and size
     pub unsafe fn from_raw_parts(ptr: BlockPtr, size: BlockSize) -> Block {
         Block {
             ptr, size
@@ -81,7 +85,7 @@ pub fn block_source() -> BlockSource {
 #[cfg(feature = "alloc")]
 mod internal {
 
-    use alloc::heap::{Alloc, AllocErr, Global, Layout};
+    use std::alloc::{Alloc, Global, Layout};
     use std::ptr::NonNull;
     use {BlockError, BlockPtr, BlockSize, BlockSource};
 
@@ -94,18 +98,8 @@ mod internal {
             let layout = Layout::from_size_align_unchecked(size, size);
 
             match Global.alloc(layout) {
-                Ok(ptr) => Ok(ptr.as_ptr() as BlockPtr),
-/*
-                // TODO AllocErr API - how to use? The compiler complains
-                // that the enum variants are ambiguous or don't exist
-                // https://doc.rust-lang.org/std/heap/enum.AllocErr.html
-                Err(AllocErr::Exhausted {..}) {
-                    Err(BlockError::OOM)
-                }
-*/
-                Err(_) => {
-                     panic!("failed to allocate block!");
-                }
+                Ok(ptr) => Ok(NonNull::new_unchecked(ptr.as_ptr() as *mut u8)),
+                Err(_) => Err(BlockError::OOM)
             }
         }
     }
@@ -114,7 +108,7 @@ mod internal {
         unsafe {
             let layout = Layout::from_size_align_unchecked(size, size);
 
-            let ptr = NonNull::new_unchecked(ptr as *mut u8).as_opaque();
+            let ptr = ptr.as_opaque();
 
             Global.dealloc(ptr, layout);
         }
@@ -126,9 +120,9 @@ mod internal {
 mod internal {
     extern crate libc;
 
-    use {BlockError, BlockPtr, BlockSize, BlockSource};
     use self::libc::{c_void, EINVAL, ENOMEM, free, posix_memalign};
-    use std::ptr;
+    use std::ptr::{NonNull, null_mut};
+    use {BlockError, BlockPtr, BlockSize, BlockSource};
 
 
     pub const BLOCK_SOURCE: BlockSource = BlockSource::PosixMemalign;
@@ -136,11 +130,11 @@ mod internal {
 
     pub fn alloc_block(size: BlockSize) -> Result<BlockPtr, BlockError> {
         unsafe {
-            let mut address = ptr::null_mut();
+            let mut address = null_mut();
             let rval = posix_memalign(&mut address, size, size);
 
             match rval {
-                0 => Ok(address as BlockPtr),
+                0 => Ok(NonNull::new_unchecked(address as *mut u8)),
                 EINVAL => Err(BlockError::BadRequest),
                 ENOMEM => Err(BlockError::OOM),
                 _ => unreachable!()
@@ -150,7 +144,7 @@ mod internal {
 
     pub fn dealloc_block(ptr: BlockPtr, _size: BlockSize) {
         unsafe {
-            free(ptr as *mut c_void);
+            free(ptr.as_ptr() as *mut c_void);
         }
     }
 }
@@ -161,6 +155,7 @@ mod internal {
     // maybe? https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-malloc
 
     use {Block, BlockError, BlockPtr, BlockSize, BlockSource};
+
 
     pub fn alloc_block(size: BlockSize) -> Result<BlockPtr, BlockError> {
         // TODO
@@ -195,7 +190,7 @@ mod tests {
         // the block address bitwise AND the alignment bits (size - 1) should
         // be a mutually exclusive set of bits
         let mask = size - 1;
-        assert!((block.ptr as usize & mask) ^ mask == mask);
+        assert!((block.ptr.as_ptr() as usize & mask) ^ mask == mask);
 
         drop(block);
         Ok(())
