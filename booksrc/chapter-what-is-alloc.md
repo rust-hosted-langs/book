@@ -71,3 +71,7 @@ let size = (size_of::<T>() & !(word_size - 1)) + word_size;
 ```
 
 which rounds up the result of `size_of::<T>` to the nearest word size.
+
+For a more detailed explanation of the alignment adjustment calculation, see
+[phil-opp](https://github.com/phil-opp)'s kernel
+[heap allocator](https://os.phil-opp.com/kernel-heap/#alignment).
