@@ -58,6 +58,11 @@ impl Block {
             ptr, size
         }
     }
+
+    /// Return a bare pointer to the base of the block
+    pub fn as_ptr(&self) -> *const u8 {
+        self.ptr.as_ptr()
+    }
 }
 
 

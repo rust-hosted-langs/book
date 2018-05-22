@@ -121,5 +121,5 @@ size - that is, the block size minus one. A bitwise XOR will highlight any
 bits that shouldn't be set:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:192:193}}
+{{#include ../blockalloc/src/lib.rs:197:198}}
 ```

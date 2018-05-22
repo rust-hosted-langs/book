@@ -1,0 +1,7 @@
+[package]
+name = "naivegc"
+version = "0.1.0"
+authors = ["Peter Liniker <peter.liniker@gmail.com>"]
+
+[dependencies]
+blockalloc = { path = "../blockalloc/" }
