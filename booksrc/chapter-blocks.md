@@ -64,13 +64,13 @@ for any target.
 The allocation function, implemented in the `internal` mod, reads:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:96:105}}
+{{#include ../blockalloc/src/lib.rs:101:110}}
 ```
 
 And deallocation:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:107:115}}
+{{#include ../blockalloc/src/lib.rs:112:120}}
 ```
 
 
@@ -85,13 +85,13 @@ standard library function call which we can access in the
 [libc](https://docs.rs/libc/0.2.40/libc/fn.posix_memalign.html) crate.
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:131:143}}
+{{#include ../blockalloc/src/lib.rs:136:148}}
 ```
 
 Deallocation is done with the `free()` libc function:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:145:149}}
+{{#include ../blockalloc/src/lib.rs:150:154}}
 ```
 
 
@@ -100,13 +100,13 @@ Deallocation is done with the `free()` libc function:
 Allocation:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:160:162}}
+{{#include ../blockalloc/src/lib.rs:165:167}}
 ```
 
 Deallocation:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:164:166}}
+{{#include ../blockalloc/src/lib.rs:169:173}}
 ```
 
 
