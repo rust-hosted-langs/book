@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Writing Interpreters in Rust</title>
+        <title>Obtaining blocks of memory - Writing Interpreters in Rust</title>
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -69,7 +69,7 @@
         </script>
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
-            <ol class="chapter"><li><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><a href="part-allocators.html"><strong aria-hidden="true">2.</strong> Allocators</a></li><li><ol class="section"><li><a href="chapter-alignment.html"><strong aria-hidden="true">2.1.</strong> Alignment</a></li><li><a href="chapter-blocks.html"><strong aria-hidden="true">2.2.</strong> Obtaining blocks of memory</a></li><li><a href="chapter-what-is-alloc.html"><strong aria-hidden="true">2.3.</strong> The type of allocation</a></li><li><a href="chapter-simple-bump.html"><strong aria-hidden="true">2.4.</strong> Simple bump allocation</a></li></ol></li></ol>
+            <ol class="chapter"><li><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li><a href="part-allocators.html"><strong aria-hidden="true">2.</strong> Allocators</a></li><li><ol class="section"><li><a href="chapter-alignment.html"><strong aria-hidden="true">2.1.</strong> Alignment</a></li><li><a href="chapter-blocks.html" class="active"><strong aria-hidden="true">2.2.</strong> Obtaining blocks of memory</a></li><li><a href="chapter-what-is-alloc.html"><strong aria-hidden="true">2.3.</strong> The type of allocation</a></li><li><a href="chapter-simple-bump.html"><strong aria-hidden="true">2.4.</strong> Simple bump allocation</a></li></ol></li></ol>
         </nav>
 
         <div id="page-wrapper" class="page-wrapper">
@@ -133,80 +133,7 @@
 
                 <div id="content" class="content">
                     <main>
-                        <a class="header" href="print.html#introduction" id="introduction"><h1>Introduction</h1></a>
-<a class="header" href="print.html#allocators" id="allocators"><h1>Allocators</h1></a>
-<a class="header" href="print.html#alignment" id="alignment"><h1>Alignment</h1></a>
-<p>There be subtleties in alignment:</p>
-<ul>
-<li>Some hardware architectures and implementations may fault on unaligned
-memory access.</li>
-<li>Atomic operations require word-aligned access.</li>
-<li>SIMD operations typically require double-word-aligned access.</li>
-<li>In practice on 64 bit architectures, allocators align objects to 8 byte
-boundaries for 64 bit objects and smaller and 16 byte boundaries for larger
-objects for performance optimization and the above reasons.</li>
-</ul>
-<p>Intel 32 and 64 bit x86 architectures allow general access to be unaligned but
-will probably incur an access penalty. The story on 32bit ARM and aarch64 is
-sufficiently similar but there is a higher chance that an ARM core is
-configured to raise a bus error on a misaligned access.</p>
-<p>Another very important factor is atomic memory operations.
-Atomic access works on a whole word basis - any unaligned access by nature
-cannot be guaranteed to be atomic as it will probably involve more than one
-access.  To support atomic operations, alignment must be minmally on word
-boundaries.</p>
-<p>SIMD operations, tending to be 128 bits wide or higher, should be
-aligned to 16 byte boundaries for optimal code generation and performance.
-Unaligned loads and stores may be allowed but normally these incur
-performance penalties.</p>
-<p>While Intel allows unaligned access, the
-<a href="https://software.intel.com/sites/default/files/managed/9e/bc/64-ia-32-architectures-optimization-manual.pdf?wapkw=248966">recommended</a>
-(see section 3.6.4) alignment for objects larger than 64 bits is to 16 byte
-boundaries.</p>
-<p>Apparently system <code>malloc()</code> implementations
-<a href="http://www.erahm.org/2016/03/24/minimum-alignment-of-allocation-across-platforms/">tend to comply</a>
-with the 16 byte boundary.</p>
-<p>To verify the above, a rough test of both the system allocator and jemalloc
-on x86_64 by using <code>Box::new()</code> on a set of types (<code>u8</code>, <code>u16</code>, <code>u32</code>, <code>u64</code>,
-<code>String</code> and a larger <code>struct</code>) confirms a minimum of 8 byte alignment for
-anything word size or smaller and 16 byte alignment for everything bigger.
-Sample pointer printouts below are for jemalloc but Linux libc malloc produced
-the same pattern:</p>
-<pre><code>p=0x7fb78b421028 u8
-p=0x7fb78b421030 u16
-p=0x7fb78b421038 u32
-p=0x7fb78b421050 u64
-p=0x7fb78b420060 &quot;spam&quot;
-p=0x7fb78b4220f0 Hoge { y: 2, z: &quot;ほげ&quot;, x: 1 }
-</code></pre>
-<p>Compare with <code>std::mem::align_of&lt;T&gt;()</code> which, on x86_64 for example,
-returns alignment values:</p>
-<ul>
-<li><code>u8</code>: 1 byte</li>
-<li><code>u16</code>: 2 bytes</li>
-<li><code>u32</code>: 4 bytes</li>
-<li><code>u64</code>: 8 bytes</li>
-<li>any bigger struct: 8</li>
-</ul>
-<p>Thus despite the value of <code>std::mem::align_of::&lt;T&gt;()</code>, mature allocators will
-do what is most pragmatic and follow recommended practice in support of optimal
-performance.</p>
-<p>With all that in mind, to keep things simple, we'll align everything to a
-double-word boundaries. When we add in prepending an object header, the minimum
-memory required for an object will be two words anyway.</p>
-<p>Thus, the allocated size of an object will be determined by</p>
-<pre><pre class="playpen"><code class="language-rust">
-# #![allow(unused_variables)]
-#fn main() {
-let alignment = size_of::&lt;usize&gt;() * 2;
-// mask out the least significant bits that correspond to the alignment - 1
-// then add the full alignment
-let size = (size_of::&lt;T&gt;() &amp; !(alignment - 1)) + alignment;
-#}</code></pre></pre>
-<p>For a more detailed explanation of alignment adjustment calculations, see
-<a href="https://github.com/phil-opp">phil-opp</a>'s kernel
-<a href="https://os.phil-opp.com/kernel-heap/#alignment">heap allocator</a>.</p>
-<a class="header" href="print.html#obtaining-blocks-of-memory" id="obtaining-blocks-of-memory"><h1>Obtaining Blocks of Memory</h1></a>
+                        <a class="header" href="chapter-blocks.html#obtaining-blocks-of-memory" id="obtaining-blocks-of-memory"><h1>Obtaining Blocks of Memory</h1></a>
 <p>When requesting blocks of memory at a time, one of the questions is <em>what
 is the desired block alignment?</em></p>
 <ul>
@@ -218,7 +145,7 @@ block boundary and therefore the location of any block metadata.</li>
 </ul>
 <p>With both these in mind we'll look at how to allocate blocks that are
 aligned to the size of the block.</p>
-<a class="header" href="print.html#a-basic-crate-interface" id="a-basic-crate-interface"><h2>A basic crate interface</h2></a>
+<a class="header" href="chapter-blocks.html#a-basic-crate-interface" id="a-basic-crate-interface"><h2>A basic crate interface</h2></a>
 <p>A block of memory is defined as a base address and a size, so we need a struct
 that contains these elements.</p>
 <p>To wrap the base address pointer, we'll use the recommended type for building
@@ -271,7 +198,7 @@ pub enum BlockError {
 }
 #}</code></pre></pre>
 <p>Now on to the platform-specific implementations.</p>
-<a class="header" href="print.html#custom-aligned-allocation-on-unstable-rust" id="custom-aligned-allocation-on-unstable-rust"><h2>Custom aligned allocation on unstable Rust</h2></a>
+<a class="header" href="chapter-blocks.html#custom-aligned-allocation-on-unstable-rust" id="custom-aligned-allocation-on-unstable-rust"><h2>Custom aligned allocation on unstable Rust</h2></a>
 <p>On the unstable rustc channel we have access to the
 <a href="https://doc.rust-lang.org/alloc/allocator/trait.Alloc.html">Alloc</a> API. This
 is the ideal option since it abstracts platform specifics for us - with an
@@ -306,7 +233,7 @@ for any target.</p>
         }
     }
 #}</code></pre></pre>
-<a class="header" href="print.html#custom-aligned-allocation-on-stable-rust-on-unix-like-platforms" id="custom-aligned-allocation-on-stable-rust-on-unix-like-platforms"><h2>Custom aligned allocation on stable Rust on Unix-like platforms</h2></a>
+<a class="header" href="chapter-blocks.html#custom-aligned-allocation-on-stable-rust-on-unix-like-platforms" id="custom-aligned-allocation-on-stable-rust-on-unix-like-platforms"><h2>Custom aligned allocation on stable Rust on Unix-like platforms</h2></a>
 <p>As of writing, the stable Rust channel does not provide access directly to the
 allocation APIs in the previous section.  In order to get block-size
 aligned blocks of memory on stable on Unix-like platforms, we'll use
@@ -341,7 +268,7 @@ standard library function call which we can access in the
         }
     }
 #}</code></pre></pre>
-<a class="header" href="print.html#custom-aligned-allocation-in-stable-rust-on-windows" id="custom-aligned-allocation-in-stable-rust-on-windows"><h2>Custom aligned allocation in stable Rust on Windows</h2></a>
+<a class="header" href="chapter-blocks.html#custom-aligned-allocation-in-stable-rust-on-windows" id="custom-aligned-allocation-in-stable-rust-on-windows"><h2>Custom aligned allocation in stable Rust on Windows</h2></a>
 <p>Allocation:</p>
 <pre><pre class="playpen"><code class="language-rust">
 # #![allow(unused_variables)]
@@ -360,7 +287,7 @@ standard library function call which we can access in the
 }
 
 #}</code></pre></pre>
-<a class="header" href="print.html#testing" id="testing"><h2>Testing</h2></a>
+<a class="header" href="chapter-blocks.html#testing" id="testing"><h2>Testing</h2></a>
 <p>We want to be sure that the system level allocation APIs do indeed return
 block-size-aligned blocks. Checking for this is straightforward.</p>
 <p>A correctly aligned block should have it's low bits
@@ -373,37 +300,21 @@ bits that shouldn't be set:</p>
         let mask = size - 1;
         assert!((block.ptr.as_ptr() as usize &amp; mask) ^ mask == mask);
 #}</code></pre></pre>
-<a class="header" href="print.html#the-type-of-allocation" id="the-type-of-allocation"><h1>The type of allocation</h1></a>
-<p>Before we start writing objects into <code>Block</code>s, we need to know the nature of
-the interface in Rust terms.</p>
-<p>If we consider the global allocator in Rust, implicitly available via
-<code>Box::new()</code>, <code>Vec::new()</code> and so on, we'll notice that since the global
-allocator is available on every thread and allows the creation of new
-objects on the heap (that is, mutation of the heap) from any code location
-without needing to follow the rules of borrowing and mutable aliasing,
-it is essentially a container that implements <code>Sync</code> and the interior
-mutability pattern.</p>
-<p>We need to follow suit, but we'll leave <code>Sync</code> until later chapters.</p>
-<p>An interface that satisfies the interior mutability property might look
-like</p>
-<pre><pre class="playpen"><code class="language-rust">
-# #![allow(unused_variables)]
-#fn main() {
-trait AllocBare {
-    fn alloc&lt;T&gt;(object: T) -&gt; *const T;
-}
-#}</code></pre></pre>
-<p>naming it <code>AllocBare</code> because when layering on top of <code>Block</code> we'll
-work with bare pointers and not concern ourselves with the lifetime of
-allocated objects.</p>
-<a class="header" href="print.html#simple-bump-allocation" id="simple-bump-allocation"><h1>Simple bump allocation</h1></a>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
                         
+                            <a rel="prev" href="chapter-alignment.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
 
+                        
+                            <a rel="next" href="chapter-what-is-alloc.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
                         
 
                         <div style="clear: both"></div>
@@ -413,7 +324,15 @@ allocated objects.</p>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
                 
+                    <a href="chapter-alignment.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
 
+                
+                    <a href="chapter-what-is-alloc.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
                 
             </nav>
 
@@ -423,12 +342,6 @@ allocated objects.</p>
 
         
 
-        
-        <script type="text/javascript">
-            document.addEventListener('DOMContentLoaded', function() {
-                window.print();
-            })
-        </script>
         
 
         
