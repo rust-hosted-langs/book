@@ -1,20 +1,14 @@
 
 use std::cell::UnsafeCell;
-use std::mem::{replace, size_of};
+use std::mem::replace;
 use std::ptr::write;
 
-use blockalloc::{Block, BlockError, BlockSize};
+use blockalloc::{Block, BlockError};
 
-
-/// An allocation error type
-#[derive(Debug, PartialEq)]
-enum AllocError {
-    /// Some attribute of the allocation, most likely the size requested,
-    /// could not be fulfilled
-    BadRequest,
-    /// Out of memory - allocating the space failed
-    OOM,
-}
+use allocator::{AllocError, AllocRaw, alloc_size_of};
+use constants;
+use bitmap::Bitmap;
+use rawptr::RawPtr;
 
 
 impl From<BlockError> for AllocError {
@@ -27,34 +21,23 @@ impl From<BlockError> for AllocError {
 }
 
 
-/// A type that describes allocation of an object into a heap space, returning
-/// a bare pointer type on success
-trait AllocBare {
-    fn alloc<T>(&self, object: T) -> Result<*mut T, AllocError>;
-}
-
-
-/// Return the allocated size of an object as it's size_of::<T>() value rounded
-/// up to a double-word boundary
-fn alloc_size_of<T>() -> usize {
-    let align = size_of::<usize>() * 2;
-    (size_of::<T>() & !(align - 1)) + align
-}
-
-
-
 /// A block with it's bump-allocation offset
-struct BumpBlock {
+struct HeapBlock {
+    bump_start: usize,
+    bump_limit: usize,
     block: Block,
-    bump: usize,
+    line_mark: Bitmap
 }
 
 
-impl BumpBlock {
-    fn new(size: usize) -> Result<BumpBlock, AllocError> {
-        Ok(BumpBlock {
-            block: Block::new(size)?,
-            bump: 0
+impl HeapBlock {
+    /// Create a new block of heap space and it's metadata.
+    fn new() -> Result<HeapBlock, AllocError> {
+        Ok(HeapBlock {
+            bump_start: 0,
+            bump_limit: constants::BLOCK_SIZE,
+            block: Block::new(constants::BLOCK_SIZE)?,
+            line_mark: Bitmap::new(constants::LINE_SIZE)
         })
     }
 
@@ -72,13 +55,14 @@ impl BumpBlock {
     fn inner_alloc<T>(&mut self, object: T) -> Result<*mut T, T> {
         let size = alloc_size_of::<T>();
 
-        let next_bump = self.bump + size;
+        let next_bump = self.bump_start + size;
 
-        if next_bump > self.block.size() {
+        if next_bump > self.bump_limit {
+            // TODO find an available hole?
             Err(object)
         } else {
-            let offset = self.bump;
-            self.bump = next_bump;
+            let offset = self.bump_start;
+            self.bump_start = next_bump;
             Ok(unsafe { self.write(object, offset) })
         }
     }
@@ -88,8 +72,8 @@ impl BumpBlock {
 /// A list of blocks as the current block being allocated into and a list
 /// of full blocks
 struct BlockList {
-    head: Option<BumpBlock>,
-    rest: Vec<BumpBlock>,
+    head: Option<HeapBlock>,
+    rest: Vec<HeapBlock>,
 }
 
 
@@ -103,31 +87,29 @@ impl BlockList {
 }
 
 
-/// A type that implements `AllocBare` to provide a low-level heap interface.
+/// A type that implements `AllocRaw` to provide a low-level heap interface.
 /// Does not allocate internally on initialization.
 struct Heap {
     blocks: UnsafeCell<BlockList>,
-    block_size: BlockSize,
 }
 
 
 impl Heap {
-    pub fn new(block_size: BlockSize) -> Heap {
+    pub fn new() -> Heap {
         Heap {
             blocks: UnsafeCell::new(BlockList::new()),
-            block_size: block_size
         }
     }
 }
 
 
-impl AllocBare for Heap {
-    fn alloc<T>(&self, object: T) -> Result<*mut T, AllocError> {
+impl AllocRaw for Heap {
+    fn alloc<T>(&self, object: T) -> Result<RawPtr<T>, AllocError> {
         let blocks = unsafe { &mut *self.blocks.get() };
 
         // simply fail for objects larger than the block size
         let object_size = alloc_size_of::<T>();
-        if object_size > self.block_size {
+        if object_size > constants::BLOCK_SIZE {
             return Err(AllocError::BadRequest)
         }
 
@@ -135,26 +117,26 @@ impl AllocBare for Heap {
             Some(ref mut head) => {
 
                 match head.inner_alloc(object) {
-                    Ok(ptr) => return Ok(ptr),
+                    Ok(ptr) => return Ok(RawPtr::new(ptr)),
 
                     Err(object) => {
-                        let previous = replace(head, BumpBlock::new(self.block_size)?);
+                        let previous = replace(head, HeapBlock::new()?);
 
                         blocks.rest.push(previous);
 
                         if let Ok(ptr) = head.inner_alloc(object) {
-                            return Ok(ptr);
+                            return Ok(RawPtr::new(ptr));
                         }
                     }
                 }
             },
 
             None => {
-                let mut head = BumpBlock::new(self.block_size)?;
+                let mut head = HeapBlock::new()?;
 
                 if let Ok(ptr) = head.inner_alloc(object) {
                     blocks.head = Some(head);
-                    return Ok(ptr)
+                    return Ok(RawPtr::new(ptr))
                 }
                 // earlier check for object size < block size should
                 // mean we dont fall through to here
@@ -166,12 +148,9 @@ impl AllocBare for Heap {
 }
 
 
-const DEFAULT_BLOCK_SIZE: usize = 4096 * 8;
-
-
 impl Default for Heap {
     fn default() -> Heap {
-        Heap::new(DEFAULT_BLOCK_SIZE)
+        Heap::new()
     }
 }
 
@@ -182,13 +161,13 @@ mod tests {
     use super::*;
 
     struct Big {
-        _huge: [u8; DEFAULT_BLOCK_SIZE + 1]
+        _huge: [u8; constants::BLOCK_SIZE + 1]
     }
 
     impl Big {
         fn make() -> Big {
             Big {
-                _huge: [0u8; DEFAULT_BLOCK_SIZE + 1]
+                _huge: [0u8; constants::BLOCK_SIZE + 1]
             }
         }
     }
@@ -196,11 +175,11 @@ mod tests {
 
     #[test]
     fn test_memory() {
-        let mem = Heap::new(DEFAULT_BLOCK_SIZE);
+        let mem = Heap::new();
 
         match mem.alloc(String::from("foo")) {
             Ok(s) => {
-                let orig = unsafe { &*s };
+                let orig = unsafe { &*s.get() };
                 assert!(*orig == String::from("foo"));
             },
 
@@ -210,18 +189,18 @@ mod tests {
 
     #[test]
     fn test_too_big() {
-        let mem = Heap::new(DEFAULT_BLOCK_SIZE);
+        let mem = Heap::new();
         assert!(mem.alloc(Big::make()) == Err(AllocError::BadRequest));
     }
 
     #[test]
     fn test_many_obs() {
-        let mem = Heap::new(DEFAULT_BLOCK_SIZE);
+        let mem = Heap::new();
 
         let mut obs = Vec::new();
 
         // allocate a sequence of numbers
-        for i in 0..(DEFAULT_BLOCK_SIZE * 3) {
+        for i in 0..(constants::BLOCK_SIZE * 3) {
             match mem.alloc(i as usize) {
                 Err(_) => assert!(false, "Allocation failed unexpectedly"),
                 Ok(ptr) => obs.push(ptr),
@@ -231,7 +210,7 @@ mod tests {
         // check that all values of allocated words match the original
         // numbers written, that no heap corruption occurred
         for (i, ob) in obs.iter().enumerate() {
-            assert!(i == unsafe { **ob })
+            assert!(i == unsafe { *ob.get() })
         }
     }
 }

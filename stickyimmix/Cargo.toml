@@ -1,5 +1,5 @@
 [package]
-name = "naivegc"
+name = "simpleimmix"
 version = "0.1.0"
 authors = ["Peter Liniker <peter.liniker@gmail.com>"]
 

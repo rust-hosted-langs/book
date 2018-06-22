@@ -22,7 +22,7 @@ version = "0.2.40"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
-name = "naivegc"
+name = "simpleimmix"
 version = "0.1.0"
 dependencies = [
  "blockalloc 0.1.0",
