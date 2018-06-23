@@ -2,7 +2,7 @@
 extern crate blockalloc;
 
 mod allocator;
-mod bitmap;
+mod blockmeta;
 mod constants;
 mod heap;
 mod object;

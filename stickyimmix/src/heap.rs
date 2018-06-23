@@ -3,42 +3,54 @@ use std::cell::UnsafeCell;
 use std::mem::replace;
 use std::ptr::write;
 
-use blockalloc::{Block, BlockError};
+use blockalloc::{Block as RawBlock,
+                 BlockError as RawBlockError};
 
 use allocator::{AllocError, AllocRaw, alloc_size_of};
 use constants;
-use bitmap::Bitmap;
+use blockmeta::BlockMeta;
 use rawptr::RawPtr;
 
 
-impl From<BlockError> for AllocError {
-    fn from(error: BlockError) -> AllocError {
+impl From<RawBlockError> for AllocError {
+    fn from(error: RawBlockError) -> AllocError {
         match error {
-            BlockError::BadRequest => AllocError::BadRequest,
-            BlockError::OOM => AllocError::OOM,
+            RawBlockError::BadRequest => AllocError::BadRequest,
+            RawBlockError::OOM => AllocError::OOM,
         }
     }
 }
 
 
-/// A block with it's bump-allocation offset
-struct HeapBlock {
+/// A block of heap. This maintains the bump start and limit per block
+/// and the mark flags in a separate `meta` struct.  A pointer to the
+/// `meta`` struct is placed in the very first word of the block memory
+/// to provide fast access when in the object marking phase.
+/// Thus allocation in the first line of the block doesn't begin at
+/// offset 0 but after this `meta` pointer.
+struct Block {
     bump_start: usize,
     bump_limit: usize,
-    block: Block,
-    line_mark: Bitmap
+    block: RawBlock,
+    meta: Box<BlockMeta>,
 }
 
 
-impl HeapBlock {
-    /// Create a new block of heap space and it's metadata.
-    fn new() -> Result<HeapBlock, AllocError> {
-        Ok(HeapBlock {
-            bump_start: 0,
+impl Block {
+    /// Create a new block of heap space and it's metadata, placing a
+    /// pointer to the metadata in the first word of the block.
+    fn new() -> Result<Block, AllocError> {
+        let mut block = Block {
+            bump_start: alloc_size_of::<usize>(),
             bump_limit: constants::BLOCK_SIZE,
-            block: Block::new(constants::BLOCK_SIZE)?,
-            line_mark: Bitmap::new(constants::LINE_SIZE)
-        })
+            block: RawBlock::new(constants::BLOCK_SIZE)?,
+            meta: BlockMeta::new_boxed(),
+        };
+
+        let meta_ptr: *const BlockMeta = &*block.meta;
+        unsafe { block.write(meta_ptr, 0) };
+
+        Ok(block)
     }
 
     /// Write an object into the block at the given offset. The offset is not
@@ -72,8 +84,8 @@ impl HeapBlock {
 /// A list of blocks as the current block being allocated into and a list
 /// of full blocks
 struct BlockList {
-    head: Option<HeapBlock>,
-    rest: Vec<HeapBlock>,
+    head: Option<Block>,
+    rest: Vec<Block>,
 }
 
 
@@ -120,7 +132,7 @@ impl AllocRaw for Heap {
                     Ok(ptr) => return Ok(RawPtr::new(ptr)),
 
                     Err(object) => {
-                        let previous = replace(head, HeapBlock::new()?);
+                        let previous = replace(head, Block::new()?);
 
                         blocks.rest.push(previous);
 
@@ -132,7 +144,7 @@ impl AllocRaw for Heap {
             },
 
             None => {
-                let mut head = HeapBlock::new()?;
+                let mut head = Block::new()?;
 
                 if let Ok(ptr) = head.inner_alloc(object) {
                     blocks.head = Some(head);
