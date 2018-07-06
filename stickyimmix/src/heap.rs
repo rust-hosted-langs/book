@@ -13,6 +13,11 @@ use rawptr::RawPtr;
 struct BlockList {
     head: Option<Block>,
     rest: Vec<Block>,
+
+    // overflow: Vec<Block>.
+    // free: Vec<Block>,
+    // recycle: Vec<Block>
+    // large: Vec<Thing>
 }
 
 
@@ -47,15 +52,16 @@ impl AllocRaw for Heap {
         let blocks = unsafe { &mut *self.blocks.get() };
 
         // simply fail for objects larger than the block size
-        let object_size = alloc_size_of::<T>();
-        if object_size > constants::BLOCK_SIZE {
+        let alloc_size = alloc_size_of::<T>();
+
+        if alloc_size > constants::BLOCK_SIZE {
             return Err(AllocError::BadRequest)
         }
 
         match blocks.head {
             Some(ref mut head) => {
 
-                match head.inner_alloc(object) {
+                match head.inner_alloc(object, alloc_size) {
                     Ok(ptr) => return Ok(RawPtr::new(ptr)),
 
                     Err(object) => {
@@ -63,7 +69,7 @@ impl AllocRaw for Heap {
 
                         blocks.rest.push(previous);
 
-                        if let Ok(ptr) = head.inner_alloc(object) {
+                        if let Ok(ptr) = head.inner_alloc(object, alloc_size) {
                             return Ok(RawPtr::new(ptr));
                         }
                     }
@@ -73,7 +79,7 @@ impl AllocRaw for Heap {
             None => {
                 let mut head = Block::new()?;
 
-                if let Ok(ptr) = head.inner_alloc(object) {
+                if let Ok(ptr) = head.inner_alloc(object, alloc_size) {
                     blocks.head = Some(head);
                     return Ok(RawPtr::new(ptr))
                 }

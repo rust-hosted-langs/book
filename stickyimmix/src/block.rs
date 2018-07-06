@@ -60,15 +60,23 @@ impl Block {
 
     /// Write an object into the block at the internal bump-allocation offset,
     /// returning the object without allocating it if the result would
-    /// overflow the block.
-    pub fn inner_alloc<T>(&mut self, object: T) -> Result<*mut T, T> {
-        let size = alloc_size_of::<T>();
+    /// overflow the block or available holes.
+    pub fn inner_alloc<T>(&mut self, object: T, alloc_size: usize) -> Result<*mut T, T> {
 
-        let next_bump = self.cursor + size;
+        let next_bump = self.cursor + alloc_size;
 
         if next_bump > self.limit {
-            // TODO find an available hole?
+
+            if self.limit < constants::BLOCK_SIZE {
+                if let Some((cursor, limit)) = self.meta.find_next_available_hole(self.limit) {
+                    self.cursor = cursor;
+                    self.limit = limit;
+                    return self.inner_alloc(object, alloc_size);
+                }
+            }
+
             Err(object)
+
         } else {
             let offset = self.cursor;
             self.cursor = next_bump;

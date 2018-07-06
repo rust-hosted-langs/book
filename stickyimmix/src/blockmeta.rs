@@ -3,6 +3,7 @@
 use constants;
 
 
+/// Block marking metadata
 pub struct BlockMeta {
     line_mark: [bool; constants::LINE_COUNT],
     block_mark: bool,
@@ -10,6 +11,8 @@ pub struct BlockMeta {
 
 
 impl BlockMeta {
+    /// Heap allocate a metadata instance so that it doesn't move so we can store pointers
+    /// to it.
     pub fn new_boxed() -> Box<BlockMeta> {
         Box::new(BlockMeta {
             line_mark: [false; constants::LINE_COUNT],
@@ -17,14 +20,17 @@ impl BlockMeta {
         })
     }
 
+    /// Mark the indexed line
     pub fn mark_line(&mut self, index: usize) {
         self.line_mark[index] = true;
     }
 
+    /// Indicate the entire block as marked
     pub fn mark_block(&mut self) {
         self.block_mark = true;
     }
 
+    /// Reset all mark flags to unmarked.
     pub fn reset(&mut self) {
         for bit in self.line_mark.iter_mut() {
             *bit = false
@@ -32,7 +38,8 @@ impl BlockMeta {
         self.block_mark = false;
     }
 
-    pub fn iter<'it>(&'it self) -> impl Iterator<Item = &'it bool> {
+    /// Return an iterator over all the line mark flags
+    pub fn line_iter<'it>(&'it self) -> impl Iterator<Item = &'it bool> {
         self.line_mark.iter()
     }
 
@@ -55,25 +62,24 @@ impl BlockMeta {
             if !*marked {
                 count += 1;
 
+                // if this is the first line in a hole (and not the zeroth line), consider it
+                // conservatively marked and skip to the next line
+                if count == 1 && abs_index > 0 {
+                    continue;
+                }
+
                 // record the first hole index
                 if let None = start {
                     start = Some(abs_index);
                 }
 
-                // stop is the end of this line
+                // stop is now at the end of this line
                 stop = abs_index + 1;
-
-                // if this is the first hole (and not the zeroth line), consider it
-                // conservatively marked and get the next line as the start if it's
-                // unmarked
-                if abs_index > 0 && count == 1 {
-                    start = None;
-                }
             }
 
             // if reached a marked line or the end of the block, see if we have
             // a valid hole to work with
-            if *marked || stop >= constants::LINE_COUNT {
+            if count > 0 && (*marked || stop >= constants::LINE_COUNT) {
 
                 if let Some(start) = start {
                     let cursor = start * constants::LINE_SIZE;
