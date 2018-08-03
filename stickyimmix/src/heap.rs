@@ -1,6 +1,7 @@
 
 use std::cell::UnsafeCell;
 use std::mem::replace;
+use std::ptr::write;
 
 use allocator::{AllocError, AllocRaw, alloc_size_of};
 use block::Block;
@@ -54,41 +55,48 @@ impl AllocRaw for Heap {
         // simply fail for objects larger than the block size
         let alloc_size = alloc_size_of::<T>();
 
+        // TODO handle large objects
         if alloc_size > constants::BLOCK_SIZE {
             return Err(AllocError::BadRequest)
         }
 
-        match blocks.head {
+        let space = match blocks.head {
             Some(ref mut head) => {
 
-                match head.inner_alloc(object, alloc_size) {
-                    Ok(ptr) => return Ok(RawPtr::new(ptr)),
+                if alloc_size > constants::LINE_SIZE && alloc_size > head.current_hole_size() {
+                    // TODO use overflow
+                }
 
-                    Err(object) => {
+                match head.inner_alloc(alloc_size) {
+                    // the block has a suitable hole
+                    Some(space) => space,
+
+                    // the block does not have a suitable hole
+                    None => {
+                        // TODO this just allocates a new block, but should look at
+                        // recycled blocks first
                         let previous = replace(head, Block::new()?);
 
                         blocks.rest.push(previous);
 
-                        if let Ok(ptr) = head.inner_alloc(object, alloc_size) {
-                            return Ok(RawPtr::new(ptr));
-                        }
+                        head.inner_alloc(alloc_size).expect("Unexpected error!")
                     }
                 }
             },
 
+            // Newly created heap, no blocks allocated yet
             None => {
                 let mut head = Block::new()?;
 
-                if let Ok(ptr) = head.inner_alloc(object, alloc_size) {
-                    blocks.head = Some(head);
-                    return Ok(RawPtr::new(ptr))
-                }
                 // earlier check for object size < block size should
-                // mean we dont fall through to here
+                // mean we dont fail this expectation
+                head.inner_alloc(alloc_size).expect("Unexpected error!")
             },
-        }
+        } as *mut T;
 
-        Err(AllocError::OOM)
+        unsafe { write(space, object); }
+
+        Ok(RawPtr::new(space))
     }
 }
 
@@ -155,6 +163,7 @@ mod tests {
         // check that all values of allocated words match the original
         // numbers written, that no heap corruption occurred
         for (i, ob) in obs.iter().enumerate() {
+            println!("{} {}", i, unsafe { *ob.get() });
             assert!(i == unsafe { *ob.get() })
         }
     }

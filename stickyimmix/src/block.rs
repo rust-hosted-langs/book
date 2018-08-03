@@ -4,7 +4,7 @@ use std::ptr::write;
 use blockalloc::{Block as RawBlock,
                  BlockError as RawBlockError};
 
-use allocator::{AllocError, alloc_size_of};
+use allocator::AllocError;
 use blockmeta::BlockMeta;
 use constants;
 
@@ -38,7 +38,7 @@ impl Block {
     /// pointer to the metadata in the first word of the block.
     pub fn new() -> Result<Block, AllocError> {
         let mut block = Block {
-            cursor: alloc_size_of::<usize>(),
+            cursor: constants::FIRST_OBJECT_OFFSET,
             limit: constants::BLOCK_SIZE,
             block: RawBlock::new(constants::BLOCK_SIZE)?,
             meta: BlockMeta::new_boxed(),
@@ -52,16 +52,15 @@ impl Block {
 
     /// Write an object into the block at the given offset. The offset is not
     /// checked for overflow, hence this function is unsafe.
-    pub unsafe fn write<T>(&mut self, object: T, offset: usize) -> *mut T {
+    unsafe fn write<T>(&mut self, object: T, offset: usize) -> *mut T {
         let p = self.block.as_ptr().offset(offset as isize) as *mut T;
         write(p, object);
         p
     }
 
-    /// Write an object into the block at the internal bump-allocation offset,
-    /// returning the object without allocating it if the result would
-    /// overflow the block or available holes.
-    pub fn inner_alloc<T>(&mut self, object: T, alloc_size: usize) -> Result<*mut T, T> {
+    /// Find a hole of at least the requested size and return Some(pointer) to it, or
+    /// None if this block doesn't have a big enough hole.
+    pub fn inner_alloc(&mut self, alloc_size: usize) -> Option<*mut u8> {
 
         let next_bump = self.cursor + alloc_size;
 
@@ -71,16 +70,35 @@ impl Block {
                 if let Some((cursor, limit)) = self.meta.find_next_available_hole(self.limit) {
                     self.cursor = cursor;
                     self.limit = limit;
-                    return self.inner_alloc(object, alloc_size);
+                    return self.inner_alloc(alloc_size);
                 }
             }
 
-            Err(object)
+            None
 
         } else {
             let offset = self.cursor;
             self.cursor = next_bump;
-            Ok(unsafe { self.write(object, offset) })
+            unsafe { Some(self.block.as_ptr().offset(offset as isize) as *mut u8) }
         }
+    }
+
+    /// Return the size of the hole we're positioned at
+    pub fn current_hole_size(&self) -> usize {
+        self.limit - self.cursor
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn test_block() {
+        let mut b = Block::new().unwrap();
+
+        b.inner_alloc(4); // TODO
     }
 }
