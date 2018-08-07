@@ -95,10 +95,87 @@ mod tests {
 
     use super::*;
 
+    const TEST_UNIT_SIZE: usize = 8;
+
+    // Helper function: given the Block, fill all holes with u32 values
+    // and return the number of values allocated.
+    // Also assert that all allocated values are unchanged as allocation
+    // proceeds.
+    fn loop_check_allocate(b: &mut Block) -> usize {
+        let mut v = Vec::new();
+        let mut index = 0;
+
+        loop {
+            if let Some(ptr) = b.inner_alloc(TEST_UNIT_SIZE) {
+                let u32ptr = ptr as *mut u32;
+
+                assert!(!v.contains(&u32ptr));
+
+                v.push(u32ptr);
+                unsafe { *u32ptr = index }
+
+                index += 1;
+            } else {
+                break;
+            }
+        }
+
+        for (index, u32ptr) in v.iter().enumerate() {
+            unsafe {
+                assert!(**u32ptr == index as u32);
+            }
+        }
+
+        index as usize
+    }
+
     #[test]
-    fn test_block() {
+    fn test_empty_block() {
         let mut b = Block::new().unwrap();
 
-        b.inner_alloc(4); // TODO
+        let count = loop_check_allocate(&mut b);
+        let expect = (constants::BLOCK_SIZE - constants::FIRST_OBJECT_OFFSET) / TEST_UNIT_SIZE;
+
+        println!("expect={}, count={}", expect, count);
+        assert!(count == expect);
+    }
+
+    #[test]
+    fn test_half_block() {
+        // This block has an available hole as the second half of the block
+        let mut b = Block::new().unwrap();
+
+        for i in 0..(constants::LINE_COUNT / 2) {
+            b.meta.mark_line(i);
+        }
+
+        b.limit = b.cursor;  // block is recycled
+
+        let count = loop_check_allocate(&mut b);
+        let expect = (((constants::LINE_COUNT / 2) - 1) * constants::LINE_SIZE) / TEST_UNIT_SIZE;
+
+        println!("expect={}, count={}", expect, count);
+        assert!(count == expect);
+    }
+
+    #[test]
+    fn test_conservatively_marked_block() {
+        // This block has every other line marked, so the alternate lines are conservatively
+        // marked. Nothing should be allocated in this block.
+
+        let mut b = Block::new().unwrap();
+
+        for i in 0..constants::LINE_COUNT {
+            if i % 2 == 0 {
+                b.meta.mark_line(i);
+            }
+        }
+
+        b.limit = b.cursor;  // block is recycled
+
+        let count = loop_check_allocate(&mut b);
+
+        println!("count={}", count);
+        assert!(count == 0);
     }
 }

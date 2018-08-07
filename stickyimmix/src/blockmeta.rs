@@ -52,7 +52,7 @@ impl BlockMeta {
         let mut start: Option<usize> = None;
         let mut stop: usize = 0;
 
-        let starting_line = starting_at * constants::LINE_SIZE;
+        let starting_line = starting_at / constants::LINE_SIZE;
 
         for (index, marked) in self.line_mark[starting_line..].iter().enumerate() {
 
@@ -110,6 +110,9 @@ mod tests {
 
     #[test]
     fn test_find_next_hole() {
+        // A set of marked lines with a couple holes.
+        // The first hole should be seen as conservatively marked.
+        // The second hole should be the one selected.
         let mut meta = BlockMeta::new_boxed();
 
         meta.mark_line(0);
@@ -129,6 +132,7 @@ mod tests {
 
     #[test]
     fn test_find_next_hole_at_line_zero() {
+        // Should find the hole starting at the beginning of the block
         let mut meta = BlockMeta::new_boxed();
 
         meta.mark_line(3);
@@ -146,6 +150,8 @@ mod tests {
 
     #[test]
     fn test_find_next_hole_at_block_end() {
+        // The first half of the block is marked.
+        // The second half of the block should be identified as a hole.
         let mut meta = BlockMeta::new_boxed();
 
         let halfway = constants::LINE_COUNT / 2;
@@ -165,6 +171,8 @@ mod tests {
 
     #[test]
     fn test_find_hole_all_conservatively_marked() {
+        // Every other line is marked.
+        // No hole should be found.
         let mut meta = BlockMeta::new_boxed();
 
         for i in 0..constants::LINE_COUNT {
@@ -182,6 +190,7 @@ mod tests {
 
     #[test]
     fn test_find_entire_block() {
+        // No marked lines. Entire block is available.
         let meta = BlockMeta::new_boxed();
 
         let expect = Some((0, constants::BLOCK_SIZE));
