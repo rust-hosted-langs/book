@@ -106,6 +106,7 @@ mod tests {
         let mut index = 0;
 
         loop {
+            println!("cursor={}, limit={}", b.cursor, b.limit);
             if let Some(ptr) = b.inner_alloc(TEST_UNIT_SIZE) {
                 let u32ptr = ptr as *mut u32;
 

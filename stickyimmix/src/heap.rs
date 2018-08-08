@@ -90,7 +90,11 @@ impl AllocRaw for Heap {
 
                 // earlier check for object size < block size should
                 // mean we dont fail this expectation
-                head.inner_alloc(alloc_size).expect("Unexpected error!")
+                let space = head.inner_alloc(alloc_size).expect("Unexpected error!");
+
+                blocks.head = Some(head);
+
+                space
             },
         } as *mut T;
 

@@ -53,6 +53,8 @@ impl BlockMeta {
         let mut stop: usize = 0;
 
         let starting_line = starting_at / constants::LINE_SIZE;
+        //  make sure this is on a line boundary
+        let starting_at = starting_line * constants::LINE_SIZE;
 
         for (index, marked) in self.line_mark[starting_line..].iter().enumerate() {
 
