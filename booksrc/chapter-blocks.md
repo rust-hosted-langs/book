@@ -85,13 +85,13 @@ standard library function call which we can access in the
 [libc](https://docs.rs/libc/0.2.40/libc/fn.posix_memalign.html) crate.
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:136:148}}
+{{#include ../blockalloc/src/lib.rs:134:146}}
 ```
 
 Deallocation is done with the `free()` libc function:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:150:154}}
+{{#include ../blockalloc/src/lib.rs:148:152}}
 ```
 
 
@@ -100,13 +100,13 @@ Deallocation is done with the `free()` libc function:
 Allocation:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:165:167}}
+{{#include ../blockalloc/src/lib.rs:163:165}}
 ```
 
 Deallocation:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:169:173}}
+{{#include ../blockalloc/src/lib.rs:167:169}}
 ```
 
 
@@ -121,5 +121,5 @@ size - that is, the block size minus one. A bitwise XOR will highlight any
 bits that shouldn't be set:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:197:198}}
+{{#include ../blockalloc/src/lib.rs:195:196}}
 ```

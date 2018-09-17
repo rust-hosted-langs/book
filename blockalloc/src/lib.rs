@@ -1,4 +1,4 @@
-#![cfg_attr(feature = "alloc", feature(alloc, allocator_api, global_allocator, heap_api))]
+#![cfg_attr(feature = "alloc", feature(alloc, allocator_api))]
 
 /// Turn on `--features "unstable"` for use of alloc crate and traits.
 /// Otherwise, platform-specific (Unix or Windows) system calls will
@@ -112,8 +112,6 @@ mod internal {
     pub fn dealloc_block(ptr: BlockPtr, size: BlockSize) {
         unsafe {
             let layout = Layout::from_size_align_unchecked(size, size);
-
-            let ptr = ptr.as_opaque();
 
             Global.dealloc(ptr, layout);
         }
