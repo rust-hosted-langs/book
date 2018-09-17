@@ -10,5 +10,6 @@ mod object;
 mod rawptr;
 
 
-pub use heap::Heap;
 pub use allocator::{AllocError, AllocRaw};
+pub use heap::Heap;
+pub use rawptr::RawPtr;
