@@ -1,19 +1,18 @@
 
 use std::ptr::write;
 
-use blockalloc::{Block as RawBlock,
-                 BlockError as RawBlockError};
+use blockalloc::{Block, BlockError};
 
 use allocator::AllocError;
 use blockmeta::BlockMeta;
 use constants;
 
 
-impl From<RawBlockError> for AllocError {
-    fn from(error: RawBlockError) -> AllocError {
+impl From<BlockError> for AllocError {
+    fn from(error: BlockError) -> AllocError {
         match error {
-            RawBlockError::BadRequest => AllocError::BadRequest,
-            RawBlockError::OOM => AllocError::OOM,
+            BlockError::BadRequest => AllocError::BadRequest,
+            BlockError::OOM => AllocError::OOM,
         }
     }
 }
@@ -25,22 +24,22 @@ impl From<RawBlockError> for AllocError {
 /// to provide fast access when in the object marking phase.
 /// Thus allocation in the first line of the block doesn't begin at
 /// offset 0 but after this `meta` pointer.
-pub struct Block {
+pub struct BumpBlock {
     cursor: usize,
     limit: usize,
-    block: RawBlock,
+    block: Block,
     meta: Box<BlockMeta>,
 }
 
 
-impl Block {
+impl BumpBlock {
     /// Create a new block of heap space and it's metadata, placing a
     /// pointer to the metadata in the first word of the block.
-    pub fn new() -> Result<Block, AllocError> {
-        let mut block = Block {
+    pub fn new() -> Result<BumpBlock, AllocError> {
+        let mut block = BumpBlock {
             cursor: constants::FIRST_OBJECT_OFFSET,
             limit: constants::BLOCK_SIZE,
-            block: RawBlock::new(constants::BLOCK_SIZE)?,
+            block: Block::new(constants::BLOCK_SIZE)?,
             meta: BlockMeta::new_boxed(),
         };
 
@@ -101,7 +100,7 @@ mod tests {
     // and return the number of values allocated.
     // Also assert that all allocated values are unchanged as allocation
     // proceeds.
-    fn loop_check_allocate(b: &mut Block) -> usize {
+    fn loop_check_allocate(b: &mut BumpBlock) -> usize {
         let mut v = Vec::new();
         let mut index = 0;
 
@@ -132,7 +131,7 @@ mod tests {
 
     #[test]
     fn test_empty_block() {
-        let mut b = Block::new().unwrap();
+        let mut b = BumpBlock::new().unwrap();
 
         let count = loop_check_allocate(&mut b);
         let expect = (constants::BLOCK_SIZE - constants::FIRST_OBJECT_OFFSET) / TEST_UNIT_SIZE;
@@ -144,7 +143,7 @@ mod tests {
     #[test]
     fn test_half_block() {
         // This block has an available hole as the second half of the block
-        let mut b = Block::new().unwrap();
+        let mut b = BumpBlock::new().unwrap();
 
         for i in 0..(constants::LINE_COUNT / 2) {
             b.meta.mark_line(i);
@@ -164,7 +163,7 @@ mod tests {
         // This block has every other line marked, so the alternate lines are conservatively
         // marked. Nothing should be allocated in this block.
 
-        let mut b = Block::new().unwrap();
+        let mut b = BumpBlock::new().unwrap();
 
         for i in 0..constants::LINE_COUNT {
             if i % 2 == 0 {

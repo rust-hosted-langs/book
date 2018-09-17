@@ -1,0 +1,38 @@
+# TODO
+
+
+* Alloc trait:
+
+```
+pub trait AllocRaw<H: ObjectHeader> {
+    fn alloc<T>(&self, header: H, object: T) -> Result<RawPtr<H, T>, AllocError>;
+}
+
+struct RawPtr<H: ObjectHeader, T> {...}
+
+impl<T> RawPtr<T> {
+    fn get_header(&self) -> *const H;
+}
+```
+
+
+
+* keep some empty blocks in the free list
+* allocate medium objects into overflow if no hole in current block
+* keep track of large objects individually
+
+
+Later:
+* order blocks by base address, maybe use BTreeMap
+
+
+Need a TaggedPtr which turns compile-time type info into runtime type info
+
+
+* GC traits:
+  * Trace
+  * RootsIterMut
+
+Need a roots abstraction where stacks and their roots etc are visible from
+the GC
+* RootsIterMut::Item = &mut TaggedPtr

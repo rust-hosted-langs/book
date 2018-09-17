@@ -4,7 +4,7 @@ use std::mem::replace;
 use std::ptr::write;
 
 use allocator::{AllocError, AllocRaw, alloc_size_of};
-use block::Block;
+use bumpblock::BumpBlock;
 use constants;
 use rawptr::RawPtr;
 
@@ -12,12 +12,12 @@ use rawptr::RawPtr;
 /// A list of blocks as the current block being allocated into and a list
 /// of full blocks
 struct BlockList {
-    head: Option<Block>,
-    rest: Vec<Block>,
+    head: Option<BumpBlock>,
+    rest: Vec<BumpBlock>,
 
-    // overflow: Vec<Block>.
-    // free: Vec<Block>,
-    // recycle: Vec<Block>
+    // overflow: Vec<BumpBlock>.
+    // free: Vec<BumpBlock>,
+    // recycle: Vec<BumpBlock>
     // large: Vec<Thing>
 }
 
@@ -34,7 +34,7 @@ impl BlockList {
 
 /// A type that implements `AllocRaw` to provide a low-level heap interface.
 /// Does not allocate internally on initialization.
-struct Heap {
+pub struct Heap {
     blocks: UnsafeCell<BlockList>,
 }
 
@@ -75,7 +75,7 @@ impl AllocRaw for Heap {
                     None => {
                         // TODO this just allocates a new block, but should look at
                         // recycled blocks first
-                        let previous = replace(head, Block::new()?);
+                        let previous = replace(head, BumpBlock::new()?);
 
                         blocks.rest.push(previous);
 
@@ -86,7 +86,7 @@ impl AllocRaw for Heap {
 
             // Newly created heap, no blocks allocated yet
             None => {
-                let mut head = Block::new()?;
+                let mut head = BumpBlock::new()?;
 
                 // earlier check for object size < block size should
                 // mean we dont fail this expectation
