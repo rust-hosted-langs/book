@@ -1,9 +1,10 @@
 
 use std::cell::UnsafeCell;
+use std::marker::PhantomData;
 use std::mem::replace;
 use std::ptr::write;
 
-use allocator::{AllocError, AllocRaw, alloc_size_of};
+use allocator::{AllocError, AllocRaw, AllocHeader, alloc_size_of};
 use bumpblock::BumpBlock;
 use constants;
 use rawptr::RawPtr;
@@ -34,21 +35,26 @@ impl BlockList {
 
 /// A type that implements `AllocRaw` to provide a low-level heap interface.
 /// Does not allocate internally on initialization.
-pub struct Heap {
+pub struct Heap<H> {
     blocks: UnsafeCell<BlockList>,
+
+    _header_type: PhantomData<*const H>
 }
 
 
-impl Heap {
-    pub fn new() -> Heap {
+impl<H> Heap<H> {
+    pub fn new() -> Heap<H> {
         Heap {
             blocks: UnsafeCell::new(BlockList::new()),
+            _header_type: PhantomData
         }
     }
 }
 
 
-impl AllocRaw for Heap {
+impl<H: AllocHeader> AllocRaw for Heap<H> {
+    type Header = H;
+
     fn alloc<T>(&self, object: T) -> Result<RawPtr<T>, AllocError> {
         let blocks = unsafe { &mut *self.blocks.get() };
 
@@ -105,8 +111,8 @@ impl AllocRaw for Heap {
 }
 
 
-impl Default for Heap {
-    fn default() -> Heap {
+impl<H> Default for Heap<H> {
+    fn default() -> Heap<H> {
         Heap::new()
     }
 }
@@ -116,6 +122,22 @@ impl Default for Heap {
 mod tests {
 
     use super::*;
+    use allocator::{Mark, SizeClass};
+
+    struct TestHeader;
+
+    impl AllocHeader for TestHeader {
+        fn new(_s: SizeClass, _m: Mark) -> TestHeader {
+            TestHeader {}
+        }
+
+        fn mark(&mut self) {}
+
+        fn is_marked(&self) -> bool { true }
+
+        fn size_class(&self) -> SizeClass { SizeClass::Small }
+    }
+
 
     struct Big {
         _huge: [u8; constants::BLOCK_SIZE + 1]
@@ -132,7 +154,7 @@ mod tests {
 
     #[test]
     fn test_memory() {
-        let mem = Heap::new();
+        let mem = Heap::<TestHeader>::new();
 
         match mem.alloc(String::from("foo")) {
             Ok(s) => {
@@ -146,13 +168,13 @@ mod tests {
 
     #[test]
     fn test_too_big() {
-        let mem = Heap::new();
+        let mem = Heap::<TestHeader>::new();
         assert!(mem.alloc(Big::make()) == Err(AllocError::BadRequest));
     }
 
     #[test]
     fn test_many_obs() {
-        let mem = Heap::new();
+        let mem = Heap::<TestHeader>::new();
 
         let mut obs = Vec::new();
 

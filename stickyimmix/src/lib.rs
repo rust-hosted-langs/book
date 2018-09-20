@@ -6,10 +6,9 @@ mod blockmeta;
 mod bumpblock;
 mod constants;
 mod heap;
-mod object;
 mod rawptr;
 
 
-pub use allocator::{AllocError, AllocRaw};
+pub use allocator::{AllocError, AllocRaw, AllocHeader, Mark, SizeClass};
 pub use heap::Heap;
 pub use rawptr::RawPtr;
