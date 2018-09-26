@@ -1,11 +1,16 @@
 
-/// A container for a bare pointer to an object of type `T`
+use allocator::AllocHeader;
+
+/// A container for a bare pointer to an object of type `T`.
+/// At this level, compile-time type information is still
+/// part of the type.
 pub struct RawPtr<T: Sized> {
     ptr: *const T
 }
 
 
 impl<T: Sized> RawPtr<T> {
+    /// Create a new RawPtr from a bare pointer
     pub fn new(ptr: *const T) -> RawPtr<T> {
         RawPtr {
             ptr
@@ -18,6 +23,13 @@ impl<T: Sized> RawPtr<T> {
 
     pub fn get_mut(&mut self) -> *mut T {
         self.ptr as *mut T
+    }
+
+    /// XXX TODO TODO
+    /// Return a pointer to the object's header, which contains allocation,
+    /// garbage collection and type metadata.
+    pub unsafe fn get_header<H: AllocHeader>(&self) -> *const H {
+        unimplemented!()
     }
 }
 
