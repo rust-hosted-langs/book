@@ -1,5 +1,4 @@
 
-use allocator::AllocHeader;
 
 /// A container for a bare pointer to an object of type `T`.
 /// At this level, compile-time type information is still
@@ -23,13 +22,6 @@ impl<T: Sized> RawPtr<T> {
 
     pub fn get_mut(&mut self) -> *mut T {
         self.ptr as *mut T
-    }
-
-    /// XXX TODO TODO
-    /// Return a pointer to the object's header, which contains allocation,
-    /// garbage collection and type metadata.
-    pub unsafe fn get_header<H: AllocHeader>(&self) -> *const H {
-        unimplemented!()
     }
 }
 

@@ -22,6 +22,8 @@ pub trait AllocRaw {
     type Header: AllocHeader;
 
     fn alloc<T>(&self, object: T) -> Result<RawPtr<T>, AllocError>;
+
+    fn get_header(*const ()) -> Self::Header;
 }
 
 
@@ -37,9 +39,8 @@ pub enum SizeClass {
 }
 
 
-/// Object mark bit.
+/// TODO Object mark bit.
 /// Every object is `Allocated` on creation.
-/// The GC can switch between `Black` and `White` to mean "marked"
 #[repr(u8)]
 pub enum Mark {
     Allocated,

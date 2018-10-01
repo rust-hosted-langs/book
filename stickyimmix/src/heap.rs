@@ -108,6 +108,11 @@ impl<H: AllocHeader> AllocRaw for Heap<H> {
 
         Ok(RawPtr::new(space))
     }
+
+    /// Return the object header for a given object pointer
+    fn get_header(_object: *const ()) -> Self::Header {
+        unimplemented!() // TODO
+    }
 }
 
 
