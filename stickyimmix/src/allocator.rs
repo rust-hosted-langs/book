@@ -32,6 +32,7 @@ pub trait AllocRaw {
 /// - Medium objects span more than one line
 /// - Large objects span multiple blocks
 #[repr(u8)]
+#[derive(Debug, PartialEq)]
 pub enum SizeClass {
     Small,
     Medium,
@@ -42,19 +43,23 @@ pub enum SizeClass {
 /// TODO Object mark bit.
 /// Every object is `Allocated` on creation.
 #[repr(u8)]
+#[derive(Debug, PartialEq)]
 pub enum Mark {
     Allocated,
-    Black,
-    White,
+    Unmarked,
+    Marked,
 }
 
 
-/// An allocation header struct must provide an implementation of this trait,
+/// All managed object types must implement this trait in order to be allocatable
+pub trait ManagedObject<H: AllocHeader> {
+    fn create_header(size: usize, size_class: SizeClass, mark_bit: Mark) -> H;
+}
+
+
+/// An object header struct must provide an implementation of this trait,
 /// providing appropriate information to the garbage collector.
 pub trait AllocHeader {
-    /// Initialize a new header with the given attributes and return it
-    fn new(size_class: SizeClass, mark_bit: Mark) -> Self;
-
     /// Set the Mark value to "marked"
     fn mark(&mut self);
 

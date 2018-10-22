@@ -132,10 +132,6 @@ mod tests {
     struct TestHeader;
 
     impl AllocHeader for TestHeader {
-        fn new(_s: SizeClass, _m: Mark) -> TestHeader {
-            TestHeader {}
-        }
-
         fn mark(&mut self) {}
 
         fn is_marked(&self) -> bool { true }
