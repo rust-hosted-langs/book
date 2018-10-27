@@ -5,7 +5,7 @@ use rawptr::RawPtr;
 
 
 /// An allocation error type
-#[derive(Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum AllocError {
     /// Some attribute of the allocation, most likely the size requested,
     /// could not be fulfilled or a block line size is not a divisor of
@@ -38,7 +38,7 @@ pub trait AllocRaw {
 /// - Medium objects span more than one line
 /// - Large objects span multiple blocks
 #[repr(u8)]
-#[derive(Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum SizeClass {
     Small,
     Medium,
@@ -49,7 +49,7 @@ pub enum SizeClass {
 /// TODO Object mark bit.
 /// Every object is `Allocated` on creation.
 #[repr(u8)]
-#[derive(Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum Mark {
     Allocated,
     Unmarked,
