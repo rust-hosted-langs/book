@@ -35,16 +35,16 @@ impl BlockList {
 
 /// A type that implements `AllocRaw` to provide a low-level heap interface.
 /// Does not allocate internally on initialization.
-pub struct Heap<H> {
+pub struct StickyImmixHeap<H> {
     blocks: UnsafeCell<BlockList>,
 
     _header_type: PhantomData<*const H>
 }
 
 
-impl<H> Heap<H> {
-    pub fn new() -> Heap<H> {
-        Heap {
+impl<H> StickyImmixHeap<H> {
+    pub fn new() -> StickyImmixHeap<H> {
+        StickyImmixHeap {
             blocks: UnsafeCell::new(BlockList::new()),
             _header_type: PhantomData
         }
@@ -52,7 +52,7 @@ impl<H> Heap<H> {
 }
 
 
-impl<H: AllocHeader> AllocRaw for Heap<H> {
+impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
     type Header = H;
 
     fn alloc<T>(&self, object: T) -> Result<RawPtr<T>, AllocError> {
@@ -110,15 +110,20 @@ impl<H: AllocHeader> AllocRaw for Heap<H> {
     }
 
     /// Return the object header for a given object pointer
-    fn get_header(_object: *const ()) -> Self::Header {
+    fn get_header(_object: *const ()) -> *const Self::Header {
+        unimplemented!() // TODO
+    }
+
+    /// Return the object from it's header address
+    fn get_object(_header: *const Self::Header) -> *const () {
         unimplemented!() // TODO
     }
 }
 
 
-impl<H> Default for Heap<H> {
-    fn default() -> Heap<H> {
-        Heap::new()
+impl<H> Default for StickyImmixHeap<H> {
+    fn default() -> StickyImmixHeap<H> {
+        StickyImmixHeap::new()
     }
 }
 
@@ -160,7 +165,7 @@ mod tests {
 
     #[test]
     fn test_memory() {
-        let mem = Heap::<TestHeader>::new();
+        let mem = StickyImmixHeap::<TestHeader>::new();
 
         match mem.alloc(String::from("foo")) {
             Ok(s) => {
@@ -174,13 +179,13 @@ mod tests {
 
     #[test]
     fn test_too_big() {
-        let mem = Heap::<TestHeader>::new();
+        let mem = StickyImmixHeap::<TestHeader>::new();
         assert!(mem.alloc(Big::make()) == Err(AllocError::BadRequest));
     }
 
     #[test]
     fn test_many_obs() {
-        let mem = Heap::<TestHeader>::new();
+        let mem = StickyImmixHeap::<TestHeader>::new();
 
         let mut obs = Vec::new();
 

@@ -19,11 +19,17 @@ pub enum AllocError {
 /// A type that describes allocation of an object into a heap space, returning
 /// a bare pointer type on success
 pub trait AllocRaw {
+    /// An implementation of an object header type
     type Header: AllocHeader;
 
+    /// Allocate a single object of type T
     fn alloc<T>(&self, object: T) -> Result<RawPtr<T>, AllocError>;
 
-    fn get_header(*const ()) -> Self::Header;
+    /// Given a bare pointer to an object, return the expected header address
+    fn get_header(*const ()) -> *const Self::Header;
+
+    /// Given a bare pointer to an object's header, return the expected object address
+    fn get_object(header: *const Self::Header) -> *const ();
 }
 
 

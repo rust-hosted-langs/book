@@ -16,5 +16,7 @@ pub use allocator::{AllocError,
                     AllocTypeId,
                     Mark,
                     SizeClass};
-pub use heap::Heap;
+
+pub use heap::StickyImmixHeap;
+
 pub use rawptr::RawPtr;
