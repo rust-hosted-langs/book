@@ -51,15 +51,22 @@ pub enum Mark {
 }
 
 
+/// A managed-type type-identifier type should implement this!
+pub trait AllocTypeId {}
+
+
 /// All managed object types must implement this trait in order to be allocatable
-pub trait ManagedObject<H: AllocHeader> {
-    fn create_header(size: usize, size_class: SizeClass, mark_bit: Mark) -> H;
+pub trait AllocObject<T: AllocTypeId> {
+   const TYPE_ID: T;
 }
 
 
 /// An object header struct must provide an implementation of this trait,
 /// providing appropriate information to the garbage collector.
 pub trait AllocHeader {
+    /// Associated type that identifies the allocated object type
+    type TypeId: AllocTypeId;
+
     /// Set the Mark value to "marked"
     fn mark(&mut self);
 

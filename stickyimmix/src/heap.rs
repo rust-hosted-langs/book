@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 use std::mem::replace;
 use std::ptr::write;
 
-use allocator::{AllocError, AllocRaw, AllocHeader, alloc_size_of};
+use allocator::{AllocError, AllocTypeId, AllocRaw, AllocHeader, alloc_size_of};
 use bumpblock::BumpBlock;
 use constants;
 use rawptr::RawPtr;
@@ -127,11 +127,16 @@ impl<H> Default for Heap<H> {
 mod tests {
 
     use super::*;
-    use allocator::{Mark, SizeClass};
+    use allocator::{SizeClass};
 
     struct TestHeader;
 
+    struct TestTypeId;
+    impl AllocTypeId for TestTypeId {}
+
     impl AllocHeader for TestHeader {
+        type TypeId = TestTypeId;
+
         fn mark(&mut self) {}
 
         fn is_marked(&self) -> bool { true }

@@ -9,6 +9,12 @@ mod heap;
 mod rawptr;
 
 
-pub use allocator::{AllocError, AllocRaw, AllocHeader, ManagedObject, Mark, SizeClass};
+pub use allocator::{AllocError,
+                    AllocHeader,
+                    AllocObject,
+                    AllocRaw,
+                    AllocTypeId,
+                    Mark,
+                    SizeClass};
 pub use heap::Heap;
 pub use rawptr::RawPtr;
