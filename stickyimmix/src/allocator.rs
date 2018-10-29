@@ -73,6 +73,9 @@ pub trait AllocHeader {
     /// Associated type that identifies the allocated object type
     type TypeId: AllocTypeId;
 
+    /// Create a new header
+    fn new<O: AllocObject<Self::TypeId>>(size: u32, size_class: SizeClass, mark: Mark) -> Self;
+
     /// Set the Mark value to "marked"
     fn mark(&mut self);
 
@@ -89,7 +92,12 @@ pub trait AllocHeader {
 
 /// Return the allocated size of an object as it's size_of::<T>() value rounded
 /// up to a double-word boundary
-pub fn alloc_size_of<T>() -> usize {
-    let align = size_of::<usize>() * 2;
-    (size_of::<T>() & !(align - 1)) + align
+///
+/// TODO this isn't currently implemented, as aligning the object to a double-word
+/// boundary while considering header size (which is not known to this libarary
+/// until compile time) means touching numerous bump-allocation code points with
+/// some math and bitwise ops I haven't worked out yet
+pub fn alloc_size_of(object_size: usize) -> usize {
+    let align = size_of::<usize>(); // * 2;
+    (object_size + (align - 1)) & !(align - 1)
 }

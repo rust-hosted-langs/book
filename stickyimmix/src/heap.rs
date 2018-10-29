@@ -1,7 +1,7 @@
 
 use std::cell::UnsafeCell;
 use std::marker::PhantomData;
-use std::mem::replace;
+use std::mem::{replace, size_of};
 use std::ptr::write;
 
 use allocator::{AllocError, AllocTypeId, AllocRaw, AllocHeader, alloc_size_of};
@@ -58,11 +58,13 @@ impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
     fn alloc<T>(&self, object: T) -> Result<RawPtr<T>, AllocError> {
         let blocks = unsafe { &mut *self.blocks.get() };
 
-        // simply fail for objects larger than the block size
-        let alloc_size = alloc_size_of::<T>();
+        let header_size = size_of::<Self::Header>();
+        let object_size = size_of::<T>();
+        let alloc_size = alloc_size_of(header_size + object_size);
 
         // TODO handle large objects
         if alloc_size > constants::BLOCK_SIZE {
+            // simply fail for objects larger than the block size
             return Err(AllocError::BadRequest)
         }
 
@@ -132,7 +134,7 @@ impl<H> Default for StickyImmixHeap<H> {
 mod tests {
 
     use super::*;
-    use allocator::{SizeClass};
+    use allocator::{AllocObject, Mark, SizeClass};
 
     struct TestHeader;
 
@@ -141,6 +143,10 @@ mod tests {
 
     impl AllocHeader for TestHeader {
         type TypeId = TestTypeId;
+
+        fn new<O: AllocObject<Self::TypeId>>(_size: u32, _size_class: SizeClass, _mark: Mark) -> Self {
+            TestHeader {}
+        }
 
         fn mark(&mut self) {}
 
