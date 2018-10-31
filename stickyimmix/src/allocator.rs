@@ -85,6 +85,9 @@ pub trait AllocHeader {
     /// Get the size class of the object
     fn size_class(&self) -> SizeClass;
 
+    /// Get the size of the object in bytes
+    fn size(&self) -> u32;
+
     // TODO tracing information
     // e.g. fn tracer(&self) -> Fn()
 }

@@ -153,6 +153,8 @@ mod tests {
         fn is_marked(&self) -> bool { true }
 
         fn size_class(&self) -> SizeClass { SizeClass::Small }
+
+        fn size(&self) -> u32 { 8 }
     }
 
 
