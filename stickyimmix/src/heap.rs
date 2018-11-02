@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 use std::mem::{replace, size_of};
 use std::ptr::write;
 
-use allocator::{AllocError, AllocTypeId, AllocRaw, AllocHeader, alloc_size_of};
+use allocator::{AllocError, AllocObject, AllocTypeId, AllocRaw, AllocHeader, alloc_size_of, Mark, SizeClass};
 use bumpblock::BumpBlock;
 use constants;
 use rawptr::RawPtr;
@@ -55,15 +55,20 @@ impl<H> StickyImmixHeap<H> {
 impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
     type Header = H;
 
-    fn alloc<T>(&self, object: T) -> Result<RawPtr<T>, AllocError> {
+    fn alloc<T>(&self, object: T) -> Result<RawPtr<T>, AllocError>
+        where T: AllocObject<<Self::Header as AllocHeader>::TypeId>
+    {
         let blocks = unsafe { &mut *self.blocks.get() };
 
-        let header_size = size_of::<Self::Header>();
-        let object_size = size_of::<T>();
-        let alloc_size = alloc_size_of(header_size + object_size);
+        let header_size = size_of::<Self::Header>() as u32;
+        let object_size = size_of::<T>() as u32;
+        let alloc_size = alloc_size_of((header_size + object_size) as usize);
+
+        let mut size_class;
 
         // TODO handle large objects
         if alloc_size > constants::BLOCK_SIZE {
+            size_class = SizeClass::Large;
             // simply fail for objects larger than the block size
             return Err(AllocError::BadRequest)
         }
@@ -73,6 +78,7 @@ impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
 
                 if alloc_size > constants::LINE_SIZE && alloc_size > head.current_hole_size() {
                     // TODO use overflow
+                    size_class = SizeClass::Medium;
                 }
 
                 match head.inner_alloc(alloc_size) {
@@ -104,11 +110,15 @@ impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
 
                 space
             },
-        } as *mut T;
+        } as *mut ();
 
-        unsafe { write(space, object); }
+        size_class = SizeClass::Small;
+        let header = Self::Header::new::<T>(object_size, size_class, Mark::Allocated);
 
-        Ok(RawPtr::new(space))
+        unsafe { write(space as *mut Self::Header, header); }
+        unsafe { write(space as *mut T, object); }
+
+        Ok(RawPtr::new(space as *mut T))
     }
 
     /// Return the object header for a given object pointer
@@ -136,16 +146,31 @@ mod tests {
     use super::*;
     use allocator::{AllocObject, Mark, SizeClass};
 
-    struct TestHeader;
+    struct TestHeader {
+        size_class: SizeClass,
+        mark: Mark,
+        type_id: TestTypeId,
+        size_bytes: u32,
+    }
 
-    struct TestTypeId;
+    enum TestTypeId {
+        Biggish,
+        Stringish,
+        Usizeish,
+    }
+
     impl AllocTypeId for TestTypeId {}
 
     impl AllocHeader for TestHeader {
         type TypeId = TestTypeId;
 
-        fn new<O: AllocObject<Self::TypeId>>(_size: u32, _size_class: SizeClass, _mark: Mark) -> Self {
-            TestHeader {}
+        fn new<O: AllocObject<Self::TypeId>>(size: u32, size_class: SizeClass, mark: Mark) -> Self {
+            TestHeader {
+                size_class: size_class,
+                mark: mark,
+                type_id: O::TYPE_ID,
+                size_bytes: size
+            }
         }
 
         fn mark(&mut self) {}
@@ -168,6 +193,18 @@ mod tests {
                 _huge: [0u8; constants::BLOCK_SIZE + 1]
             }
         }
+    }
+
+    impl AllocObject<TestTypeId> for Big {
+        const TYPE_ID: TestTypeId = TestTypeId::Biggish;
+    }
+
+    impl AllocObject<TestTypeId> for String {
+        const TYPE_ID: TestTypeId = TestTypeId::Stringish;
+    }
+
+    impl AllocObject<TestTypeId> for usize {
+        const TYPE_ID: TestTypeId = TestTypeId::Usizeish;
     }
 
 
