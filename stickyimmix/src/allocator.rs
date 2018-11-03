@@ -1,6 +1,7 @@
 
 use std::mem::size_of;
 
+use constants;
 use rawptr::RawPtr;
 
 
@@ -45,6 +46,18 @@ pub enum SizeClass {
     Small,
     Medium,
     Large,
+}
+
+
+impl SizeClass {
+    pub fn get_for_size(object_size: usize) -> Result<SizeClass, AllocError> {
+        match object_size {
+            0...constants::LINE_SIZE => Ok(SizeClass::Small),
+            constants::LINE_SIZE...constants::BLOCK_CAPACITY => Ok(SizeClass::Medium),
+            constants::BLOCK_CAPACITY...constants::MAX_ALLOC_SIZE => Ok(SizeClass::Large),
+            _ => Err(AllocError::BadRequest)
+        }
+    }
 }
 
 

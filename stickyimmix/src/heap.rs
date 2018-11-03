@@ -14,9 +14,9 @@ use rawptr::RawPtr;
 /// of full blocks
 struct BlockList {
     head: Option<BumpBlock>,
+    overflow: Option<BumpBlock>,
     rest: Vec<BumpBlock>,
 
-    // overflow: Vec<BumpBlock>.
     // free: Vec<BumpBlock>,
     // recycle: Vec<BumpBlock>
     // large: Vec<Thing>
@@ -27,8 +27,53 @@ impl BlockList {
     fn new() -> BlockList {
         BlockList {
             head: None,
+            overflow: None,
             rest: Vec::new(),
         }
+    }
+
+    /// Allocate a space for a medium object into an overflow block
+    fn overflow_alloc(&mut self, alloc_size: usize) -> Result<*const u8, AllocError> {
+        assert!(alloc_size <= constants::BLOCK_CAPACITY);
+
+        let space = match self.overflow {
+
+            // We already have an overflow block to try to use...
+            Some(ref mut overflow) => {
+
+                // This is a medium object that might fit in the current block...
+                match overflow.inner_alloc(alloc_size) {
+                    // the block has a suitable hole
+                    Some(space) => space,
+
+                    // the block does not have a suitable hole
+                    None => {
+                        // TODO this just allocates a new block, but should look at
+                        // the free block list first
+                        let previous = replace(overflow, BumpBlock::new()?);
+
+                        self.rest.push(previous);
+
+                        overflow.inner_alloc(alloc_size).expect("Unexpected error!")
+                    }
+                }
+            },
+
+            // We have no blocks to work with yet so make one
+            None => {
+                let mut overflow = BumpBlock::new()?;
+
+                // earlier check for object size < block size should
+                // mean we dont fail this expectation
+                let space = overflow.inner_alloc(alloc_size).expect("We expected this object to fit!");
+
+                self.overflow = Some(overflow);
+
+                space
+            },
+        } as *const u8;
+
+        Ok(space)
     }
 }
 
@@ -49,38 +94,28 @@ impl<H> StickyImmixHeap<H> {
             _header_type: PhantomData
         }
     }
-}
 
-
-impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
-    type Header = H;
-
-    fn alloc<T>(&self, object: T) -> Result<RawPtr<T>, AllocError>
-        where T: AllocObject<<Self::Header as AllocHeader>::TypeId>
-    {
+    // Allocate a space for a small, medium or large object
+    fn inner_alloc(&self, alloc_size: usize, size_class: SizeClass) -> Result<*const u8, AllocError> {
         let blocks = unsafe { &mut *self.blocks.get() };
 
-        let header_size = size_of::<Self::Header>() as u32;
-        let object_size = size_of::<T>() as u32;
-        let alloc_size = alloc_size_of((header_size + object_size) as usize);
-
-        let mut size_class;
-
         // TODO handle large objects
-        if alloc_size > constants::BLOCK_SIZE {
-            size_class = SizeClass::Large;
+        if size_class == SizeClass::Large {
             // simply fail for objects larger than the block size
             return Err(AllocError::BadRequest)
         }
 
         let space = match blocks.head {
+
+            // We already have a block to try to use...
             Some(ref mut head) => {
 
-                if alloc_size > constants::LINE_SIZE && alloc_size > head.current_hole_size() {
-                    // TODO use overflow
-                    size_class = SizeClass::Medium;
+                // If this is a medium object that doesn't fit in the hole, use overflow
+                if size_class == SizeClass::Medium && alloc_size > head.current_hole_size() {
+                    return blocks.overflow_alloc(alloc_size);
                 }
 
+                // This is a small object that might fit in the current block...
                 match head.inner_alloc(alloc_size) {
                     // the block has a suitable hole
                     Some(space) => space,
@@ -98,37 +133,57 @@ impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
                 }
             },
 
-            // Newly created heap, no blocks allocated yet
+            // We have no blocks to work with yet so make one
             None => {
                 let mut head = BumpBlock::new()?;
 
                 // earlier check for object size < block size should
                 // mean we dont fail this expectation
-                let space = head.inner_alloc(alloc_size).expect("Unexpected error!");
+                let space = head.inner_alloc(alloc_size).expect("We expected this object to fit!");
 
                 blocks.head = Some(head);
 
                 space
             },
-        } as *mut ();
+        } as *const u8;
 
-        size_class = SizeClass::Small;
-        let header = Self::Header::new::<T>(object_size, size_class, Mark::Allocated);
+        Ok(space)
+    }
+}
+
+
+impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
+    type Header = H;
+
+    fn alloc<T>(&self, object: T) -> Result<RawPtr<T>, AllocError>
+        where T: AllocObject<<Self::Header as AllocHeader>::TypeId>
+    {
+        let header_size = size_of::<Self::Header>();
+        let object_size = size_of::<T>();
+        let total_size = header_size + object_size;
+
+        let alloc_size = alloc_size_of(total_size);
+
+        let size_class = SizeClass::get_for_size(alloc_size)?;
+
+        let space = self.inner_alloc(alloc_size, size_class)?;
+
+        let header = Self::Header::new::<T>(object_size as u32, size_class, Mark::Allocated);
 
         unsafe { write(space as *mut Self::Header, header); }
-        unsafe { write(space as *mut T, object); }
+        unsafe { write(space.offset(header_size as isize) as *mut T, object); }
 
-        Ok(RawPtr::new(space as *mut T))
+        Ok(RawPtr::new(space as *const T))
     }
 
     /// Return the object header for a given object pointer
-    fn get_header(_object: *const ()) -> *const Self::Header {
-        unimplemented!() // TODO
+    fn get_header(object: *const ()) -> *const Self::Header {
+        unsafe { object.offset(0 - size_of::<Self::Header>() as isize) as *const Self::Header }
     }
 
     /// Return the object from it's header address
-    fn get_object(_header: *const Self::Header) -> *const () {
-        unimplemented!() // TODO
+    fn get_object(header: *const Self::Header) -> *const () {
+        unsafe { header.offset(size_of::<Self::Header>() as isize) as *const () }
     }
 }
 

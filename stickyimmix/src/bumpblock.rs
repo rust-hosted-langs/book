@@ -51,7 +51,7 @@ impl BumpBlock {
 
     /// Write an object into the block at the given offset. The offset is not
     /// checked for overflow, hence this function is unsafe.
-    unsafe fn write<T>(&mut self, object: T, offset: usize) -> *mut T {
+    unsafe fn write<T>(&mut self, object: T, offset: usize) -> *const T {
         let p = self.block.as_ptr().offset(offset as isize) as *mut T;
         write(p, object);
         p
@@ -59,7 +59,7 @@ impl BumpBlock {
 
     /// Find a hole of at least the requested size and return Some(pointer) to it, or
     /// None if this block doesn't have a big enough hole.
-    pub fn inner_alloc(&mut self, alloc_size: usize) -> Option<*mut u8> {
+    pub fn inner_alloc(&mut self, alloc_size: usize) -> Option<*const u8> {
 
         let next_bump = self.cursor + alloc_size;
 
@@ -78,7 +78,7 @@ impl BumpBlock {
         } else {
             let offset = self.cursor;
             self.cursor = next_bump;
-            unsafe { Some(self.block.as_ptr().offset(offset as isize) as *mut u8) }
+            unsafe { Some(self.block.as_ptr().offset(offset as isize) as *const u8) }
         }
     }
 
