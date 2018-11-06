@@ -125,7 +125,7 @@ mod internal {
 
     use self::libc::{c_void, EINVAL, ENOMEM, free, posix_memalign};
     use std::ptr::{NonNull, null_mut};
-    use {BlockError, BlockPtr, BlockSize, BlockSource};
+    use crate::{BlockError, BlockPtr, BlockSize, BlockSource};
 
 
     pub const BLOCK_SOURCE: BlockSource = BlockSource::PosixMemalign;
@@ -173,7 +173,7 @@ mod internal {
 #[cfg(test)]
 mod tests {
 
-    use {Block, BlockError, BlockSize, BlockSource, block_source};
+    use crate::{Block, BlockError, BlockSize, BlockSource, block_source};
 
     #[test]
     fn test_block_source() {

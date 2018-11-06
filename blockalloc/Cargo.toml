@@ -2,6 +2,7 @@
 name = "blockalloc"
 version = "0.1.0"
 authors = ["Peter Liniker <peter.liniker@gmail.com>"]
+edition = "2018"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
