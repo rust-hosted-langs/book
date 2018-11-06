@@ -9,7 +9,7 @@ mod heap;
 mod rawptr;
 
 
-pub use allocator::{AllocError,
+pub use crate::allocator::{AllocError,
                     AllocHeader,
                     AllocObject,
                     AllocRaw,
@@ -17,6 +17,6 @@ pub use allocator::{AllocError,
                     Mark,
                     SizeClass};
 
-pub use heap::StickyImmixHeap;
+pub use crate::heap::StickyImmixHeap;
 
-pub use rawptr::RawPtr;
+pub use crate::rawptr::RawPtr;

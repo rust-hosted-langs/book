@@ -2,6 +2,7 @@
 name = "stickyimmix"
 version = "0.1.0"
 authors = ["Peter Liniker <peter.liniker@gmail.com>"]
+edition = "2018"
 
 [dependencies]
 blockalloc = { path = "../blockalloc/" }

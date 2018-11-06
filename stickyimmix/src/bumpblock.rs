@@ -3,9 +3,9 @@ use std::ptr::write;
 
 use blockalloc::{Block, BlockError};
 
-use allocator::AllocError;
-use blockmeta::BlockMeta;
-use constants;
+use crate::allocator::AllocError;
+use crate::blockmeta::BlockMeta;
+use crate::constants;
 
 
 impl From<BlockError> for AllocError {

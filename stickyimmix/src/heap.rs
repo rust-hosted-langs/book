@@ -4,10 +4,10 @@ use std::marker::PhantomData;
 use std::mem::{replace, size_of};
 use std::ptr::write;
 
-use allocator::{AllocError, AllocObject, AllocTypeId, AllocRaw, AllocHeader, alloc_size_of, Mark, SizeClass};
-use bumpblock::BumpBlock;
-use constants;
-use rawptr::RawPtr;
+use crate::allocator::{AllocError, AllocObject, AllocTypeId, AllocRaw, AllocHeader, alloc_size_of, Mark, SizeClass};
+use crate::bumpblock::BumpBlock;
+use crate::constants;
+use crate::rawptr::RawPtr;
 
 
 /// A list of blocks as the current block being allocated into and a list
@@ -54,7 +54,8 @@ impl BlockList {
 
                         self.rest.push(previous);
 
-                        overflow.inner_alloc(alloc_size).expect("Unexpected error!")
+                        //overflow.inner_alloc(alloc_size).expect("Unexpected error!")
+                        return Err(AllocError::BadRequest)
                     }
                 }
             },
@@ -112,7 +113,7 @@ impl<H> StickyImmixHeap<H> {
 
                 // If this is a medium object that doesn't fit in the hole, use overflow
                 if size_class == SizeClass::Medium && alloc_size > head.current_hole_size() {
-                    return blocks.overflow_alloc(alloc_size);
+                    //return blocks.overflow_alloc(alloc_size);
                 }
 
                 // This is a small object that might fit in the current block...
@@ -199,7 +200,7 @@ impl<H> Default for StickyImmixHeap<H> {
 mod tests {
 
     use super::*;
-    use allocator::{AllocObject, Mark, SizeClass};
+    use crate::allocator::{AllocObject, Mark, SizeClass};
 
     struct TestHeader {
         size_class: SizeClass,

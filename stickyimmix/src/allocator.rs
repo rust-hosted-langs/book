@@ -1,8 +1,8 @@
 
 use std::mem::size_of;
 
-use constants;
-use rawptr::RawPtr;
+use crate::constants;
+use crate::rawptr::RawPtr;
 
 
 /// An allocation error type
@@ -29,7 +29,7 @@ pub trait AllocRaw {
         where T: AllocObject<<Self::Header as AllocHeader>::TypeId>;
 
     /// Given a bare pointer to an object, return the expected header address
-    fn get_header(*const ()) -> *const Self::Header;
+    fn get_header(_: *const ()) -> *const Self::Header;
 
     /// Given a bare pointer to an object's header, return the expected object address
     fn get_object(header: *const Self::Header) -> *const ();
