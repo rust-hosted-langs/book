@@ -112,8 +112,7 @@ impl<H> StickyImmixHeap<H> {
 
                 // If this is a medium object that doesn't fit in the hole, use overflow
                 if size_class == SizeClass::Medium && alloc_size > head.current_hole_size() {
-                    //return blocks.overflow_alloc(alloc_size);
-                    return Err(AllocError::BadRequest)
+                    return blocks.overflow_alloc(alloc_size);
                 }
 
                 // This is a small object that might fit in the current block...
@@ -163,18 +162,20 @@ impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
         let object_size = size_of::<T>();
         let total_size = header_size + object_size;
 
+        // allocated size - round to next word boundary
         let alloc_size = alloc_size_of(total_size);
-
         let size_class = SizeClass::get_for_size(alloc_size)?;
 
+        // attempt to allocate enough space for the header and the object
         let space = self.inner_alloc(alloc_size, size_class)?;
 
+        // write the header into the allocated space
         let header = Self::Header::new::<T>(object_size as u32, size_class, Mark::Allocated);
         unsafe { write(space as *mut Self::Header, header); }
 
+        // write the object into the allocated space
         let object_offset = header_size as isize;
         let object_space = unsafe { space.offset(object_offset) };
-
         unsafe { write(object_space as *mut T, object); }
 
         Ok(RawPtr::new(object_space as *const T))
