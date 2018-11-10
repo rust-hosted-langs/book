@@ -16,12 +16,28 @@ impl<T: Sized> RawPtr<T> {
         }
     }
 
+    /// Get a `*const` copy of the bare pointer
     pub fn get(&self) -> *const T {
         self.ptr
     }
 
+    /// Get a `*mut` copy of the bare pointer
     pub fn get_mut(&mut self) -> *mut T {
         self.ptr as *mut T
+    }
+
+    /// Get a `&` reference to the object. Unsafe because there are no guarantees at this level
+    /// about the internal pointer's validity.
+    pub unsafe fn as_ref(&self) -> &T {
+        &*self.get() as &T
+    }
+
+    /// Get a `&mut` reference to the object. Unsafe because there are no guarantees at this level
+    /// about the internal pointer's validity.
+    /// In addition, there can be no compile-time guarantees of mutable aliasing prevention.
+    /// Use with caution!
+    pub unsafe fn as_mut_ref(&mut self) -> &mut T {
+        &mut *(self.get_mut()) as &mut T
     }
 }
 
