@@ -10,12 +10,12 @@ mod rawptr;
 
 
 pub use crate::allocator::{AllocError,
-                    AllocHeader,
-                    AllocObject,
-                    AllocRaw,
-                    AllocTypeId,
-                    Mark,
-                    SizeClass};
+                           AllocHeader,
+                           AllocObject,
+                           AllocRaw,
+                           AllocTypeId,
+                           Mark,
+                           SizeClass};
 
 pub use crate::heap::StickyImmixHeap;
 
