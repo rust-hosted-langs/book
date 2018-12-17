@@ -1,5 +1,6 @@
 
 use std::mem::size_of;
+use std::ptr::NonNull;
 
 use crate::constants;
 use crate::rawptr::RawPtr;
@@ -29,10 +30,10 @@ pub trait AllocRaw {
         where T: AllocObject<<Self::Header as AllocHeader>::TypeId>;
 
     /// Given a bare pointer to an object, return the expected header address
-    fn get_header(_: *const ()) -> *const Self::Header;
+    fn get_header(object: NonNull<()>) -> NonNull<Self::Header>;
 
     /// Given a bare pointer to an object's header, return the expected object address
-    fn get_object(header: *const Self::Header) -> *const ();
+    fn get_object(header: NonNull<Self::Header>) -> NonNull<()>;
 }
 
 

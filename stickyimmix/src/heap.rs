@@ -2,7 +2,7 @@
 use std::cell::UnsafeCell;
 use std::marker::PhantomData;
 use std::mem::{replace, size_of};
-use std::ptr::write;
+use std::ptr::{NonNull, write};
 
 use crate::allocator::{AllocError, AllocObject, AllocTypeId, AllocRaw, AllocHeader, alloc_size_of, Mark, SizeClass};
 use crate::bumpblock::BumpBlock;
@@ -182,13 +182,17 @@ impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
     }
 
     /// Return the object header for a given object pointer
-    fn get_header(object: *const ()) -> *const Self::Header {
-        unsafe { object.offset(0 - size_of::<Self::Header>() as isize) as *const Self::Header }
+    fn get_header(object: NonNull<()>) -> NonNull<Self::Header> {
+        unsafe { NonNull::new_unchecked(
+            object.cast::<Self::Header>().as_ptr().offset(0 - size_of::<Self::Header>() as isize)
+        )}
     }
 
     /// Return the object from it's header address
-    fn get_object(header: *const Self::Header) -> *const () {
-        unsafe { header.offset(size_of::<Self::Header>() as isize) as *const () }
+    fn get_object(header: NonNull<Self::Header>) -> NonNull<()> {
+        unsafe { NonNull::new_unchecked(
+            header.cast::<()>().as_ptr().offset(size_of::<Self::Header>() as isize)
+        )}
     }
 }
 
@@ -274,7 +278,7 @@ mod tests {
 
         match mem.alloc(String::from("foo")) {
             Ok(s) => {
-                let orig = unsafe { &*s.get() };
+                let orig = unsafe { s.as_ref() };
                 assert!(*orig == String::from("foo"));
             },
 
@@ -305,8 +309,8 @@ mod tests {
         // check that all values of allocated words match the original
         // numbers written, that no heap corruption occurred
         for (i, ob) in obs.iter().enumerate() {
-            println!("{} {}", i, unsafe { *ob.get() });
-            assert!(i == unsafe { *ob.get() })
+            println!("{} {}", i, unsafe { ob.as_ref() });
+            assert!(i == unsafe { *ob.as_ref() })
         }
     }
 }
