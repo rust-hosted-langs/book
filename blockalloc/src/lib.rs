@@ -3,14 +3,10 @@
 /// Turn on `--features "unstable"` for use of alloc crate and traits.
 /// Otherwise, platform-specific (Unix or Windows) system calls will
 /// be used to allocate block-aligned blocks.
-
-
 use std::ptr::NonNull;
-
 
 pub type BlockPtr = NonNull<u8>;
 pub type BlockSize = usize;
-
 
 /// Set of possible block allocation failures
 #[derive(Debug, PartialEq)]
@@ -18,9 +14,8 @@ pub enum BlockError {
     /// Usually means requested block size, and therefore alignment, wasn't a power of two
     BadRequest,
     /// Insufficient memory, couldn't allocate a block
-    OOM
+    OOM,
 }
-
 
 /// A block-size-aligned block of memory
 pub struct Block {
@@ -28,17 +23,16 @@ pub struct Block {
     size: BlockSize,
 }
 
-
 impl Block {
     /// Instantiate a new block of the given size. Size must be a power of two.
     pub fn new(size: BlockSize) -> Result<Block, BlockError> {
-        if !(size > 0 && (size & (size -1) == 0)) {
-            return Err(BlockError::BadRequest)
+        if !(size > 0 && (size & (size - 1) == 0)) {
+            return Err(BlockError::BadRequest);
         }
 
         Ok(Block {
             ptr: internal::alloc_block(size)?,
-            size
+            size,
         })
     }
 
@@ -54,9 +48,7 @@ impl Block {
 
     /// Unsafely reassemble from pointer and size
     pub unsafe fn from_raw_parts(ptr: BlockPtr, size: BlockSize) -> Block {
-        Block {
-            ptr, size
-        }
+        Block { ptr, size }
     }
 
     /// Return a bare pointer to the base of the block
@@ -65,13 +57,11 @@ impl Block {
     }
 }
 
-
 impl Drop for Block {
     fn drop(&mut self) {
         internal::dealloc_block(self.ptr, self.size);
     }
 }
-
 
 /// The set of possible allocation sources
 #[derive(Debug, PartialEq)]
@@ -81,11 +71,9 @@ pub enum BlockSource {
     Windows,
 }
 
-
 pub fn block_source() -> BlockSource {
     internal::BLOCK_SOURCE
 }
-
 
 #[cfg(feature = "alloc")]
 mod internal {
@@ -94,9 +82,7 @@ mod internal {
     use std::ptr::NonNull;
     use {BlockError, BlockPtr, BlockSize, BlockSource};
 
-
     pub const BLOCK_SOURCE: BlockSource = BlockSource::RustAlloc;
-
 
     pub fn alloc_block(size: BlockSize) -> Result<BlockPtr, BlockError> {
         unsafe {
@@ -104,7 +90,7 @@ mod internal {
 
             match Global.alloc(layout) {
                 Ok(ptr) => Ok(NonNull::new_unchecked(ptr.as_ptr() as *mut u8)),
-                Err(_) => Err(BlockError::OOM)
+                Err(_) => Err(BlockError::OOM),
             }
         }
     }
@@ -118,18 +104,15 @@ mod internal {
     }
 }
 
-
 #[cfg(all(unix, not(feature = "alloc")))]
 mod internal {
     extern crate libc;
 
-    use self::libc::{c_void, EINVAL, ENOMEM, free, posix_memalign};
-    use std::ptr::{NonNull, null_mut};
+    use self::libc::{c_void, free, posix_memalign, EINVAL, ENOMEM};
     use crate::{BlockError, BlockPtr, BlockSize, BlockSource};
-
+    use std::ptr::{null_mut, NonNull};
 
     pub const BLOCK_SOURCE: BlockSource = BlockSource::PosixMemalign;
-
 
     pub fn alloc_block(size: BlockSize) -> Result<BlockPtr, BlockError> {
         unsafe {
@@ -140,7 +123,7 @@ mod internal {
                 0 => Ok(NonNull::new_unchecked(address as *mut u8)),
                 EINVAL => Err(BlockError::BadRequest),
                 ENOMEM => Err(BlockError::OOM),
-                _ => unreachable!()
+                _ => unreachable!(),
             }
         }
     }
@@ -152,13 +135,11 @@ mod internal {
     }
 }
 
-
 #[cfg(all(windows, not(feature = "alloc")))]
 mod internal {
     // maybe? https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-malloc
 
     use {Block, BlockError, BlockPtr, BlockSize, BlockSource};
-
 
     pub fn alloc_block(size: BlockSize) -> Result<BlockPtr, BlockError> {
         // TODO
@@ -169,11 +150,10 @@ mod internal {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
 
-    use crate::{Block, BlockError, BlockSize, BlockSource, block_source};
+    use crate::{block_source, Block, BlockError, BlockSize, BlockSource};
 
     #[test]
     fn test_block_source() {
