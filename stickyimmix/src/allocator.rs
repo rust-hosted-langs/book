@@ -1,10 +1,8 @@
-
 use std::mem::size_of;
 use std::ptr::NonNull;
 
 use crate::constants;
 use crate::rawptr::RawPtr;
-
 
 /// An allocation error type
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -17,7 +15,6 @@ pub enum AllocError {
     OOM,
 }
 
-
 /// A type that describes allocation of an object into a heap space, returning
 /// a bare pointer type on success
 pub trait AllocRaw {
@@ -27,7 +24,8 @@ pub trait AllocRaw {
     /// Allocate a single object of type T
     //fn alloc<T>(&self, object: T) -> Result<RawPtr<T>, AllocError>;
     fn alloc<T>(&self, object: T) -> Result<RawPtr<T>, AllocError>
-        where T: AllocObject<<Self::Header as AllocHeader>::TypeId>;
+    where
+        T: AllocObject<<Self::Header as AllocHeader>::TypeId>;
 
     /// Given a bare pointer to an object, return the expected header address
     fn get_header(object: NonNull<()>) -> NonNull<Self::Header>;
@@ -35,7 +33,6 @@ pub trait AllocRaw {
     /// Given a bare pointer to an object's header, return the expected object address
     fn get_object(header: NonNull<Self::Header>) -> NonNull<()>;
 }
-
 
 /// Object size class.
 /// - Small objects fit inside a line
@@ -49,18 +46,16 @@ pub enum SizeClass {
     Large,
 }
 
-
 impl SizeClass {
     pub fn get_for_size(object_size: usize) -> Result<SizeClass, AllocError> {
         match object_size {
             0...constants::LINE_SIZE => Ok(SizeClass::Small),
             constants::LINE_SIZE...constants::BLOCK_CAPACITY => Ok(SizeClass::Medium),
             constants::BLOCK_CAPACITY...constants::MAX_ALLOC_SIZE => Ok(SizeClass::Large),
-            _ => Err(AllocError::BadRequest)
+            _ => Err(AllocError::BadRequest),
         }
     }
 }
-
 
 /// TODO Object mark bit.
 /// Every object is `Allocated` on creation.
@@ -72,16 +67,13 @@ pub enum Mark {
     Marked,
 }
 
-
 /// A managed-type type-identifier type should implement this!
 pub trait AllocTypeId {}
 
-
 /// All managed object types must implement this trait in order to be allocatable
 pub trait AllocObject<T: AllocTypeId> {
-   const TYPE_ID: T;
+    const TYPE_ID: T;
 }
-
 
 /// An object header struct must provide an implementation of this trait,
 /// providing appropriate information to the garbage collector.
@@ -107,7 +99,6 @@ pub trait AllocHeader {
     // TODO tracing information
     // e.g. fn tracer(&self) -> Fn()
 }
-
 
 /// Return the allocated size of an object as it's size_of::<T>() value rounded
 /// up to a double-word boundary

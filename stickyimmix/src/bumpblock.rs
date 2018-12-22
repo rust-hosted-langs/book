@@ -1,4 +1,3 @@
-
 use std::ptr::write;
 
 use blockalloc::{Block, BlockError};
@@ -6,7 +5,6 @@ use blockalloc::{Block, BlockError};
 use crate::allocator::AllocError;
 use crate::blockmeta::BlockMeta;
 use crate::constants;
-
 
 impl From<BlockError> for AllocError {
     fn from(error: BlockError) -> AllocError {
@@ -16,7 +14,6 @@ impl From<BlockError> for AllocError {
         }
     }
 }
-
 
 /// A block of heap. This maintains the bump cursor and limit per block
 /// and the mark flags in a separate `meta` struct.  A pointer to the
@@ -30,7 +27,6 @@ pub struct BumpBlock {
     block: Block,
     meta: Box<BlockMeta>,
 }
-
 
 impl BumpBlock {
     /// Create a new block of heap space and it's metadata, placing a
@@ -60,11 +56,9 @@ impl BumpBlock {
     /// Find a hole of at least the requested size and return Some(pointer) to it, or
     /// None if this block doesn't have a big enough hole.
     pub fn inner_alloc(&mut self, alloc_size: usize) -> Option<*const u8> {
-
         let next_bump = self.cursor + alloc_size;
 
         if next_bump > self.limit {
-
             if self.limit < constants::BLOCK_SIZE {
                 if let Some((cursor, limit)) = self.meta.find_next_available_hole(self.limit) {
                     self.cursor = cursor;
@@ -74,7 +68,6 @@ impl BumpBlock {
             }
 
             None
-
         } else {
             let offset = self.cursor;
             self.cursor = next_bump;
@@ -87,7 +80,6 @@ impl BumpBlock {
         self.limit - self.cursor
     }
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -149,7 +141,7 @@ mod tests {
             b.meta.mark_line(i);
         }
 
-        b.limit = b.cursor;  // block is recycled
+        b.limit = b.cursor; // block is recycled
 
         let count = loop_check_allocate(&mut b);
         let expect = (((constants::LINE_COUNT / 2) - 1) * constants::LINE_SIZE) / TEST_UNIT_SIZE;
@@ -171,7 +163,7 @@ mod tests {
             }
         }
 
-        b.limit = b.cursor;  // block is recycled
+        b.limit = b.cursor; // block is recycled
 
         let count = loop_check_allocate(&mut b);
 

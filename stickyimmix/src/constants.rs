@@ -1,4 +1,3 @@
-
 use std::mem::size_of;
 
 pub const BLOCK_SIZE_BITS: usize = 15;

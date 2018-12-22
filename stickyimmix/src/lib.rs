@@ -1,4 +1,3 @@
-
 extern crate blockalloc;
 
 mod allocator;
@@ -8,14 +7,9 @@ mod constants;
 mod heap;
 mod rawptr;
 
-
-pub use crate::allocator::{AllocError,
-                           AllocHeader,
-                           AllocObject,
-                           AllocRaw,
-                           AllocTypeId,
-                           Mark,
-                           SizeClass};
+pub use crate::allocator::{
+    AllocError, AllocHeader, AllocObject, AllocRaw, AllocTypeId, Mark, SizeClass,
+};
 
 pub use crate::heap::StickyImmixHeap;
 

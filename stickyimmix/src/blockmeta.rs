@@ -1,14 +1,10 @@
-
-
 use crate::constants;
-
 
 /// Block marking metadata
 pub struct BlockMeta {
     line_mark: [bool; constants::LINE_COUNT],
     block_mark: bool,
 }
-
 
 impl BlockMeta {
     /// Heap allocate a metadata instance so that it doesn't move so we can store pointers
@@ -57,7 +53,6 @@ impl BlockMeta {
         let starting_at = starting_line * constants::LINE_SIZE;
 
         for (index, marked) in self.line_mark[starting_line..].iter().enumerate() {
-
             let abs_index = starting_at + index;
 
             // count unmarked lines
@@ -82,12 +77,11 @@ impl BlockMeta {
             // if reached a marked line or the end of the block, see if we have
             // a valid hole to work with
             if count > 0 && (*marked || stop >= constants::LINE_COUNT) {
-
                 if let Some(start) = start {
                     let cursor = start * constants::LINE_SIZE;
                     let limit = stop * constants::LINE_SIZE;
 
-                    return Some((cursor, limit))
+                    return Some((cursor, limit));
                 }
             }
 
@@ -97,18 +91,16 @@ impl BlockMeta {
                 count = 0;
                 start = None;
             }
-         }
+        }
 
         None
     }
 }
 
-
 #[cfg(test)]
 mod tests {
 
     use super::*;
-
 
     #[test]
     fn test_find_next_hole() {
@@ -145,7 +137,10 @@ mod tests {
 
         let got = meta.find_next_available_hole(0);
 
-        println!("test_find_next_hole_at_line_zero got {:?} expected {:?}", got, expect);
+        println!(
+            "test_find_next_hole_at_line_zero got {:?} expected {:?}",
+            got, expect
+        );
 
         assert!(got == expect);
     }
@@ -166,7 +161,10 @@ mod tests {
 
         let got = meta.find_next_available_hole(0);
 
-        println!("test_find_next_hole_at_block_end got {:?} expected {:?}", got, expect);
+        println!(
+            "test_find_next_hole_at_block_end got {:?} expected {:?}",
+            got, expect
+        );
 
         assert!(got == expect);
     }
@@ -178,14 +176,18 @@ mod tests {
         let mut meta = BlockMeta::new_boxed();
 
         for i in 0..constants::LINE_COUNT {
-            if i % 2 == 0 {  // there is no stable step function for range
+            if i % 2 == 0 {
+                // there is no stable step function for range
                 meta.mark_line(i);
             }
         }
 
         let got = meta.find_next_available_hole(0);
 
-        println!("test_find_hole_all_conservatively_marked got {:?} expected None", got);
+        println!(
+            "test_find_hole_all_conservatively_marked got {:?} expected None",
+            got
+        );
 
         assert!(got == None);
     }

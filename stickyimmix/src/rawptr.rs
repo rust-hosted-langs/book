@@ -1,19 +1,17 @@
 use std::ptr::NonNull;
 
-
 /// A container for a bare pointer to an object of type `T`.
 /// At this level, compile-time type information is still
 /// part of the type.
 pub struct RawPtr<T: Sized> {
-    ptr: NonNull<T>
+    ptr: NonNull<T>,
 }
-
 
 impl<T: Sized> RawPtr<T> {
     /// Create a new RawPtr from a bare pointer
     pub fn new(ptr: *const T) -> RawPtr<T> {
         RawPtr {
-            ptr: unsafe { NonNull::new_unchecked(ptr as *mut T) }
+            ptr: unsafe { NonNull::new_unchecked(ptr as *mut T) },
         }
     }
 
@@ -41,18 +39,13 @@ impl<T: Sized> RawPtr<T> {
     }
 }
 
-
 impl<T> Clone for RawPtr<T> {
     fn clone(&self) -> RawPtr<T> {
-        RawPtr {
-            ptr: self.ptr
-        }
+        RawPtr { ptr: self.ptr }
     }
 }
 
-
 impl<T> Copy for RawPtr<T> {}
-
 
 impl<T: Sized> PartialEq for RawPtr<T> {
     fn eq(&self, other: &RawPtr<T>) -> bool {
