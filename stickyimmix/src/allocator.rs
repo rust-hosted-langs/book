@@ -22,7 +22,6 @@ pub trait AllocRaw {
     type Header: AllocHeader;
 
     /// Allocate a single object of type T
-    //fn alloc<T>(&self, object: T) -> Result<RawPtr<T>, AllocError>;
     fn alloc<T>(&self, object: T) -> Result<RawPtr<T>, AllocError>
     where
         T: AllocObject<<Self::Header as AllocHeader>::TypeId>;
