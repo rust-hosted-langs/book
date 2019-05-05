@@ -21,15 +21,25 @@ pub trait AllocRaw {
     /// An implementation of an object header type
     type Header: AllocHeader;
 
-    /// Allocate a single object of type T
+    /// Allocate a single object of type T.
     fn alloc<T>(&self, object: T) -> Result<RawPtr<T>, AllocError>
     where
         T: AllocObject<<Self::Header as AllocHeader>::TypeId>;
 
+    /// Allocating an array allows the client to put anything in the resulting data
+    /// block but the type of the memory block will simply be 'Array'. No other
+    /// type information will be stored in the object header.
+    /// This is just a special case of alloc<T>() for T=u8 but a count > 1 of u8
+    /// instances.  The caller is responsible for the content of the array.
+    fn alloc_array(&self, size_bytes: u32) -> Result<RawPtr<u8>, AllocError>;
+
     /// Given a bare pointer to an object, return the expected header address
+    // TODO this is not pretty.
+    // Perhaps this should be a function of
     fn get_header(object: NonNull<()>) -> NonNull<Self::Header>;
 
     /// Given a bare pointer to an object's header, return the expected object address
+    // TODO this is not pretty
     fn get_object(header: NonNull<Self::Header>) -> NonNull<()>;
 }
 
@@ -74,14 +84,20 @@ pub trait AllocObject<T: AllocTypeId> {
     const TYPE_ID: T;
 }
 
+/// Array subtype
+pub trait AllocArray<T: AllocTypeId>: AllocObject<T> {}
+
 /// An object header struct must provide an implementation of this trait,
 /// providing appropriate information to the garbage collector.
 pub trait AllocHeader {
     /// Associated type that identifies the allocated object type
     type TypeId: AllocTypeId;
 
-    /// Create a new header
+    /// Create a new header for object type O
     fn new<O: AllocObject<Self::TypeId>>(size: u32, size_class: SizeClass, mark: Mark) -> Self;
+
+    /// Create a new header for an array type
+    fn new_array(size: u32, size_class: SizeClass, mark: Mark) -> Self;
 
     /// Set the Mark value to "marked"
     fn mark(&mut self);
@@ -102,7 +118,7 @@ pub trait AllocHeader {
 /// Return the allocated size of an object as it's size_of::<T>() value rounded
 /// up to a double-word boundary
 ///
-/// TODO this isn't currently implemented, as aligning the object to a double-word
+/// TODO this isn't correctly implemented, as aligning the object to a double-word
 /// boundary while considering header size (which is not known to this libarary
 /// until compile time) means touching numerous bump-allocation code points with
 /// some math and bitwise ops I haven't worked out yet

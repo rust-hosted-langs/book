@@ -2,6 +2,7 @@ use std::cell::UnsafeCell;
 use std::marker::PhantomData;
 use std::mem::{replace, size_of};
 use std::ptr::{write, NonNull};
+use std::slice::from_raw_parts_mut;
 
 use crate::allocator::{
     alloc_size_of, AllocError, AllocHeader, AllocObject, AllocRaw, AllocTypeId, Mark, SizeClass,
@@ -185,6 +186,39 @@ impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
         Ok(RawPtr::new(object_space as *const T))
     }
 
+    fn alloc_array(&self, size_bytes: u32) -> Result<RawPtr<u8>, AllocError> {
+        let header_size = size_of::<Self::Header>();
+        let total_size = header_size + size_bytes as usize;
+
+        // allocated size - round to next word boundary
+        let alloc_size = alloc_size_of(total_size);
+        let size_class = SizeClass::get_for_size(alloc_size)?;
+
+        // attempt to allocate enough space for the header and the object
+        let space = self.inner_alloc(alloc_size, size_class)?;
+
+        // write the header into the allocated space
+        let header = Self::Header::new_array(size_bytes, size_class, Mark::Allocated);
+        unsafe {
+            write(space as *mut Self::Header, header);
+        }
+
+        // write the object into the allocated space
+        let object_offset = header_size as isize;
+        let object_space = unsafe { space.offset(object_offset) };
+
+        // Initialize object_space to zero here if necessary.
+        // If using the system allocator for any objects (SizeClass::Large, for example),
+        // the memory may already be zeroed.
+        let mut array = unsafe { from_raw_parts_mut(object_space as *mut u8, size_bytes as usize) };
+        // The compiler should hopefully recognize this as optimizable
+        for byte in array {
+            *byte = 0;
+        }
+
+        Ok(RawPtr::new(object_space as *const u8))
+    }
+
     /// Return the object header for a given object pointer
     fn get_header(object: NonNull<()>) -> NonNull<Self::Header> {
         unsafe {
@@ -221,6 +255,7 @@ mod tests {
 
     use super::*;
     use crate::allocator::{AllocObject, Mark, SizeClass};
+    use std::slice::from_raw_parts;
 
     struct TestHeader {
         size_class: SizeClass,
@@ -233,6 +268,7 @@ mod tests {
         Biggish,
         Stringish,
         Usizeish,
+        Array,
     }
 
     impl AllocTypeId for TestTypeId {}
@@ -245,6 +281,15 @@ mod tests {
                 size_class: size_class,
                 mark: mark,
                 type_id: O::TYPE_ID,
+                size_bytes: size,
+            }
+        }
+
+        fn new_array(size: u32, size_class: SizeClass, mark: Mark) -> Self {
+            TestHeader {
+                size_class: size_class,
+                mark: mark,
+                type_id: TestTypeId::Array,
                 size_bytes: size,
             }
         }
@@ -327,6 +372,28 @@ mod tests {
         for (i, ob) in obs.iter().enumerate() {
             println!("{} {}", i, unsafe { ob.as_ref() });
             assert!(i == unsafe { *ob.as_ref() })
+        }
+    }
+
+    #[test]
+    fn test_array() {
+        let mem = StickyImmixHeap::<TestHeader>::new();
+
+        let size = 2048;
+
+        match mem.alloc_array(size) {
+            Err(_) => assert!(false, "Array allocation failed unexpectedly"),
+
+            Ok(ptr) => {
+                // Validate that array is zero initialized all the way through
+                let ptr = ptr.as_ptr();
+
+                let array = unsafe { from_raw_parts(ptr, size as usize) };
+
+                for byte in array {
+                    assert!(*byte == 0);
+                }
+            }
         }
     }
 }
