@@ -8,7 +8,7 @@ mod heap;
 mod rawptr;
 
 pub use crate::allocator::{
-    AllocError, AllocHeader, AllocObject, AllocRaw, AllocTypeId, Mark, SizeClass,
+    AllocError, AllocHeader, AllocObject, AllocRaw, AllocTypeId, Mark, SizeClass, ArraySize,
 };
 
 pub use crate::heap::StickyImmixHeap;

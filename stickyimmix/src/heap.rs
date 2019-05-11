@@ -210,7 +210,7 @@ impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
         // Initialize object_space to zero here if necessary.
         // If using the system allocator for any objects (SizeClass::Large, for example),
         // the memory may already be zeroed.
-        let mut array = unsafe { from_raw_parts_mut(object_space as *mut u8, size_bytes as usize) };
+        let array = unsafe { from_raw_parts_mut(object_space as *mut u8, size_bytes as usize) };
         // The compiler should hopefully recognize this as optimizable
         for byte in array {
             *byte = 0;

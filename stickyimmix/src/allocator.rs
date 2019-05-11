@@ -31,11 +31,10 @@ pub trait AllocRaw {
     /// type information will be stored in the object header.
     /// This is just a special case of alloc<T>() for T=u8 but a count > 1 of u8
     /// instances.  The caller is responsible for the content of the array.
-    fn alloc_array(&self, size_bytes: u32) -> Result<RawPtr<u8>, AllocError>;
+    fn alloc_array(&self, size_bytes: ArraySize) -> Result<RawPtr<u8>, AllocError>;
 
     /// Given a bare pointer to an object, return the expected header address
-    // TODO this is not pretty.
-    // Perhaps this should be a function of
+    // TODO this is not pretty. There should be a better type-safe interface for this.
     fn get_header(object: NonNull<()>) -> NonNull<Self::Header>;
 
     /// Given a bare pointer to an object's header, return the expected object address
@@ -65,6 +64,9 @@ impl SizeClass {
         }
     }
 }
+
+/// The type that describes the bounds of array sizing
+pub type ArraySize = u32;
 
 /// TODO Object mark bit.
 /// Every object is `Allocated` on creation.
@@ -97,7 +99,7 @@ pub trait AllocHeader {
     fn new<O: AllocObject<Self::TypeId>>(size: u32, size_class: SizeClass, mark: Mark) -> Self;
 
     /// Create a new header for an array type
-    fn new_array(size: u32, size_class: SizeClass, mark: Mark) -> Self;
+    fn new_array(size: ArraySize, size_class: SizeClass, mark: Mark) -> Self;
 
     /// Set the Mark value to "marked"
     fn mark(&mut self);
