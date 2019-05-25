@@ -5,7 +5,8 @@ use std::ptr::{write, NonNull};
 use std::slice::from_raw_parts_mut;
 
 use crate::allocator::{
-    alloc_size_of, AllocError, AllocHeader, AllocObject, AllocRaw, AllocTypeId, Mark, SizeClass,
+    alloc_size_of, AllocError, AllocHeader, AllocObject, AllocRaw, AllocTypeId, ArraySize, Mark,
+    SizeClass,
 };
 use crate::bumpblock::BumpBlock;
 use crate::constants;
@@ -186,7 +187,7 @@ impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
         Ok(RawPtr::new(object_space as *const T))
     }
 
-    fn alloc_array(&self, size_bytes: u32) -> Result<RawPtr<u8>, AllocError> {
+    fn alloc_array(&self, size_bytes: ArraySize) -> Result<RawPtr<u8>, AllocError> {
         let header_size = size_of::<Self::Header>();
         let total_size = header_size + size_bytes as usize;
 
