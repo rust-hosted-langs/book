@@ -176,7 +176,7 @@ impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
         unsafe {
             write(space as *mut Self::Header, header);
         }
-
+        dbg!(space);
         // write the object into the allocated space
         let object_offset = header_size as isize;
         let object_space = unsafe { space.offset(object_offset) };
@@ -227,7 +227,7 @@ impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
                 object
                     .cast::<Self::Header>()
                     .as_ptr()
-                    .offset(0 - size_of::<Self::Header>() as isize),
+                    .offset(-1),
             )
         }
     }
@@ -239,7 +239,7 @@ impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
                 header
                     .cast::<()>()
                     .as_ptr()
-                    .offset(size_of::<Self::Header>() as isize),
+                    .offset(1),
             )
         }
     }
@@ -265,6 +265,7 @@ mod tests {
         size_bytes: u32,
     }
 
+    #[derive(PartialEq, Copy, Clone)]
     enum TestTypeId {
         Biggish,
         Stringish,
@@ -308,6 +309,10 @@ mod tests {
         fn size(&self) -> u32 {
             8
         }
+
+        fn type_id(&self) -> TestTypeId {
+            self.type_id
+        }
     }
 
     struct Big {
@@ -344,7 +349,7 @@ mod tests {
                 assert!(*orig == String::from("foo"));
             }
 
-            Err(_) => assert!(false, "Allocation failed"),
+            Err(_) => panic!("Allocation failed"),
         }
     }
 
@@ -395,6 +400,26 @@ mod tests {
                     assert!(*byte == 0);
                 }
             }
+        }
+    }
+
+    #[test]
+    fn test_header() {
+        let mem = StickyImmixHeap::<TestHeader>::new();
+
+        match mem.alloc(String::from("foo")) {
+            Ok(s) => {
+                let untyped_ptr = s.as_untyped();
+                let header_ptr = StickyImmixHeap::<TestHeader>::get_header(untyped_ptr);
+                dbg!(header_ptr);
+                let header = unsafe {
+                    &*header_ptr.as_ptr() as &TestHeader
+                };
+
+                assert!(header.type_id() == TestTypeId::Stringish);
+            }
+
+            Err(_) => panic!("Allocation failed"),
         }
     }
 }

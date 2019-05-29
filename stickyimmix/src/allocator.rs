@@ -86,9 +86,6 @@ pub trait AllocObject<T: AllocTypeId> {
     const TYPE_ID: T;
 }
 
-/// Array subtype
-pub trait AllocArray<T: AllocTypeId>: AllocObject<T> {}
-
 /// An object header struct must provide an implementation of this trait,
 /// providing appropriate information to the garbage collector.
 pub trait AllocHeader {
@@ -112,6 +109,9 @@ pub trait AllocHeader {
 
     /// Get the size of the object in bytes
     fn size(&self) -> u32;
+
+    /// Get the type of the object
+    fn type_id(&self) -> Self::TypeId;
 
     // TODO tracing information
     // e.g. fn tracer(&self) -> Fn()
