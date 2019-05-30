@@ -88,7 +88,7 @@ pub trait AllocObject<T: AllocTypeId> {
 
 /// An object header struct must provide an implementation of this trait,
 /// providing appropriate information to the garbage collector.
-pub trait AllocHeader {
+pub trait AllocHeader : Sized {
     /// Associated type that identifies the allocated object type
     type TypeId: AllocTypeId;
 
