@@ -15,3 +15,11 @@ pub const MAX_ALLOC_SIZE: usize = std::u32::MAX as usize;
 /// double-word offset.
 pub const FIRST_OBJECT_OFFSET: usize = size_of::<usize>() * 2;
 pub const BLOCK_CAPACITY: usize = BLOCK_SIZE - FIRST_OBJECT_OFFSET;
+
+/// Object size ranges
+pub const SMALL_OBJECT_MIN: usize = 1;
+pub const SMALL_OBJECT_MAX: usize = LINE_SIZE;
+pub const MEDIUM_OBJECT_MIN: usize = SMALL_OBJECT_MAX + 1;
+pub const MEDIUM_OBJECT_MAX: usize = BLOCK_CAPACITY;
+pub const LARGE_OBJECT_MIN: usize = MEDIUM_OBJECT_MAX + 1;
+pub const LARGE_OBJECT_MAX: usize = MAX_ALLOC_SIZE;

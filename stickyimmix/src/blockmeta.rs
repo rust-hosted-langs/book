@@ -35,7 +35,7 @@ impl BlockMeta {
     }
 
     /// Return an iterator over all the line mark flags
-    pub fn line_iter<'it>(&'it self) -> impl Iterator<Item = &'it bool> {
+    pub fn line_iter(&self) -> impl Iterator<Item = &'_ bool> {
         self.line_mark.iter()
     }
 
@@ -66,7 +66,7 @@ impl BlockMeta {
                 }
 
                 // record the first hole index
-                if let None = start {
+                if start.is_none() {
                     start = Some(abs_index);
                 }
 

@@ -57,9 +57,9 @@ pub enum SizeClass {
 impl SizeClass {
     pub fn get_for_size(object_size: usize) -> Result<SizeClass, AllocError> {
         match object_size {
-            0...constants::LINE_SIZE => Ok(SizeClass::Small),
-            constants::LINE_SIZE...constants::BLOCK_CAPACITY => Ok(SizeClass::Medium),
-            constants::BLOCK_CAPACITY...constants::MAX_ALLOC_SIZE => Ok(SizeClass::Large),
+            constants::SMALL_OBJECT_MIN ..= constants::SMALL_OBJECT_MAX => Ok(SizeClass::Small),
+            constants::MEDIUM_OBJECT_MIN ..= constants::MEDIUM_OBJECT_MAX => Ok(SizeClass::Medium),
+            constants::LARGE_OBJECT_MIN ..= constants::LARGE_OBJECT_MAX => Ok(SizeClass::Large),
             _ => Err(AllocError::BadRequest),
         }
     }
@@ -79,7 +79,7 @@ pub enum Mark {
 }
 
 /// A managed-type type-identifier type should implement this!
-pub trait AllocTypeId {}
+pub trait AllocTypeId: Copy + Clone {}
 
 /// All managed object types must implement this trait in order to be allocatable
 pub trait AllocObject<T: AllocTypeId> {

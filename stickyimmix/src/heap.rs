@@ -5,7 +5,7 @@ use std::ptr::{write, NonNull};
 use std::slice::from_raw_parts_mut;
 
 use crate::allocator::{
-    alloc_size_of, AllocError, AllocHeader, AllocObject, AllocRaw, AllocTypeId, ArraySize, Mark,
+    alloc_size_of, AllocError, AllocHeader, AllocObject, AllocRaw, ArraySize, Mark,
     SizeClass,
 };
 use crate::bumpblock::BumpBlock;
@@ -176,7 +176,7 @@ impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
         unsafe {
             write(space as *mut Self::Header, header);
         }
-        dbg!(space);
+        //dbg!(space);
         // write the object into the allocated space
         let object_offset = header_size as isize;
         let object_space = unsafe { space.offset(object_offset) };
@@ -255,7 +255,7 @@ impl<H> Default for StickyImmixHeap<H> {
 mod tests {
 
     use super::*;
-    use crate::allocator::{AllocObject, Mark, SizeClass};
+    use crate::allocator::{AllocObject, AllocTypeId, Mark, SizeClass};
     use std::slice::from_raw_parts;
 
     struct TestHeader {
@@ -280,8 +280,8 @@ mod tests {
 
         fn new<O: AllocObject<Self::TypeId>>(size: u32, size_class: SizeClass, mark: Mark) -> Self {
             TestHeader {
-                size_class: size_class,
-                mark: mark,
+                size_class,
+                mark,
                 type_id: O::TYPE_ID,
                 size_bytes: size,
             }
@@ -289,8 +289,8 @@ mod tests {
 
         fn new_array(size: u32, size_class: SizeClass, mark: Mark) -> Self {
             TestHeader {
-                size_class: size_class,
-                mark: mark,
+                size_class,
+                mark,
                 type_id: TestTypeId::Array,
                 size_bytes: size,
             }

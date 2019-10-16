@@ -48,7 +48,7 @@ impl BumpBlock {
     /// Write an object into the block at the given offset. The offset is not
     /// checked for overflow, hence this function is unsafe.
     unsafe fn write<T>(&mut self, object: T, offset: usize) -> *const T {
-        let p = self.block.as_ptr().offset(offset as isize) as *mut T;
+        let p = self.block.as_ptr().add(offset) as *mut T;
         write(p, object);
         p
     }
@@ -71,7 +71,7 @@ impl BumpBlock {
         } else {
             let offset = self.cursor;
             self.cursor = next_bump;
-            unsafe { Some(self.block.as_ptr().offset(offset as isize) as *const u8) }
+            unsafe { Some(self.block.as_ptr().add(offset) as *const u8) }
         }
     }
 
