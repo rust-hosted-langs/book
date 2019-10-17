@@ -5,8 +5,7 @@ use std::ptr::{write, NonNull};
 use std::slice::from_raw_parts_mut;
 
 use crate::allocator::{
-    alloc_size_of, AllocError, AllocHeader, AllocObject, AllocRaw, ArraySize, Mark,
-    SizeClass,
+    alloc_size_of, AllocError, AllocHeader, AllocObject, AllocRaw, ArraySize, Mark, SizeClass,
 };
 use crate::bumpblock::BumpBlock;
 use crate::constants;
@@ -222,26 +221,12 @@ impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
 
     /// Return the object header for a given object pointer
     fn get_header(object: NonNull<()>) -> NonNull<Self::Header> {
-        unsafe {
-            NonNull::new_unchecked(
-                object
-                    .cast::<Self::Header>()
-                    .as_ptr()
-                    .offset(-1),
-            )
-        }
+        unsafe { NonNull::new_unchecked(object.cast::<Self::Header>().as_ptr().offset(-1)) }
     }
 
     /// Return the object from it's header address
     fn get_object(header: NonNull<Self::Header>) -> NonNull<()> {
-        unsafe {
-            NonNull::new_unchecked(
-                header
-                    .cast::<()>()
-                    .as_ptr()
-                    .offset(1),
-            )
-        }
+        unsafe { NonNull::new_unchecked(header.cast::<()>().as_ptr().offset(1)) }
     }
 }
 
@@ -412,9 +397,7 @@ mod tests {
                 let untyped_ptr = s.as_untyped();
                 let header_ptr = StickyImmixHeap::<TestHeader>::get_header(untyped_ptr);
                 dbg!(header_ptr);
-                let header = unsafe {
-                    &*header_ptr.as_ptr() as &TestHeader
-                };
+                let header = unsafe { &*header_ptr.as_ptr() as &TestHeader };
 
                 assert!(header.type_id() == TestTypeId::Stringish);
             }

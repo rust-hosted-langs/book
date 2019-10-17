@@ -57,9 +57,9 @@ pub enum SizeClass {
 impl SizeClass {
     pub fn get_for_size(object_size: usize) -> Result<SizeClass, AllocError> {
         match object_size {
-            constants::SMALL_OBJECT_MIN ..= constants::SMALL_OBJECT_MAX => Ok(SizeClass::Small),
-            constants::MEDIUM_OBJECT_MIN ..= constants::MEDIUM_OBJECT_MAX => Ok(SizeClass::Medium),
-            constants::LARGE_OBJECT_MIN ..= constants::LARGE_OBJECT_MAX => Ok(SizeClass::Large),
+            constants::SMALL_OBJECT_MIN..=constants::SMALL_OBJECT_MAX => Ok(SizeClass::Small),
+            constants::MEDIUM_OBJECT_MIN..=constants::MEDIUM_OBJECT_MAX => Ok(SizeClass::Medium),
+            constants::LARGE_OBJECT_MIN..=constants::LARGE_OBJECT_MAX => Ok(SizeClass::Large),
             _ => Err(AllocError::BadRequest),
         }
     }
@@ -88,7 +88,7 @@ pub trait AllocObject<T: AllocTypeId> {
 
 /// An object header struct must provide an implementation of this trait,
 /// providing appropriate information to the garbage collector.
-pub trait AllocHeader : Sized {
+pub trait AllocHeader: Sized {
     /// Associated type that identifies the allocated object type
     type TypeId: AllocTypeId;
 
