@@ -175,7 +175,7 @@ impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
         unsafe {
             write(space as *mut Self::Header, header);
         }
-        //dbg!(space);
+
         // write the object into the allocated space
         let object_offset = header_size as isize;
         let object_space = unsafe { space.offset(object_offset) };
@@ -226,7 +226,7 @@ impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
 
     /// Return the object from it's header address
     fn get_object(header: NonNull<Self::Header>) -> NonNull<()> {
-        unsafe { NonNull::new_unchecked(header.cast::<()>().as_ptr().offset(1)) }
+        unsafe { NonNull::new_unchecked(header.cast::<Self::Header>().as_ptr().offset(1).cast::<()>()) }
     }
 }
 

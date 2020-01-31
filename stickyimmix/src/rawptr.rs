@@ -43,13 +43,13 @@ impl<T: Sized> RawPtr<T> {
     }
 }
 
-impl<T> Clone for RawPtr<T> {
+impl<T: Sized> Clone for RawPtr<T> {
     fn clone(&self) -> RawPtr<T> {
         RawPtr { ptr: self.ptr }
     }
 }
 
-impl<T> Copy for RawPtr<T> {}
+impl<T: Sized> Copy for RawPtr<T> {}
 
 impl<T: Sized> PartialEq for RawPtr<T> {
     fn eq(&self, other: &RawPtr<T>) -> bool {
