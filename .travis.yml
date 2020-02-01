@@ -3,7 +3,7 @@ rust: stable
 
 cache: cargo
 
-env: MDBOOK=0.1 GHP_UPLOAD=0.3
+env: MDBOOK=0.3.5 GHP_UPLOAD=0.3.4
 
 install:
     - (test -x $HOME/.cargo/bin/mdbook || cargo install --version $MDBOOK mdbook)
