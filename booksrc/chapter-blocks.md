@@ -23,13 +23,13 @@ collections, [`std::ptr::NonNull<T>`](https://doc.rust-lang.org/std/ptr/struct.N
 which is available on stable.
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:26:29}}
+{{#include ../blockalloc/src/lib.rs:DefBlock}}
 ```
 
 Where `BlockPtr` and `BlockSize` are defined as:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:11:12}}
+{{#include ../blockalloc/src/lib.rs:DefBlockComponents}}
 ```
 
 To obtain a `Block`, we'll create a `Block::new()` function which, along with
@@ -37,17 +37,19 @@ To obtain a `Block`, we'll create a `Block::new()` function which, along with
 routines:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:34:43}}
+{{#include ../blockalloc/src/lib.rs:BlockNew}}
 ```
 
 Where parameter `size` must be a power of two, which is validated on the first
-line of the function.
+line of the function.  Requiring the block size to be a power of two means
+simple bit arithmetic can be used to find the beginning and end of a block in
+memory, if the block size is always the same.
 
 Errors take one of two forms, an invalid block-size or out-of-memory, both
 of which may be returned by `Block::new()`.
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:17:22}}
+{{#include ../blockalloc/src/lib.rs:DefBlockError}}
 ```
 
 Now on to the platform-specific implementations.
@@ -64,13 +66,13 @@ for any target.
 The allocation function, implemented in the `internal` mod, reads:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:101:110}}
+{{#include ../blockalloc/src/lib.rs:RustAllocBlock}}
 ```
 
 And deallocation:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:112:120}}
+{{#include ../blockalloc/src/lib.rs:RustDeallocBlock}}
 ```
 
 
@@ -85,13 +87,13 @@ standard library function call which we can access in the
 [libc](https://docs.rs/libc/0.2.40/libc/fn.posix_memalign.html) crate.
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:134:146}}
+{{#include ../blockalloc/src/lib.rs:UnixAllocBlock}}
 ```
 
 Deallocation is done with the `free()` libc function:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:148:152}}
+{{#include ../blockalloc/src/lib.rs:UnixDeallocBlock}}
 ```
 
 
@@ -100,13 +102,13 @@ Deallocation is done with the `free()` libc function:
 Allocation:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:163:165}}
+{{#include ../blockalloc/src/lib.rs:WinAllocBlock}}
 ```
 
 Deallocation:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:167:169}}
+{{#include ../blockalloc/src/lib.rs:WinDeallocBlock}}
 ```
 
 
@@ -121,5 +123,5 @@ size - that is, the block size minus one. A bitwise XOR will highlight any
 bits that shouldn't be set:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:195:196}}
+{{#include ../blockalloc/src/lib.rs:TestAllocPointer}}
 ```

@@ -5,28 +5,37 @@
 /// be used to allocate block-aligned blocks.
 use std::ptr::NonNull;
 
+// ANCHOR: DefBlockComponents
 pub type BlockPtr = NonNull<u8>;
 pub type BlockSize = usize;
+// ANCHOR_END: DefBlockComponents
 
 /// Set of possible block allocation failures
+// ANCHOR: DefBlockError
 #[derive(Debug, PartialEq)]
 pub enum BlockError {
-    /// Usually means requested block size, and therefore alignment, wasn't a power of two
+    /// Usually means requested block size, and therefore alignment, wasn't a
+    /// power of two
     BadRequest,
     /// Insufficient memory, couldn't allocate a block
     OOM,
 }
+// ANCHOR_END: DefBlockError
 
 /// A block-size-aligned block of memory
+// ANCHOR: DefBlock
 pub struct Block {
     ptr: BlockPtr,
     size: BlockSize,
 }
+// ANCHOR_END: DefBlock
 
 impl Block {
     /// Instantiate a new block of the given size. Size must be a power of two.
+    // ANCHOR: BlockNew
     pub fn new(size: BlockSize) -> Result<Block, BlockError> {
-        if !(size > 0 && (size & (size - 1) == 0)) {
+        // validate that size is a power of two
+        if !(size & (size - 1) == 0) {
             return Err(BlockError::BadRequest);
         }
 
@@ -35,6 +44,7 @@ impl Block {
             size,
         })
     }
+    // ANCHOR_END: BlockNew
 
     /// Consume and return the pointer only
     pub fn into_mut_ptr(self) -> BlockPtr {
@@ -84,6 +94,7 @@ mod internal {
 
     pub const BLOCK_SOURCE: BlockSource = BlockSource::RustAlloc;
 
+    // ANCHOR: RustAllocBlock
     pub fn alloc_block(size: BlockSize) -> Result<BlockPtr, BlockError> {
         unsafe {
             let layout = Layout::from_size_align_unchecked(size, size);
@@ -94,7 +105,9 @@ mod internal {
             }
         }
     }
+    // ANCHOR_END: RustAllocBlock
 
+    // ANCHOR: RustDeallocBlock
     pub fn dealloc_block(ptr: BlockPtr, size: BlockSize) {
         unsafe {
             let layout = Layout::from_size_align_unchecked(size, size);
@@ -102,6 +115,7 @@ mod internal {
             Global.dealloc(ptr, layout);
         }
     }
+    // ANCHOR_END: RustDeallocBlock
 }
 
 #[cfg(all(unix, not(feature = "alloc")))]
@@ -114,6 +128,7 @@ mod internal {
 
     pub const BLOCK_SOURCE: BlockSource = BlockSource::PosixMemalign;
 
+    // ANCHOR: UnixAllocBlock
     pub fn alloc_block(size: BlockSize) -> Result<BlockPtr, BlockError> {
         unsafe {
             let mut address = null_mut();
@@ -127,12 +142,15 @@ mod internal {
             }
         }
     }
+    // ANCHOR_END: UnixAllocBlock
 
+    // ANCHOR: UnixDeallocBlock
     pub fn dealloc_block(ptr: BlockPtr, _size: BlockSize) {
         unsafe {
             free(ptr.as_ptr() as *mut c_void);
         }
     }
+    // ANCHOR_END: UnixDeallocBlock
 }
 
 #[cfg(all(windows, not(feature = "alloc")))]
@@ -141,13 +159,17 @@ mod internal {
 
     use {Block, BlockError, BlockPtr, BlockSize, BlockSource};
 
+    // ANCHOR: WinAllocBlock
     pub fn alloc_block(size: BlockSize) -> Result<BlockPtr, BlockError> {
         // TODO
     }
+    // ANCHOR_END: WinAllocBlock
 
+    // ANCHOR: WinDeallocBlock
     pub fn dealloc_block(ptr: BlockPtr, size: BlockSize) {
         // TODO
     }
+    // ANCHOR_END: WinDeallocBlock
 }
 
 #[cfg(test)]
@@ -170,10 +192,12 @@ mod tests {
     fn alloc_dealloc(size: BlockSize) -> Result<(), BlockError> {
         let block = Block::new(size)?;
 
+        // ANCHOR: TestAllocPointer
         // the block address bitwise AND the alignment bits (size - 1) should
         // be a mutually exclusive set of bits
         let mask = size - 1;
         assert!((block.ptr.as_ptr() as usize & mask) ^ mask == mask);
+        // ANCHOR_END: TestAllocPointer
 
         drop(block);
         Ok(())

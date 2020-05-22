@@ -1,5 +1,6 @@
 [book]
 authors = ["Peter Liniker"]
 multilingual = false
+language = "en"
 src = "booksrc"
 title = "Writing Interpreters in Rust"
