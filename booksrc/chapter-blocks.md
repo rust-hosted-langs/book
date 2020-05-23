@@ -33,7 +33,7 @@ Where `BlockPtr` and `BlockSize` are defined as:
 ```
 
 To obtain a `Block`, we'll create a `Block::new()` function which, along with
-`Block::drop()`, is implemented in terms of platform-specific allocation
+`Block::drop()`, is implemented internally by wrapping the stabilized Rust alloc 
 routines:
 
 ```rust
@@ -55,15 +55,20 @@ of which may be returned by `Block::new()`.
 Now on to the platform-specific implementations.
 
 
-## Custom aligned allocation on unstable Rust
+## Custom aligned allocation on stable Rust
 
-On the unstable rustc channel we have access to the
-[Alloc](https://doc.rust-lang.org/alloc/allocator/trait.Alloc.html) API. This
-is the ideal option since it abstracts platform specifics for us - with an
-appropriate underlying implementation this code should compile and execute
-for any target.
+On the stable rustc channel we have access to some features of the
+[Alloc](https://doc.rust-lang.org/std/alloc/index.html) API. 
 
-The allocation function, implemented in the `internal` mod, reads:
+This is the ideal option since it abstracts platform specifics for us, we do
+not need to write different code for Unix and Windows ourselves.
+
+Fortunately there is enough stable functionality to 
+fully implement what we need.
+
+With an appropriate underlying implementation this code should compile and 
+execute for any target. The allocation function, implemented in the `internal` 
+mod, reads:
 
 ```rust
 {{#include ../blockalloc/src/lib.rs:RustAllocBlock}}
@@ -73,42 +78,6 @@ And deallocation:
 
 ```rust
 {{#include ../blockalloc/src/lib.rs:RustDeallocBlock}}
-```
-
-
-## Custom aligned allocation on stable Rust on Unix-like platforms
-
-As of writing, the stable Rust channel does not provide access directly to the
-allocation APIs in the previous section.  In order to get block-size
-aligned blocks of memory on stable on Unix-like platforms, we'll use
-the
-[posix_memalign()](http://man7.org/linux/man-pages/man3/posix_memalign.3.html)
-standard library function call which we can access in the
-[libc](https://docs.rs/libc/0.2.40/libc/fn.posix_memalign.html) crate.
-
-```rust
-{{#include ../blockalloc/src/lib.rs:UnixAllocBlock}}
-```
-
-Deallocation is done with the `free()` libc function:
-
-```rust
-{{#include ../blockalloc/src/lib.rs:UnixDeallocBlock}}
-```
-
-
-## Custom aligned allocation in stable Rust on Windows
-
-Allocation:
-
-```rust
-{{#include ../blockalloc/src/lib.rs:WinAllocBlock}}
-```
-
-Deallocation:
-
-```rust
-{{#include ../blockalloc/src/lib.rs:WinDeallocBlock}}
 ```
 
 

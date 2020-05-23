@@ -1,8 +1,21 @@
-#![cfg_attr(feature = "alloc", feature(alloc, allocator_api))]
-
-/// Turn on `--features "unstable"` for use of alloc crate and traits.
-/// Otherwise, platform-specific (Unix or Windows) system calls will
-/// be used to allocate block-aligned blocks.
+/// A block allocator for blocks of memory that must be:
+///  - powers of two in size
+///  - aligned to their size
+///
+/// Internally this calls the stabilized std Alloc API.
+/// https://doc.rust-lang.org/std/alloc/index.html
+///
+/// Usage:
+/// ```
+/// extern crate blockalloc;
+/// use blockalloc::Block;
+///
+/// let size = 4096;  // must be a power of 2
+/// let block = Block::new(size).unwrap();
+/// ```
+///
+/// Normal scoping rules will call Block::drop() when `block` goes out of scope
+/// causing the block to be fully deallocated.
 use std::ptr::NonNull;
 
 // ANCHOR: DefBlockComponents
@@ -85,12 +98,10 @@ pub fn block_source() -> BlockSource {
     internal::BLOCK_SOURCE
 }
 
-#[cfg(feature = "alloc")]
 mod internal {
-
-    use std::alloc::{Alloc, Global, Layout};
+    use super::{BlockError, BlockPtr, BlockSize, BlockSource};
+    use std::alloc::{alloc, dealloc, Layout};
     use std::ptr::NonNull;
-    use {BlockError, BlockPtr, BlockSize, BlockSource};
 
     pub const BLOCK_SOURCE: BlockSource = BlockSource::RustAlloc;
 
@@ -99,9 +110,11 @@ mod internal {
         unsafe {
             let layout = Layout::from_size_align_unchecked(size, size);
 
-            match Global.alloc(layout) {
-                Ok(ptr) => Ok(NonNull::new_unchecked(ptr.as_ptr() as *mut u8)),
-                Err(_) => Err(BlockError::OOM),
+            let ptr = alloc(layout);
+            if ptr.is_null() {
+                Err(BlockError::OOM)
+            } else {
+                Ok(NonNull::new_unchecked(ptr))
             }
         }
     }
@@ -112,82 +125,16 @@ mod internal {
         unsafe {
             let layout = Layout::from_size_align_unchecked(size, size);
 
-            Global.dealloc(ptr, layout);
+            dealloc(ptr.as_ptr(), layout);
         }
     }
     // ANCHOR_END: RustDeallocBlock
-}
-
-#[cfg(all(unix, not(feature = "alloc")))]
-mod internal {
-    extern crate libc;
-
-    use self::libc::{c_void, free, posix_memalign, EINVAL, ENOMEM};
-    use crate::{BlockError, BlockPtr, BlockSize, BlockSource};
-    use std::ptr::{null_mut, NonNull};
-
-    pub const BLOCK_SOURCE: BlockSource = BlockSource::PosixMemalign;
-
-    // ANCHOR: UnixAllocBlock
-    pub fn alloc_block(size: BlockSize) -> Result<BlockPtr, BlockError> {
-        unsafe {
-            let mut address = null_mut();
-            let rval = posix_memalign(&mut address, size, size);
-
-            match rval {
-                0 => Ok(NonNull::new_unchecked(address as *mut u8)),
-                EINVAL => Err(BlockError::BadRequest),
-                ENOMEM => Err(BlockError::OOM),
-                _ => unreachable!(),
-            }
-        }
-    }
-    // ANCHOR_END: UnixAllocBlock
-
-    // ANCHOR: UnixDeallocBlock
-    pub fn dealloc_block(ptr: BlockPtr, _size: BlockSize) {
-        unsafe {
-            free(ptr.as_ptr() as *mut c_void);
-        }
-    }
-    // ANCHOR_END: UnixDeallocBlock
-}
-
-#[cfg(all(windows, not(feature = "alloc")))]
-mod internal {
-    // maybe? https://docs.microsoft.com/en-us/cpp/c-runtime-library/reference/aligned-malloc
-
-    use {Block, BlockError, BlockPtr, BlockSize, BlockSource};
-
-    // ANCHOR: WinAllocBlock
-    pub fn alloc_block(size: BlockSize) -> Result<BlockPtr, BlockError> {
-        // TODO
-    }
-    // ANCHOR_END: WinAllocBlock
-
-    // ANCHOR: WinDeallocBlock
-    pub fn dealloc_block(ptr: BlockPtr, size: BlockSize) {
-        // TODO
-    }
-    // ANCHOR_END: WinDeallocBlock
 }
 
 #[cfg(test)]
 mod tests {
 
     use crate::{block_source, Block, BlockError, BlockSize, BlockSource};
-
-    #[test]
-    fn test_block_source() {
-        #[cfg(feature = "alloc")]
-        assert!(block_source() == BlockSource::RustAlloc);
-
-        #[cfg(all(unix, not(feature = "alloc")))]
-        assert!(block_source() == BlockSource::PosixMemalign);
-
-        #[cfg(all(windows, not(feature = "alloc")))]
-        assert!(block_source() == BlockSource::Windows);
-    }
 
     fn alloc_dealloc(size: BlockSize) -> Result<(), BlockError> {
         let block = Block::new(size)?;
