@@ -1,6 +1,6 @@
 # Alignment
 
-There be subtleties in alignment:
+There are subtleties in memory access alignment:
 
 - Some hardware architectures and implementations may fault on unaligned
   memory access.
