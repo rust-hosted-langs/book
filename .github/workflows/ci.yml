@@ -22,22 +22,16 @@ jobs:
           override: true
 
       - name: Cargo check blockalloc
-        uses: actions-rs/cargo@v1
         working-directory: ./blockalloc
-        with:
-          command: check
+        run: cargo check
 
       - name: Cargo check stickimmix
-        uses: actions-rs/cargo@v1
         working-directory: ./stickyimmix
-        with:
-          command: check
+        run: cargo check
 
       - name: Cargo check interpreter
-        uses: actions-rs/cargo@v1
         working-directory: ./interpreter
-        with:
-          command: check
+        run: cargo check
 
   test:
     name: Test Suite
@@ -54,22 +48,16 @@ jobs:
           override: true
 
       - name: Cargo test blockalloc
-        uses: actions-rs/cargo@v1
         working-directory: ./blockalloc
-        with:
-          command: test
+        run: cargo test
 
       - name: Cargo test stickyimmix
-        uses: actions-rs/cargo@v1
         working-directory: ./stickyimmix
-        with:
-          command: test
+        run: cargo test
 
       - name: Cargo test interpreter
-        uses: actions-rs/cargo@v1
         working-directory: ./interpreter
-        with:
-          command: test
+        run: cargo test
 
   lints:
     name: Lints
@@ -87,24 +75,14 @@ jobs:
           components: rustfmt, clippy
 
       - name: Cargo fmt check blockalloc
-        uses: actions-rs/cargo@v1
         working-directory: ./blockalloc
-        with:
-          command: fmt
-          args: --all -- --check
+        run: cargo fmt --all -- --check
 
       - name: Cargo fmt check stickyimmix
-        uses: actions-rs/cargo@v1
         working-directory: ./stickyimmix
-        with:
-          command: fmt
-          args: --all -- --check
+        run: cargo fmt --all -- --check
 
       - name: Cargo fmt check interpreter
-        uses: actions-rs/cargo@v1
         working-directory: ./interpreter
-        with:
-          command: fmt
-          args: --all -- --check
-
+        run: cargo fmt --all -- --check
 

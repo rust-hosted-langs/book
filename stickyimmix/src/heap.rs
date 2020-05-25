@@ -226,7 +226,15 @@ impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
 
     /// Return the object from it's header address
     fn get_object(header: NonNull<Self::Header>) -> NonNull<()> {
-        unsafe { NonNull::new_unchecked(header.cast::<Self::Header>().as_ptr().offset(1).cast::<()>()) }
+        unsafe {
+            NonNull::new_unchecked(
+                header
+                    .cast::<Self::Header>()
+                    .as_ptr()
+                    .offset(1)
+                    .cast::<()>(),
+            )
+        }
     }
 }
 
