@@ -3,9 +3,6 @@ extern crate clap;
 extern crate dirs;
 extern crate fnv;
 extern crate itertools;
-extern crate num;
-#[macro_use]
-extern crate num_derive;
 extern crate rustyline;
 extern crate stickyimmix;
 
