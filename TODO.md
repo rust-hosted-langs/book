@@ -1,5 +1,9 @@
 # TODO
 
+FOCUS: GC/mutator interface
+  How is it implemented?
+  How is it used?
+
 ## StickyImmix
 
 * keep some empty blocks in the free list

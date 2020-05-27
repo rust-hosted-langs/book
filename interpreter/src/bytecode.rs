@@ -33,9 +33,6 @@ pub const JUMP_UNKNOWN: i16 = 0x7fff;
 /// Argument count for a function call or partial application
 pub type NumArgs = u8;
 
-/// Count of call frames to look back to find a nonlocal
-pub type FrameOffset = u8;
-
 /// VM opcodes. These enum variants should be designed to fit into 32 bits. Using
 /// u8 representation seems to make that happen, so long as the struct variants
 /// do not add up to more than 24 bits.

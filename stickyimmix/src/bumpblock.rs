@@ -21,12 +21,14 @@ impl From<BlockError> for AllocError {
 /// to provide fast access when in the object marking phase.
 /// Thus allocation in the first line of the block doesn't begin at
 /// offset 0 but after this `meta` pointer.
+// ANCHOR: DefBumpBlock
 pub struct BumpBlock {
     cursor: usize,
     limit: usize,
     block: Block,
     meta: Box<BlockMeta>,
 }
+// ANCHOR_END: DefBumpBlock
 
 impl BumpBlock {
     /// Create a new block of heap space and it's metadata, placing a

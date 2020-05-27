@@ -1,7 +1,9 @@
 use std::mem::size_of;
 
+// ANCHOR: ConstBlockSize
 pub const BLOCK_SIZE_BITS: usize = 15;
 pub const BLOCK_SIZE: usize = 1 << BLOCK_SIZE_BITS;
+// ANCHOR_END: ConstBlockSize
 pub const BLOCK_PTR_MASK: usize = !(BLOCK_SIZE - 1);
 
 pub const LINE_SIZE_BITS: usize = 7;

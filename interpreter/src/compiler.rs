@@ -1,7 +1,7 @@
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 
-use crate::array::{Array, ArraySize, ArrayU16};
+use crate::array::{ArraySize, ArrayU16};
 use crate::bytecode::{ByteCode, JumpOffset, Opcode, Register, UpvalueId, JUMP_UNKNOWN};
 use crate::containers::{AnyContainerFromSlice, StackContainer};
 use crate::error::{err_eval, RuntimeError};
@@ -782,6 +782,7 @@ impl<'parent> Compiler<'parent> {
         reg
     }
 
+    // TODO use this function instead of acquire_reg
     // this is a naive way of allocating registers - every result gets it's own register
     fn acquire_dest_reg(&mut self, push_dest: Option<Register>) -> Result<Register, RuntimeError> {
         if let Some(dest) = push_dest {

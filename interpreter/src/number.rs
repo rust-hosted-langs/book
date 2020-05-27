@@ -7,7 +7,7 @@ use crate::safeptr::MutatorScope;
 
 /// TODO A heap-allocated number
 pub struct NumberObject {
-    value: Array<u64>,
+    _value: Array<u64>,
 }
 
 impl Print for NumberObject {
