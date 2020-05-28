@@ -71,14 +71,29 @@ execute for any target. The allocation function, implemented in the `internal`
 mod, reads:
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:RustAllocBlock}}
+{{#include ../blockalloc/src/lib.rs:AllocBlock}}
 ```
 
-And deallocation:
+Once a block has been allocated, there is no safe abstraction at this level
+to access the memory. The `Block` will provide a bare pointer to the beginning
+of the memory and it is up to the user to avoid invalid pointer arithmetic
+and reading or writing outside of the block boundary.
 
 ```rust
-{{#include ../blockalloc/src/lib.rs:RustDeallocBlock}}
+{{#include ../blockalloc/src/lib.rs:BlockAsPtr}}
 ```
+
+
+## Deallocation
+
+Again, using the stable Alloc functions:
+
+```rust
+{{#include ../blockalloc/src/lib.rs:DeallocBlock}}
+```
+
+The implementation of `Block::drop()` calls the deallocation function
+for us so we can create and drop `Block` instances without leaking memory.
 
 
 ## Testing

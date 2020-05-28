@@ -17,20 +17,25 @@ provide a solid foundation on which you can build further features.
 
 We hope you find this book to be informative!
 
-### A clarifying note
-
-This guide is _not_ about custom allocators to replace the global Rust allocator
-or garbage collection that can manage Rust's standard library or other 
-off-the-shelf collections.
 
 ## Further reading and other projects to study:
 
-Note: Bob Nystrom's [Crafting Interpreters](http://craftinginterpreters.com/)
-is strongly recommended companion reading to this book.
+All the links below are acknowledged as inspiration or prior art.
+
+### Interpreters
+
+Bob Nystrom's [Crafting Interpreters](http://craftinginterpreters.com/)
+is recommended companion reading to this book for beginners to the topic
+as there are strong parallels.
+
+### Memory management
 
 * Stephen M. Blackburn & Kathryn S. McKinley - 
   [Immix: A Mark-Region Garbage Collector with Space Efficiency, Fast Collection, and Mutator Performance](http://www.cs.utexas.edu/users/speedway/DaCapo/papers/immix-pldi-2008.pdf)
 * Richard Jones, Anthony Hosking, Elliot Moss - [The Garbage Collection Handbook](http://gchandbook.org/)
+
+### Related and interesting Rust projects
+
 * The [Inko](https://gitlab.com/inko-lang/inko) programming language
 * The [Gluon](https://github.com/gluon-lang/gluon) programming language
 * The [ketos](https://github.com/murarth/ketos) programming language

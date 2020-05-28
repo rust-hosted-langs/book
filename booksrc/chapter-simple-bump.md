@@ -1,4 +1,4 @@
-# Simple bump allocation
+# Bump allocation
 
 Now that we can get blocks of raw memory, we need to write objects into it. The
 simplest way to do this is to write objects into a block one after the other
@@ -27,6 +27,8 @@ metadata.
 {{#include ../stickyimmix/src/bumpblock.rs:DefBumpBlock}}
 ```
 
+## Pointers and writing to memory
+
 In this struct definition, there are two members that we are interested in
 for this chapter. The other two, `limit` and `meta`, will be discussed in the 
 next chapter.
@@ -34,6 +36,54 @@ next chapter.
 * `cursor`: this is the bump pointer. In our implementation it is the index
   into the block where the next object can be written.
 * `block`: this is the `Block` itself in which objects will be written.
+
+For this bump allocation function, the `alloc_size` parameter should be a number
+of bytes of memory requested. We'll assume that the value provided is equivalent
+to an exact number of words so that we don't end up with badly aligned object
+placement.
+
+```rust
+impl BumpBlock {
+    pub fn inner_alloc(&mut self, alloc_size: usize) -> Option<*const u8> {
+        let next_bump = self.cursor + alloc_size;
+
+        if next_bump > constants::BLOCK_SIZE {
+            None
+        } else {
+            let offset = self.cursor;
+            self.cursor = next_bump;
+            unsafe { Some(self.block.as_ptr().add(offset) as *const u8) }
+        }
+    }
+}
+```
+
+In this overly simplistic initial implementation, allocation will simply return
+`None` if the block is full. If there _is_ space, it will be returned as a
+`Some(*const u8)` pointer.
+
+Note that this function does not _write_ the object to memory, it merely 
+returns a pointer to an available space.  Writing the object will simply
+require invoking the `std::ptr::write` function. We will do that in a separate
+module but for completeness of this chapter, this might look something like:
+
+```rust
+use std::ptr::write;
+
+unsafe fn write<T>(dest: *const u8, object: T) {
+    let ptr = dest as *mut T;
+    write(p, object);
+}
+```
+
+
+## Preparing for garbage collection
+
+When objects written to our blocks 
+
+The `BumpBlock` struct contains two more members: `limit` and `meta`. These
+are ... TBC
+
 
 
 [^1]: Note that objects can be written from the end of the block down to the beginning

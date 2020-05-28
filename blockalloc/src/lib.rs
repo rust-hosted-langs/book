@@ -75,9 +75,11 @@ impl Block {
     }
 
     /// Return a bare pointer to the base of the block
+    // ANCHOR: BlockAsPtr
     pub fn as_ptr(&self) -> *const u8 {
         self.ptr.as_ptr()
     }
+    // ANCHOR_END: BlockAsPtr
 }
 
 impl Drop for Block {
@@ -86,26 +88,12 @@ impl Drop for Block {
     }
 }
 
-/// The set of possible allocation sources
-#[derive(Debug, PartialEq)]
-pub enum BlockSource {
-    RustAlloc,
-    PosixMemalign,
-    Windows,
-}
-
-pub fn block_source() -> BlockSource {
-    internal::BLOCK_SOURCE
-}
-
 mod internal {
-    use super::{BlockError, BlockPtr, BlockSize, BlockSource};
+    use super::{BlockError, BlockPtr, BlockSize};
     use std::alloc::{alloc, dealloc, Layout};
     use std::ptr::NonNull;
 
-    pub const BLOCK_SOURCE: BlockSource = BlockSource::RustAlloc;
-
-    // ANCHOR: RustAllocBlock
+    // ANCHOR: AllocBlock
     pub fn alloc_block(size: BlockSize) -> Result<BlockPtr, BlockError> {
         unsafe {
             let layout = Layout::from_size_align_unchecked(size, size);
@@ -118,9 +106,9 @@ mod internal {
             }
         }
     }
-    // ANCHOR_END: RustAllocBlock
+    // ANCHOR_END: AllocBlock
 
-    // ANCHOR: RustDeallocBlock
+    // ANCHOR: DeallocBlock
     pub fn dealloc_block(ptr: BlockPtr, size: BlockSize) {
         unsafe {
             let layout = Layout::from_size_align_unchecked(size, size);
@@ -128,13 +116,13 @@ mod internal {
             dealloc(ptr.as_ptr(), layout);
         }
     }
-    // ANCHOR_END: RustDeallocBlock
+    // ANCHOR_END: DeallocBlock
 }
 
 #[cfg(test)]
 mod tests {
 
-    use crate::{block_source, Block, BlockError, BlockSize, BlockSource};
+    use crate::{Block, BlockError, BlockSize};
 
     fn alloc_dealloc(size: BlockSize) -> Result<(), BlockError> {
         let block = Block::new(size)?;
