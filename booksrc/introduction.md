@@ -30,9 +30,9 @@ as there are strong parallels.
 
 ### Memory management
 
+* Richard Jones, Anthony Hosking, Elliot Moss - [The Garbage Collection Handbook](http://gchandbook.org/)
 * Stephen M. Blackburn & Kathryn S. McKinley - 
   [Immix: A Mark-Region Garbage Collector with Space Efficiency, Fast Collection, and Mutator Performance](http://www.cs.utexas.edu/users/speedway/DaCapo/papers/immix-pldi-2008.pdf)
-* Richard Jones, Anthony Hosking, Elliot Moss - [The Garbage Collection Handbook](http://gchandbook.org/)
 
 ### Related and interesting Rust projects
 

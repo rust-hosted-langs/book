@@ -27,7 +27,7 @@ metadata.
 {{#include ../stickyimmix/src/bumpblock.rs:DefBumpBlock}}
 ```
 
-## Pointers and writing to memory
+## Bump allocation basics
 
 In this struct definition, there are two members that we are interested in
 for this chapter. The other two, `limit` and `meta`, will be discussed in the 
@@ -71,15 +71,17 @@ module but for completeness of this chapter, this might look something like:
 use std::ptr::write;
 
 unsafe fn write<T>(dest: *const u8, object: T) {
-    let ptr = dest as *mut T;
-    write(p, object);
+    write(dest as *mut T, object);
 }
 ```
 
 
-## Preparing for garbage collection
+## Some time passes...
 
-When objects written to our blocks 
+After allocating and freeing objects, we will have gaps between objects in a
+block that can be reused. The above bump allocation algorithm is unaware of
+these gaps so we'll have to modify it before it can allocate into fragmented
+blocks.
 
 The `BumpBlock` struct contains two more members: `limit` and `meta`. These
 are ... TBC
