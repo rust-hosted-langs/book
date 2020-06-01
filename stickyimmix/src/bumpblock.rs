@@ -57,6 +57,7 @@ impl BumpBlock {
 
     /// Find a hole of at least the requested size and return Some(pointer) to it, or
     /// None if this block doesn't have a big enough hole.
+    // ANCHOR: DefBumpBlockAlloc
     pub fn inner_alloc(&mut self, alloc_size: usize) -> Option<*const u8> {
         let next_bump = self.cursor + alloc_size;
 
@@ -76,6 +77,7 @@ impl BumpBlock {
             unsafe { Some(self.block.as_ptr().add(offset) as *const u8) }
         }
     }
+    // ANCHOR_END: DefBumpBlockAlloc
 
     /// Return the size of the hole we're positioned at
     pub fn current_hole_size(&self) -> usize {

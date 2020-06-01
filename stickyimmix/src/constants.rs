@@ -6,9 +6,11 @@ pub const BLOCK_SIZE: usize = 1 << BLOCK_SIZE_BITS;
 // ANCHOR_END: ConstBlockSize
 pub const BLOCK_PTR_MASK: usize = !(BLOCK_SIZE - 1);
 
+// ANCHOR: ConstLineSize
 pub const LINE_SIZE_BITS: usize = 7;
 pub const LINE_SIZE: usize = 1 << LINE_SIZE_BITS;
 pub const LINE_COUNT: usize = BLOCK_SIZE / LINE_SIZE;
+// ANCHOR_END: ConstLineSize
 
 pub const MAX_ALLOC_SIZE: usize = std::u32::MAX as usize;
 

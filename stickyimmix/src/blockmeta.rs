@@ -1,10 +1,12 @@
 use crate::constants;
 
 /// Block marking metadata
+// ANCHOR: DefBlockMeta
 pub struct BlockMeta {
     line_mark: [bool; constants::LINE_COUNT],
     block_mark: bool,
 }
+// ANCHOR_END: DefBlockMeta
 
 impl BlockMeta {
     /// Heap allocate a metadata instance so that it doesn't move so we can store pointers
@@ -43,17 +45,16 @@ impl BlockMeta {
     /// hole in which bump allocation can occur, or `None` if no hole can be found in this
     /// block.
     /// Takes into account conservative marking of the first unmarked line in a hole.
+    // ANCHOR: DefFindNextHole
     pub fn find_next_available_hole(&self, starting_at: usize) -> Option<(usize, usize)> {
         let mut count = 0;
         let mut start: Option<usize> = None;
         let mut stop: usize = 0;
 
         let starting_line = starting_at / constants::LINE_SIZE;
-        //  make sure this is on a line boundary
-        let starting_at = starting_line * constants::LINE_SIZE;
 
         for (index, marked) in self.line_mark[starting_line..].iter().enumerate() {
-            let abs_index = starting_at + index;
+            let abs_index = starting_line + index;
 
             // count unmarked lines
             if !*marked {
@@ -74,7 +75,7 @@ impl BlockMeta {
                 stop = abs_index + 1;
             }
 
-            // if reached a marked line or the end of the block, see if we have
+            // if we reached a marked line or the end of the block, see if we have
             // a valid hole to work with
             if count > 0 && (*marked || stop >= constants::LINE_COUNT) {
                 if let Some(start) = start {
@@ -95,6 +96,7 @@ impl BlockMeta {
 
         None
     }
+    // ANCHOR_END: DefFindNextHole
 }
 
 #[cfg(test)]
