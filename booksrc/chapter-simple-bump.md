@@ -263,6 +263,8 @@ or lines to mark, in addition to marking the object itself. We will make a
 copy of the `BlockMeta` instance pointer in the 0th word of the memory block
 so that given any object pointer, we can obtain the `BlockMeta` instance.
 
+In the next chapter we'll handle multiple `BumpBlock`s so that we can keep
+allocating objects after one block is full.
 
 
 [^1]: Note that objects can be written from the end of the block down to the beginning

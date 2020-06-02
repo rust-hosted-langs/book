@@ -13,6 +13,7 @@ use crate::rawptr::RawPtr;
 
 /// A list of blocks as the current block being allocated into and a list
 /// of full blocks
+// ANCHOR: DefBlockList
 struct BlockList {
     head: Option<BumpBlock>,
     overflow: Option<BumpBlock>,
@@ -21,6 +22,7 @@ struct BlockList {
     // recycle: Vec<BumpBlock>
     // large: Vec<Thing>
 }
+// ANCHOR_END: DefBlockList
 
 impl BlockList {
     fn new() -> BlockList {
