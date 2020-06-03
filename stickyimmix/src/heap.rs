@@ -13,14 +13,15 @@ use crate::rawptr::RawPtr;
 
 /// A list of blocks as the current block being allocated into and a list
 /// of full blocks
+// TODO:
+// free: Vec<BumpBlock>,
+// recycle: Vec<BumpBlock>
+// large: Vec<Thing>
 // ANCHOR: DefBlockList
 struct BlockList {
     head: Option<BumpBlock>,
     overflow: Option<BumpBlock>,
     rest: Vec<BumpBlock>,
-    // free: Vec<BumpBlock>,
-    // recycle: Vec<BumpBlock>
-    // large: Vec<Thing>
 }
 // ANCHOR_END: DefBlockList
 

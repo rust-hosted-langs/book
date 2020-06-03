@@ -7,4 +7,4 @@
   - [The type of allocation](./chapter-what-is-alloc.md)
 - [Sticky Immix](./part-stickyimmix.md)
   - [Bump allocation](./chapter-simple-bump.md)
-  - [Managing blocks](./chapter-managing-blocks.md)
+  - [Allocating into multiple blocks](./chapter-managing-blocks.md)
