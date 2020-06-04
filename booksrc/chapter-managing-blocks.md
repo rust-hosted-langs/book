@@ -13,16 +13,16 @@ Immix maintains several lists of blocks. We won't include them all in the first
 iteration but in short they are:
 
 * `free`: a list of blocks that contain no objects. These blocks are held at the
-  ready to allocate into on demand.
-* `recycle`: a list of blocks that contain some objects but also gaps that can
-  be allocated into. These blocks would also undergo defragmentation.
+  ready to allocate into on demand
+* `recycle`: a list of blocks that contain some objects but also at least one
+  line that can be allocated into
 * `large`: not a list of blocks, necessarily, but a list of objects larger than
   the block size, or some other method of accounting for large objects
 * `rest`: the rest of the blocks that have been allocated into but are not
-  ready for recycling
+  suitable for recycling
 
-In our first iteration we'll keep the `rest` list of blocks and two blocks to
-immediately allocate into. Why two? To understand why, we need to understand
+In our first iteration we'll only keep the `rest` list of blocks and two blocks
+to immediately allocate into. Why two? To understand why, we need to understand
 how Immix thinks about object sizes.
 
 ## Immix and object sizes
@@ -33,7 +33,8 @@ object sizes:
 
 * small: those that (with object header and alignment overhead) fit inside a
   line
-* medium: those that are larger than one line but smaller than a block
+* medium: those that (again with object header and alignment overhead) are
+  larger than one line but smaller than a block
 * large: those that are larger than a block
 
 In the previous chapter we described the basic allocation algorithm: when
