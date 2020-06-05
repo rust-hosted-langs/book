@@ -52,15 +52,15 @@ main block being allocated into.
 Thus two blocks to immediately allocate into:
 
 * `head`: the current block being allocated into
-* `overflow`: a block kept handly for writing medium objects into that don't
+* `overflow`: a block kept handy for writing medium objects into that don't
   fit the `head` block's current hole
 
 We'll be ignoring large objects for now and attending only to allocating small
 and medium objects into blocks.
 
-Instead of recycling blocks with holes, we'll allocate a new block whenever
-we need more space. We'll get to identifying holes and recyclable blocks
-in a later chapter.
+Instead of recycling blocks with holes, or maintaining a list of pre-allocated
+free blocks, we'll allocate a new block on demand whenever we need more space.
+We'll get to identifying holes and recyclable blocks in a later chapter.
 
 ### Managing the overflow block
 
@@ -79,7 +79,7 @@ For allocating into the overflow block we'll define a function in the
 fn overflow_alloc(&mut self, alloc_size: usize) -> Result<*const u8, AllocError>
 ```
 
-The input constraint is that, since overflow is for medium objects, alloc_size
+The input constraint is that, since overflow is for medium objects, `alloc_size`
 must be less than the block size.
 
 The logic inside will divide into three branches:
@@ -106,7 +106,7 @@ The logic inside will divide into three branches:
             }
        }
    ```
-2. We have an overflow block and the object fits. Easy.
+2. We _have_ an overflow block and the object fits. Easy.
    ```rust
         match self.overflow {
             // We already have an overflow block to try to use...
