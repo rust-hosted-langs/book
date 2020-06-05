@@ -35,6 +35,8 @@ impl BlockList {
     }
 
     /// Allocate a space for a medium object into an overflow block
+    // TODO this just allocates a new block on demand, but should look at the free block list first
+    // ANCHOR: DefOverflowAlloc
     fn overflow_alloc(&mut self, alloc_size: usize) -> Result<*const u8, AllocError> {
         assert!(alloc_size <= constants::BLOCK_CAPACITY);
 
@@ -48,8 +50,6 @@ impl BlockList {
 
                     // the block does not have a suitable hole
                     None => {
-                        // TODO this just allocates a new block, but should look at
-                        // the free block list first
                         let previous = replace(overflow, BumpBlock::new()?);
 
                         self.rest.push(previous);
@@ -77,6 +77,7 @@ impl BlockList {
 
         Ok(space)
     }
+    // ANCHOR_END: DefOverflowAlloc
 }
 
 /// A type that implements `AllocRaw` to provide a low-level heap interface.
