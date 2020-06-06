@@ -152,3 +152,27 @@ In this logic, the only error can come from failing to create a new block.
 On success, at this level of interface we continue to return a `*const u8`
 pointer to the available space as we're not yet handling the type of the
 object being allocated.
+
+You may have noticed that the function signature for `overflow_alloc` takes a
+`&mut self`.  This isn't compatible with the interior mutability model
+of allocation.  We'll have to wrap the `BlockList` struct in another struct
+that handles this change of API model.
+
+## The heap struct
+
+This outer struct will provide the external crate interface and some further
+implementation of block management.
+
+The crate interface will require us to consider object headers and so in the
+struct definition below there is reference to a generic type `H` that
+the _user_ of the heap will define as the object header.
+
+```rust
+{{#include ../stickyimmix/src/heap.rs:DefStickyImmixHeap}}
+```
+
+Since object headers are not owned directly by the heap struct, we need a
+`PhantomData` instance to associate with `H`.  We'll discuss object headers
+in a later chapter.
+
+Now let's focus on the use of the `BlockList`.

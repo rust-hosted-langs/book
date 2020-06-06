@@ -82,11 +82,13 @@ impl BlockList {
 
 /// A type that implements `AllocRaw` to provide a low-level heap interface.
 /// Does not allocate internally on initialization.
+// AHCNOR: DefStickyImmixHeap
 pub struct StickyImmixHeap<H> {
     blocks: UnsafeCell<BlockList>,
 
     _header_type: PhantomData<*const H>,
 }
+// ANCHOR_END: DefStickyImmixHeap
 
 impl<H> StickyImmixHeap<H> {
     pub fn new() -> StickyImmixHeap<H> {
