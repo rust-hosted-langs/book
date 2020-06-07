@@ -3,9 +3,11 @@ use std::ptr::NonNull;
 /// A container for a bare pointer to an object of type `T`.
 /// At this level, compile-time type information is still
 /// part of the type.
+// ANCHOR: DefRawPtr
 pub struct RawPtr<T: Sized> {
     ptr: NonNull<T>,
 }
+// ANCHOR_END: DefRawPtr
 
 impl<T: Sized> RawPtr<T> {
     /// Create a new RawPtr from a bare pointer

@@ -5,15 +5,16 @@ use crate::constants;
 use crate::rawptr::RawPtr;
 
 /// An allocation error type
+// ANCHOR: DefAllocError
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub enum AllocError {
     /// Some attribute of the allocation, most likely the size requested,
-    /// could not be fulfilled or a block line size is not a divisor of
-    /// the requested block size
+    /// could not be fulfilled
     BadRequest,
     /// Out of memory - allocating the space failed
     OOM,
 }
+// ANCHOR_END: DefAllocError
 
 /// A type that describes allocation of an object into a heap space, returning
 /// a bare pointer type on success
@@ -88,6 +89,8 @@ pub trait AllocObject<T: AllocTypeId> {
 
 /// An object header struct must provide an implementation of this trait,
 /// providing appropriate information to the garbage collector.
+// TODO tracing information
+// e.g. fn tracer(&self) -> Fn()
 pub trait AllocHeader: Sized {
     /// Associated type that identifies the allocated object type
     type TypeId: AllocTypeId;
@@ -112,9 +115,6 @@ pub trait AllocHeader: Sized {
 
     /// Get the type of the object
     fn type_id(&self) -> Self::TypeId;
-
-    // TODO tracing information
-    // e.g. fn tracer(&self) -> Fn()
 }
 
 /// Return the allocated size of an object as it's size_of::<T>() value rounded
