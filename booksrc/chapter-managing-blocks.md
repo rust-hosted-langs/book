@@ -176,3 +176,64 @@ Since object headers are not owned directly by the heap struct, we need a
 in a later chapter.
 
 Now let's focus on the use of the `BlockList`.
+
+The instance of `BlockList` in the `StickyImmixHeap` struct is wrapped in an
+`UnsafeCell` because we need interior mutability. We need to be able to
+borrow the `BlockList` mutably while presenting an immutable interface to
+the outside world.  Since we won't be borrowing the `BlockList` in multiple
+places in the same call tree, we don't need `RefCell` and we can avoid it's
+runtime borrow checking.
+
+### Allocating into the head block
+
+We've already taken care of the overflow block, now we'll handle allocation
+into the `head` block. We'll define a new function:
+
+```rust
+impl StickyImmixHeap {
+    fn inner_alloc(
+        &self,
+        alloc_size: usize,
+        size_class: SizeClass,
+    ) -> Result<*const u8, AllocError> {
+        let blocks = unsafe { &mut *self.blocks.get() };
+        ...
+    }
+}
+```
+
+This function is going to look almost identical to the `alloc_overflow()`
+function defined earlier. It has more or less the same cases to walk through:
+
+1. `head` block is `None`, i.e. we haven't allocated a head block yet. Allocate
+   one and write the object into it.
+2. We have `Some(ref mut head)` in `head`.  At this point we divert from the
+   `alloc_overflow()` function and query the size of the object - if this is
+   is a medium object and the current hole between marked lines in the `head`
+   block is too small, call into `alloc_overflow()` and return.
+   ```rust
+                if size_class == SizeClass::Medium && alloc_size > head.current_hole_size() {
+                    return blocks.overflow_alloc(alloc_size);
+                }
+   ```
+   Otherwise, continue to allocate into `head` and return.
+3. We have `Some(ref mut head)` in `head` but this block is unable to
+   accommodate the object, whether medium or small. We must append the current
+   head to the `rest` list and create a new `BumpBlock` to allocate into.
+
+There is one more thing to mention. What about large objects? We'll cover those
+in a later chapter. Right now we'll make it an error to try to allocate a large
+object by putting this at the beginning of the `StickyImmixHeap::inner_alloc()`
+function:
+
+```rust
+        if size_class == SizeClass::Large {
+            return Err(AllocError::BadRequest);
+        }
+
+```
+
+## Where to next?
+
+We have a scheme for finding space in blocks for small and medium objects
+and so, in the next chapter we will define the external interface to the crate.

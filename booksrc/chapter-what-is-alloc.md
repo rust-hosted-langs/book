@@ -11,7 +11,7 @@ without needing to follow the rules of borrowing and mutable aliasing,
 it is essentially a container that implements `Sync` and the interior
 mutability pattern.
 
-We need to follow suit, but we'll leave `Sync` until later chapters.
+We need to follow suit, but we'll leave `Sync` for advanced chapters.
 
 An interface that satisfies the interior mutability property, by borrowing
 the allocator instance immutably, might look like:

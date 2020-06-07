@@ -8,3 +8,4 @@
 - [Sticky Immix](./part-stickyimmix.md)
   - [Bump allocation](./chapter-simple-bump.md)
   - [Allocating into multiple blocks](./chapter-managing-blocks.md)
+  - [Defining the allocation API](./chapter-allocation-api.md)

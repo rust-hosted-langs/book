@@ -82,7 +82,7 @@ impl BlockList {
 
 /// A type that implements `AllocRaw` to provide a low-level heap interface.
 /// Does not allocate internally on initialization.
-// AHCNOR: DefStickyImmixHeap
+// ANCHOR: DefStickyImmixHeap
 pub struct StickyImmixHeap<H> {
     blocks: UnsafeCell<BlockList>,
 
@@ -98,7 +98,9 @@ impl<H> StickyImmixHeap<H> {
         }
     }
 
-    // Allocate a space for a small, medium or large object
+    /// Allocate a space for a small, medium or large object
+    // TODO this just allocates a new block, but should look at
+    // recycled blocks first
     fn inner_alloc(
         &self,
         alloc_size: usize,
@@ -127,8 +129,6 @@ impl<H> StickyImmixHeap<H> {
 
                     // the block does not have a suitable hole
                     None => {
-                        // TODO this just allocates a new block, but should look at
-                        // recycled blocks first
                         let previous = replace(head, BumpBlock::new()?);
 
                         blocks.rest.push(previous);
