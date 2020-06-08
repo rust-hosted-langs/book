@@ -80,17 +80,22 @@ pub enum Mark {
 }
 
 /// A managed-type type-identifier type should implement this!
+// ANCHOR: DefAllocTypeId
 pub trait AllocTypeId: Copy + Clone {}
+// ANCHOR_END: DefAllocTypeId
 
 /// All managed object types must implement this trait in order to be allocatable
+// ANCHOR: DefAllocObject
 pub trait AllocObject<T: AllocTypeId> {
     const TYPE_ID: T;
 }
+// ANCHOR_END: DefAllocObject
 
 /// An object header struct must provide an implementation of this trait,
 /// providing appropriate information to the garbage collector.
 // TODO tracing information
 // e.g. fn tracer(&self) -> Fn()
+// ANCHOR: DefAllocHeader
 pub trait AllocHeader: Sized {
     /// Associated type that identifies the allocated object type
     type TypeId: AllocTypeId;
@@ -116,6 +121,7 @@ pub trait AllocHeader: Sized {
     /// Get the type of the object
     fn type_id(&self) -> Self::TypeId;
 }
+// ANCHOR_END: DefAllocHeader
 
 /// Return the allocated size of an object as it's size_of::<T>() value rounded
 /// up to a double-word boundary

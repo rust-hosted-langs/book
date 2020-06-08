@@ -68,7 +68,7 @@ With all that in mind, to keep things simple, we'll align everything to a
 double-word boundaries. When we add in prepending an object header, the minimum
 memory required for an object will be two words anyway.
 
-Thus, the allocated size of an object will be determined by
+Thus, the allocated size of an object will be calculated[^1] by
 
 ```rust
 let alignment = size_of::<usize>() * 2;
@@ -77,6 +77,6 @@ let alignment = size_of::<usize>() * 2;
 let size = (size_of::<T>() & !(alignment - 1)) + alignment;
 ```
 
-For a more detailed explanation of alignment adjustment calculations, see
+[^1]: For a more detailed explanation of alignment adjustment calculations, see
 [phil-opp](https://github.com/phil-opp)'s kernel
 [heap allocator](https://os.phil-opp.com/kernel-heap/#alignment).
