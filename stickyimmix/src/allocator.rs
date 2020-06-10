@@ -18,6 +18,7 @@ pub enum AllocError {
 
 /// A type that describes allocation of an object into a heap space, returning
 /// a bare pointer type on success
+// ANCHOR: DefAllocRaw
 pub trait AllocRaw {
     /// An implementation of an object header type
     type Header: AllocHeader;
@@ -42,6 +43,7 @@ pub trait AllocRaw {
     // TODO this is not pretty
     fn get_object(header: NonNull<Self::Header>) -> NonNull<()>;
 }
+// ANCHOR_END: DefAllocRaw
 
 /// Object size class.
 /// - Small objects fit inside a line
