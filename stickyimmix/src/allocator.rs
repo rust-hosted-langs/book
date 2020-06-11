@@ -36,11 +36,9 @@ pub trait AllocRaw {
     fn alloc_array(&self, size_bytes: ArraySize) -> Result<RawPtr<u8>, AllocError>;
 
     /// Given a bare pointer to an object, return the expected header address
-    // TODO this is not pretty. There should be a better type-safe interface for this.
     fn get_header(object: NonNull<()>) -> NonNull<Self::Header>;
 
     /// Given a bare pointer to an object's header, return the expected object address
-    // TODO this is not pretty
     fn get_object(header: NonNull<Self::Header>) -> NonNull<()>;
 }
 // ANCHOR_END: DefAllocRaw

@@ -68,7 +68,8 @@ We'll define a trait for the user to implement.
 
 Now we have a bunch more questions to answer. Some of these trait methods are
 straightforward - `fn size(&self) -> u32` returns the object size; `mark()`
-and `is_marked()` must be GC related.
+and `is_marked()` must be GC related. Some are less obvious, such as
+`new_array()` which we'll cover at the end of this chapter.
 
 But this struct references some more types that must be defined and explained.
 
@@ -206,6 +207,68 @@ implements `AllocObject` and has an associated constant that implements
 `AllocTypeId`.  We also need to expand the interface with functions that the
 interpreter can use to reliably get the header for an object and the object
 for a header.
+
+We will add an associated type to tie the allocator
+API to the header type and indirectly to the type identification that will be
+used.
+
+```rust
+pub trait AllocRaw {
+
+    type Header: AllocHeader;
+
+    ...
+```
+
+Then we can update the `alloc()` function definition to constrain the types
+that can be allocated to only those that implement the appropriate traits.
+
+```rust
+    fn alloc<T>(&self, object: T) -> Result<RawPtr<T>, AllocError>
+    where
+        T: AllocObject<<Self::Header as AllocHeader>::TypeId>;
+```
+
+We need the user and the garbage collector to be able to access the header,
+so we need a function that will return the header given an object pointer.
+
+The garbage collector does not know about concrete types, it will need to
+be able to get the header without knowing the object type. It's possible
+that an interpreter will, at times, also not know the type at runtime.
+
+The function signature cannot refer to the type, therefore. That is,
+we can't write
+
+```rust
+    // looks good but won't work
+    fn get_header<T>(object: RawPtr<T>) -> NonNull<Self::Header>
+    where
+        T: AllocObject<<Self::Header as AllocHeader>::TypeId>;
+```
+
+even though it seems this would be good and right. Instead this function will
+be much simpler:
+
+```rust
+    fn get_header(object: NonNull<()>) -> NonNull<Self::Header>;
+```
+
+We also need a function to get the object _from_ the header:
+
+```rust
+    fn get_object(header: NonNull<Self::Header>) -> NonNull<()>;
+```
+
+Now we have an object allocation function, traits that constrain what can be
+allocated, allocation header definitions and functions for switching
+between an object and it's header.
+
+
+## Dynamically sized types
+
+TODO
+
+Our complete definition now looks like this:
 
 ```rust
 {{#include ../stickyimmix/src/allocator.rs:DefAllocRaw}}
