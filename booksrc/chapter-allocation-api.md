@@ -23,7 +23,7 @@ trait AllocRaw {
 
 Now we're returning a `Result`, the failure side of which is an error type
 where we can distinguish between different allocation failure modes. This is
-often not _that_ useful but working with `Result` is far more idiomatic Rust
+often not that useful but working with `Result` is far more idiomatic Rust
 than checking a pointer for being null. We'll allow for distinguishing between
 Out Of Memory and an allocation request that for whatever reason is invalid.
 
@@ -57,7 +57,7 @@ is needed at runtime. Typical data points that are stored might include:
 * garbage collection information such as a mark flag
 
 We want to create a flexible interface to a language while also ensuring that
-the language _will_ provide the information that the allocator and garbage
+the interpreter will provide the information that the allocator and garbage
 collector in _this_ crate need.
 
 We'll define a trait for the user to implement.
@@ -66,7 +66,7 @@ We'll define a trait for the user to implement.
 {{#include ../stickyimmix/src/allocator.rs:DefAllocHeader}}
 ```
 
-Now we have a bunch more questions to answer. Some of these trait methods are
+Now we have a bunch more questions to answer! Some of these trait methods are
 straightforward - `fn size(&self) -> u32` returns the object size; `mark()`
 and `is_marked()` must be GC related. Some are less obvious, such as
 `new_array()` which we'll cover at the end of this chapter.
@@ -75,13 +75,11 @@ But this struct references some more types that must be defined and explained.
 
 ### Type identification
 
-_First, a note: what follows is a set of design trade-offs made for the
-purposes of this book; there are many ways this could be implemented._
+What follows is a set of design trade-offs made for the purposes of this book;
+there are many ways this could be implemented.
 
-The types described next are all about the _object_ type.
-
-That is, the problem to solve is that certain values in an object header and
-certain actions on objects are strongly associated with the type of the object.
+The types described next are all about sharing compile-time and runtime object
+type information between the allocator, the GC and the interpreter.
 
 We ideally want to make it difficult for the user to make mistakes with this
 and leak undefined behavior. We would also prefer this to be a safe-Rust
@@ -89,14 +87,17 @@ interface, while at the same time being flexible enough for the user to make
 interpreter-appropriate decisions about the header design.
 
 First up, an object header implementation must define an associated type
-`type TypeId: AllocTypeId` where `AllocTypeId` is define simply as:
+```rust
+    type TypeId: AllocTypeId;
+```
+where `AllocTypeId` is define simply as:
 
 ```rust
 {{#include ../stickyimmix/src/allocator.rs:DefAllocTypeId}}
 ```
 
-This means the user is free to implement a type identifier type however they
-please, the only constraint is that it implements this trait.
+This means the interpreter is free to implement a type identifier type however
+it pleases, the only constraint is that it implements this trait.
 
 Next, the definition of the header constructor,
 
@@ -155,8 +156,8 @@ impl AllocObject<TestTypeId> for Big {
 }
 ```
 
-And finally, here is an overly simplistic object header struct and the `new()`
-function from `AllocHeader`.
+And finally, here is a possible object header struct and the implementation of
+`AllocHeader::new()`:
 
 ```rust
 struct NyHeader {
@@ -186,9 +187,12 @@ impl AllocHeader for MyHeader {
 }
 ```
 
-The types `SizeClass` and `Mark` are provided by the allocator API and are just
-enums. The `new()` function is designed to be called internally by the
-allocator itself, not on the interpreter side of the implementation.
+These would all be defined and implemented in the interpreter and are not
+provided by the Sticky Immix crate, while all the functions in the trait
+`AllocHeader` are intended to be called internally by the allocator itself,
+not on the interpreter side.
+
+The types `SizeClass` and `Mark` _are_ provided by this crate and are enums.
 
 The one drawback to this scheme is that it's possible to associate an incorrect
 type id constant with an object. This would result in objects being misidentified
@@ -233,21 +237,24 @@ We need the user and the garbage collector to be able to access the header,
 so we need a function that will return the header given an object pointer.
 
 The garbage collector does not know about concrete types, it will need to
-be able to get the header without knowing the object type. It's possible
-that an interpreter will, at times, also not know the type at runtime.
+be able to get the header without knowing the object type. It's likely
+that the interpreter will, at times, also not know the type at runtime.
 
-The function signature cannot refer to the type, therefore. That is,
+Indeed, one of the functions of an object header is to, at runtime, given
+an object pointer, derive the type of the object.
+
+The function signature therefore cannot refer to the type. That is,
 we can't write
 
 ```rust
-    // looks good but won't work
+    // looks good but won't work in all cases
     fn get_header<T>(object: RawPtr<T>) -> NonNull<Self::Header>
     where
         T: AllocObject<<Self::Header as AllocHeader>::TypeId>;
 ```
 
 even though it seems this would be good and right. Instead this function will
-be much simpler:
+have to be much simpler:
 
 ```rust
     fn get_header(object: NonNull<()>) -> NonNull<Self::Header>;
@@ -259,17 +266,64 @@ We also need a function to get the object _from_ the header:
     fn get_object(header: NonNull<Self::Header>) -> NonNull<()>;
 ```
 
+These functions are not unsafe but they do return `NonNull` which implies that
+dereferencing the result should be considered unsafe - there is no protection
+against passing in garbage and getting garbage out.
+
 Now we have an object allocation function, traits that constrain what can be
 allocated, allocation header definitions and functions for switching
 between an object and it's header.
 
+There's one missing piece: we can allocate objects of type `T`, but
+such objects always have compile-time defined size. `T` is constrained to
+`Sized` types in the `RawPtr` definition. So how do we allocate dynamically
+sized objects, such as arrays?
+
 
 ## Dynamically sized types
 
-TODO
+Since we can allocate objects of type `T`, and each `T` must derive
+`AllocObject` and have an associated const of type `AllocTypeId`, dynamically
+sized allocations must fit into this type identification scheme.
 
-Our complete definition now looks like this:
+Allocating dynamically sized types, or in short, arrays, means there's some
+ambiguity about the type at compile time as far as the allocator is concerned:
+
+* Are we allocating one object or an array of objects? If we're allocating an
+  array of objects, we'll have to initialize them all. Perhaps we don't want to
+  impose that overhead up front?
+* If the allocator knows how many objects compose an array, do we want to bake
+  fat pointers into the interface to carry that number around?
+
+In the same way, then, that the underlying implementation of `std::vec::Vec` is
+backed by an array of `u8`, we'll do the same. We shall define the return type
+of an array allocation to be of type `RawPtr<u8>` and the size requested to be
+in bytes. We'll leave it to the interpreter to build layers on top of this to
+handle the above questions.
+
+As the definition of `AllocTypeId` is up to the interpreter, this crate can't
+know the type id of an array. Instead, we will require the interpreter to
+implement a function on the `AllocHeader` trait:
+
+```rust
+    fn new_array(size: ArraySize, size_class: SizeClass, mark: Mark) -> Self;
+```
+
+This function should return a new object header for an array of u8 with the
+appropriate type identifier.
+
+We will also add a function to the `AllocRaw` trait for allocating arrays that
+returns the `RawPtr<u8>` type.
+
+```rust
+    fn alloc_array(&self, size_bytes: ArraySize) -> Result<RawPtr<u8>, AllocError>;
+```
+
+Our complete `AllocRaw` trait definition now looks like this:
 
 ```rust
 {{#include ../stickyimmix/src/allocator.rs:DefAllocRaw}}
 ```
+
+In the next chapter we'll build out the Sticky Immix implementation of the
+`AllocRaw` trait.
