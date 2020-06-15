@@ -1,4 +1,4 @@
-# Sticky Immix
+# Sticky Immix: Allocation
 
 Quickly, some terminology:
 

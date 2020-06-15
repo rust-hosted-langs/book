@@ -98,10 +98,10 @@ impl<H> StickyImmixHeap<H> {
         }
     }
 
-    /// Allocate a space for a small, medium or large object
+    /// Find a space for a small, medium or large object
     // TODO this just allocates a new block, but should look at
     // recycled blocks first
-    fn inner_alloc(
+    fn find_space(
         &self,
         alloc_size: usize,
         size_class: SizeClass,
@@ -161,87 +161,97 @@ impl<H> StickyImmixHeap<H> {
 impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
     type Header = H;
 
+    /// Allocate space for object `T`, creating an header for it and writing the object
+    /// and the header into the space
+    // ANCHOR: DefAlloc
     fn alloc<T>(&self, object: T) -> Result<RawPtr<T>, AllocError>
     where
         T: AllocObject<<Self::Header as AllocHeader>::TypeId>,
     {
+        // calculate the total size of the object and it's header
         let header_size = size_of::<Self::Header>();
         let object_size = size_of::<T>();
         let total_size = header_size + object_size;
 
-        // allocated size - round to next word boundary
+        // round the size to the next word boundary to keep objects aligned and get the size class
         let alloc_size = alloc_size_of(total_size);
         let size_class = SizeClass::get_for_size(alloc_size)?;
 
         // attempt to allocate enough space for the header and the object
-        let space = self.inner_alloc(alloc_size, size_class)?;
+        let space = self.find_space(alloc_size, size_class)?;
 
-        // write the header into the allocated space
-        let header = Self::Header::new::<T>(object_size as u32, size_class, Mark::Allocated);
+        // instantiate an object header for type T, setting the mark bit to "allocated"
+        let header = Self::Header::new::<T>(object_size as ArraySize, size_class, Mark::Allocated);
+
+        // write the header into the front of the allocated space
         unsafe {
             write(space as *mut Self::Header, header);
         }
 
-        // write the object into the allocated space
-        let object_offset = header_size as isize;
-        let object_space = unsafe { space.offset(object_offset) };
+        // write the object into the allocated space after the header
+        let object_space = unsafe { space.offset(header_size as isize) };
         unsafe {
             write(object_space as *mut T, object);
         }
 
+        // return a pointer to the object in the allocated space
         Ok(RawPtr::new(object_space as *const T))
     }
+    // ANCHOR_END: DefAlloc
 
+    /// Allocate space for an array, creating an header for it, writing the header into the space
+    /// and returning a pointer to the array space
+    // ANCHOR: DefAllocArray
     fn alloc_array(&self, size_bytes: ArraySize) -> Result<RawPtr<u8>, AllocError> {
+        // calculate the total size of the array and it's header
         let header_size = size_of::<Self::Header>();
         let total_size = header_size + size_bytes as usize;
 
-        // allocated size - round to next word boundary
+        // round the size to the next word boundary to keep objects aligned and get the size class
         let alloc_size = alloc_size_of(total_size);
         let size_class = SizeClass::get_for_size(alloc_size)?;
 
-        // attempt to allocate enough space for the header and the object
-        let space = self.inner_alloc(alloc_size, size_class)?;
+        // attempt to allocate enough space for the header and the array
+        let space = self.find_space(alloc_size, size_class)?;
 
-        // write the header into the allocated space
+        // instantiate an object header for an array, setting the mark bit to "allocated"
         let header = Self::Header::new_array(size_bytes, size_class, Mark::Allocated);
+
+        // write the header into the front of the allocated space
         unsafe {
             write(space as *mut Self::Header, header);
         }
 
-        // write the object into the allocated space
-        let object_offset = header_size as isize;
-        let object_space = unsafe { space.offset(object_offset) };
+        // calculate where the array will begin after the header
+        let array_space = unsafe { space.offset(header_size as isize) };
 
-        // Initialize object_space to zero here if necessary.
+        // Initialize object_space to zero here.
         // If using the system allocator for any objects (SizeClass::Large, for example),
         // the memory may already be zeroed.
-        let array = unsafe { from_raw_parts_mut(object_space as *mut u8, size_bytes as usize) };
-        // The compiler should hopefully recognize this as optimizable
+        let array = unsafe { from_raw_parts_mut(array_space as *mut u8, size_bytes as usize) };
+        // The compiler should recognize this as optimizable
         for byte in array {
             *byte = 0;
         }
 
-        Ok(RawPtr::new(object_space as *const u8))
+        // return a pointer to the array in the allocated space
+        Ok(RawPtr::new(array_space as *const u8))
     }
+    // ANCHOR_END: DefAllocArray
 
     /// Return the object header for a given object pointer
+    // ANCHOR: DefGetHeader
     fn get_header(object: NonNull<()>) -> NonNull<Self::Header> {
         unsafe { NonNull::new_unchecked(object.cast::<Self::Header>().as_ptr().offset(-1)) }
     }
+    // ANCHOR_END: DefGetHeader
 
     /// Return the object from it's header address
+    // ANCHOR: DefGetObject
     fn get_object(header: NonNull<Self::Header>) -> NonNull<()> {
-        unsafe {
-            NonNull::new_unchecked(
-                header
-                    .cast::<Self::Header>()
-                    .as_ptr()
-                    .offset(1)
-                    .cast::<()>(),
-            )
-        }
+        unsafe { NonNull::new_unchecked(header.as_ptr().offset(1).cast::<()>()) }
     }
+    // ANCHOR_END: DefGetObject
 }
 
 impl<H> Default for StickyImmixHeap<H> {

@@ -76,7 +76,11 @@ For allocating into the overflow block we'll define a function in the
 `BlockList` impl:
 
 ```rust
-fn overflow_alloc(&mut self, alloc_size: usize) -> Result<*const u8, AllocError>
+impl BlockList {
+    fn overflow_alloc(&mut self, alloc_size: usize) -> Result<*const u8, AllocError> {
+        ...
+    }
+}
 ```
 
 The input constraint is that, since overflow is for medium objects, `alloc_size`
@@ -191,7 +195,7 @@ into the `head` block. We'll define a new function:
 
 ```rust
 impl StickyImmixHeap {
-    fn inner_alloc(
+    fn find_space(
         &self,
         alloc_size: usize,
         size_class: SizeClass,

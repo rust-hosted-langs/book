@@ -88,7 +88,9 @@ interpreter-appropriate decisions about the header design.
 
 First up, an object header implementation must define an associated type
 ```rust
+pub trait AllocHeader: Sized {
     type TypeId: AllocTypeId;
+}
 ```
 where `AllocTypeId` is define simply as:
 
@@ -102,11 +104,17 @@ it pleases, the only constraint is that it implements this trait.
 Next, the definition of the header constructor,
 
 ```rust
+pub trait AllocHeader: Sized {
+    ...
+
     fn new<O: AllocObject<Self::TypeId>>(
         size: u32,
         size_class: SizeClass,
         mark: Mark
     ) -> Self;
+
+    ...
+}
 ```
 
 refers to a type `O` that must implement `AllocObject` which in turn must refer
@@ -160,7 +168,7 @@ And finally, here is a possible object header struct and the implementation of
 `AllocHeader::new()`:
 
 ```rust
-struct NyHeader {
+struct MyHeader {
     size: u32,
     size_class: SizeClass,
     mark: Mark,
@@ -222,15 +230,22 @@ pub trait AllocRaw {
     type Header: AllocHeader;
 
     ...
+}
 ```
 
 Then we can update the `alloc()` function definition to constrain the types
 that can be allocated to only those that implement the appropriate traits.
 
 ```rust
+pub trait AllocRaw {
+    ...
+
     fn alloc<T>(&self, object: T) -> Result<RawPtr<T>, AllocError>
     where
         T: AllocObject<<Self::Header as AllocHeader>::TypeId>;
+
+    ...
+}
 ```
 
 We need the user and the garbage collector to be able to access the header,
@@ -247,23 +262,41 @@ The function signature therefore cannot refer to the type. That is,
 we can't write
 
 ```rust
+pub trait AllocRaw {
+    ...
+
     // looks good but won't work in all cases
     fn get_header<T>(object: RawPtr<T>) -> NonNull<Self::Header>
     where
         T: AllocObject<<Self::Header as AllocHeader>::TypeId>;
+
+    ...
+}
 ```
 
 even though it seems this would be good and right. Instead this function will
 have to be much simpler:
 
 ```rust
+pub trait AllocRaw {
+    ...
+
     fn get_header(object: NonNull<()>) -> NonNull<Self::Header>;
+
+    ...
+}
 ```
 
 We also need a function to get the object _from_ the header:
 
 ```rust
+pub trait AllocRaw {
+    ...
+
     fn get_object(header: NonNull<Self::Header>) -> NonNull<()>;
+
+    ...
+}
 ```
 
 These functions are not unsafe but they do return `NonNull` which implies that
@@ -306,7 +339,13 @@ know the type id of an array. Instead, we will require the interpreter to
 implement a function on the `AllocHeader` trait:
 
 ```rust
+pub trait AllocHeader: Sized {
+    ...
+
     fn new_array(size: ArraySize, size_class: SizeClass, mark: Mark) -> Self;
+
+    ...
+}
 ```
 
 This function should return a new object header for an array of u8 with the
@@ -316,7 +355,13 @@ We will also add a function to the `AllocRaw` trait for allocating arrays that
 returns the `RawPtr<u8>` type.
 
 ```rust
+pub trait AllocRaw {
+    ...
+
     fn alloc_array(&self, size_bytes: ArraySize) -> Result<RawPtr<u8>, AllocError>;
+
+    ...
+}
 ```
 
 Our complete `AllocRaw` trait definition now looks like this:
@@ -325,5 +370,4 @@ Our complete `AllocRaw` trait definition now looks like this:
 {{#include ../stickyimmix/src/allocator.rs:DefAllocRaw}}
 ```
 
-In the next chapter we'll build out the Sticky Immix implementation of the
-`AllocRaw` trait.
+In the next chapter we'll build out the `AllocRaw` trait implementation.
