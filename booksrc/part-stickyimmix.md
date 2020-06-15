@@ -43,7 +43,7 @@ complexity overhead of a multi-threaded implementation for now.
 
 Recommended reading: [Stephen M. Blackburn & Kathryn S. McKinley - Immix: A Mark-Region Garbage Collector with Space Efficiency, Fast Collection, and Mutator Performance][1]
 
-## About this implementation
+## About this part of the book
 
 This section will describe a Rust crate that implements a Sticky Immix heap.
 As part of this implementation we will dive into the crate API details to

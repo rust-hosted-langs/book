@@ -19,7 +19,9 @@ use crate::text::Text;
 use crate::vm::{CallFrameList, Thread, Upvalue};
 
 /// Recognized heap-allocated types.
-/// This should represent every type native to the runtime with the exception of tagged pointer inline value types.
+/// This should represent every type native to the runtime with the exception of tagged pointer inline value
+/// types.
+// ANCHOR: DefTypeList
 #[repr(u16)]
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum TypeList {
@@ -45,6 +47,7 @@ pub enum TypeList {
 
 // Mark this as a Stickyimmix type-identifier type
 impl AllocTypeId for TypeList {}
+// ANCHOR_END: DefTypeList
 
 /// A heap-allocated object header
 pub struct ObjectHeader {
