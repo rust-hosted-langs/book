@@ -38,10 +38,12 @@ the GC
 
 * A safe lifetime-limited-pointer abstraction allocator API
 * Runtime types, object headers and pointers
-* The virtual machine
 
 * Symbols and Pairs
 * Lexing and parsing
+
+* The virtual machine
+
 * Arrays
 * Dictionaries
 * Bytecode
