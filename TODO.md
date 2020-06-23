@@ -42,14 +42,13 @@ the GC
 * Symbols and Pairs
 * Lexing and parsing
 
-* The virtual machine
-
 * Arrays
 * Dictionaries
-* Bytecode
-* Compiling simple expressions
-* Functions and partial-applications
 
-* Executing... stuff
+* Compiling simple expressions
+* Bytecode
+* The virtual machine
+
+* Functions and partial-applications
 
 * Garbage collection
