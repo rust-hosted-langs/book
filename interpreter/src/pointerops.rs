@@ -42,6 +42,7 @@ impl<T> Tagged<T> for RawPtr<T> {
 }
 
 /// For accessing a pointer target, given a lifetime
+// ANCHOR: DefScopedRef
 pub trait ScopedRef<T> {
     fn scoped_ref<'scope>(&self, guard: &'scope dyn MutatorScope) -> &'scope T;
 }
@@ -51,3 +52,4 @@ impl<T> ScopedRef<T> for RawPtr<T> {
         unsafe { &*self.as_ptr() }
     }
 }
+// ANCHOR_END: DefScopedRef

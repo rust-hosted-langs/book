@@ -96,10 +96,12 @@ impl<'guard, T: Sized + PartialEq> PartialEq for ScopedPtr<'guard, T> {
 /// A wrapper around untagged raw pointers for storing compile-time typed pointers in data
 /// structures with interior mutability, allowing pointers to be updated to point at different
 /// target objects.
+// ANCHOR: DefCellPtr
 #[derive(Clone)]
 pub struct CellPtr<T: Sized> {
     inner: Cell<RawPtr<T>>,
 }
+// ANCHOR_END: DefCellPtr
 
 impl<T: Sized> CellPtr<T> {
     /// Construct a new CellPtr from a ScopedPtr
@@ -109,9 +111,11 @@ impl<T: Sized> CellPtr<T> {
         }
     }
 
+    // ANCHOR: DefCellPtrGet
     pub fn get<'guard>(&self, guard: &'guard dyn MutatorScope) -> ScopedPtr<'guard, T> {
         ScopedPtr::new(guard, self.inner.get().scoped_ref(guard))
     }
+    // ANCHOR_END: DefCellPtrGet
 
     // the explicit 'guard lifetime bound to MutatorScope is omitted here since the ScopedPtr
     // carries this lifetime already so we can assume that this operation is safe

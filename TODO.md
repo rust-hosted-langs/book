@@ -52,3 +52,13 @@ the GC
 * Functions and partial-applications
 
 * Garbage collection
+
+
+## Other
+
+Safe interior mutability patterns:
+* (UnsafeCell)
+* Cell
+* RefCell
+* Generational ref cell
+* Scoped ref cell

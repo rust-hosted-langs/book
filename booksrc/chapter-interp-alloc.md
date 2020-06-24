@@ -80,7 +80,7 @@ fn run_garbage_collection() {
 ```
 
 A few paragraphs earlier we determined that we can't have `&mut` references
-to allocated objects in our interpreter.
+to objects in our interpreter.
 
 By extension, we can't safely hold a mutable reference to the entire heap
 as a data structure.
@@ -105,18 +105,18 @@ garbage collection for a later part.
 
 This mutual exclusivity constraint on the allocator results in the statements:
 
-* When garbage collection is running, it is not safe to allocate[^2]
-* When garbage collection is not running, it is safe to allocate
+* When garbage collection is running, it is not safe to run the mutator[^2]
+* When garbage collection is not running, it is safe to run the mutator
 
 Thus our abstraction must encapsulate a concept of a time when "it is safe to
-allocate" and since we're working with the Rust compiler, this must be a
+run the mutator" and since we're working with safe Rust, this must be a
 compile time concept.
 
 Scopes and lifetimes are perfect for this abstraction. What we'll need is
 some way to define a lifetime (that is, a scope) within which access to the
-allocator is safe.
+heap by the mutator is safe.
 
-### A pointer type
+### Some pointer types
 
 First, let's define a simple pointer type that can wrap an allocated type `T`
 in a lifetime:
@@ -125,8 +125,71 @@ in a lifetime:
 {{#include ../interpreter/src/safeptr.rs:DefScopedPtr}}
 ```
 
+This type will implement `Clone`, `Copy` and `Deref` - it can be passed around
+freely within the scope and safely dereferenced.
+
 As you can see we have a lifetime `'guard` that we'll use to restrict the
-scope in which this pointer can be accessed.
+scope in which this pointer can be accessed. We need a mechanism to restrict
+this scope.
+
+The guard pattern is what we'll use, if the hint wasn't strong enough.
+
+We'll construct some types that ensure that safe pointers such as
+`ScopedPtr<T>`, and access to the heap at in any way, are mediated by an
+instance of a type that can provide access.
+
+We will end up passing a reference to this guard instance around everywhere. In
+most cases we won't care about the instance type itself so much as the lifetime
+that it carries with it. As such, we'll define a trait for this type to
+implement that so that we can refer to the guard instance by this trait rather
+than having to know the concrete type. This'll also allow other types to
+proxy the main scope-guarding instance.
+
+```rust
+{{#include ../interpreter/src/safeptr.rs:DefMutatorScope}}
+```
+
+You may have noticed that we've jumped from `RawPtr<T>` to `ScopedPtr<T>` with
+seemingly nothing to bridge the gap. How do we _get_ a `ScopedPtr<T>`?
+
+We'll create a wrapper around `RawPtr<T>` that will complete the picture.
+
+```rust
+{{#include ../interpreter/src/safeptr.rs:DefCellPtr}}
+```
+
+This is straightforwardly a `RawPtr<T>` in a `Cell` to allow for modifying the
+pointer. We won't allow direct access to the `Cell` instance though.
+
+Remember that dereferencing a heap object pointer is only safe when we are
+in the right scope? We need to create a `ScopedPtr<T>` _from_ a `CellPtr<T>`
+to be able to use it.
+
+First we'll add a helper function to `RawPtr<T>` in our interpreter crate so
+we can safely dereference a `RawPtr<T>`:
+
+```rust
+{{#include ../interpreter/src/pointerops.rs:DefScopedRef}}
+```
+
+And then we'll use that in our `CellPtr<T>` to obtain a `ScopedPtr<T>`:
+
+```rust
+impl<T: Sized> CellPtr<T> {
+{{#include ../interpreter/src/safeptr.rs:DefCellPtrGet}}
+}
+```
+
+Thus, anywhere (structs, enums) that needs to store a pointer to something on
+the heap will use `CellPtr<T>` and any code that accesses these pointers
+during the scope-guarded mutator code will obtain `ScopedPtr<T>` instances
+that can be safely dereferenced.
+
+
+## The heap
+
+[describe memory.rs]
+
 
 
 [^1]: This is the topic of discussion in Felix Klock's series
