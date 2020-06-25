@@ -7,12 +7,12 @@ pointer, which points at the space in the block after the last object that
 was written. When the next object is written, the bump pointer is incremented
 to point to the space after _that_ object [^1].
 
-We will used a fixed power-of-two block size. The benefit of this is that 
+We will used a fixed power-of-two block size. The benefit of this is that
 given a pointer to an object, by zeroing the bits of the pointer that represent
 the block size, the result points to the beginning of the block. This will
 be useful later when implementing garbage collection.
 
-Our block size will be 32k, a reasonably optimal size arrived at in the 
+Our block size will be 32k, a reasonably optimal size arrived at in the
 original [Immix][1] paper. This size can be any power of two though and
 different use cases may show different optimal sizes.
 
@@ -30,7 +30,7 @@ metadata.
 ## Bump allocation basics
 
 In this struct definition, there are two members that we are interested in
-for this section. The other two, `limit` and `meta`, will be discussed in the 
+for this section. The other two, `limit` and `meta`, will be discussed in the
 next section.
 
 * `cursor`: this is the bump pointer. In our implementation it is the index
@@ -62,7 +62,7 @@ In this overly simplistic initial implementation, allocation will simply return
 `None` if the block is full. If there _is_ space, it will be returned as a
 `Some(*const u8)` pointer.
 
-Note that this function does not _write_ the object to memory, it merely 
+Note that this function does not _write_ the object to memory, it merely
 returns a pointer to an available space.  Writing the object will simply
 require invoking the `std::ptr::write` function. We will do that in a separate
 module but for completeness of this chapter, this might look something like:
@@ -162,7 +162,7 @@ requiring two lines to be marked as live. This would require looking up the
 object size and calculating whether the object crosses the boundary into the
 next line. To save CPU cycles, they simplified the algorithm by saying that
 any object that fits in a line _might_ cross into the next line so we will
-conservatively _consider_ the next line marked just in case. This sped up 
+conservatively _consider_ the next line marked just in case. This sped up
 marking at little fragmentation expense.
 
 So the three lines of code above simply say: if we've so-far only found one
@@ -179,7 +179,7 @@ save the index of this line in the variable `start`:
                 }
 ```
 
-Now we have a starting line for the overall hole between marked objects. Next 
+Now we have a starting line for the overall hole between marked objects. Next
 we'll close the `if *marked` scope by setting the end of the hole:
 
 ```rust
@@ -191,7 +191,7 @@ The loop will continue and while there are consecutive unmarked lines, `stop`
 will continue to be updated to a later line boundary.
 
 As soon as we hit a marked line or the end of the block, and we have a nonzero
-number of unmarked lines, we'll test whether we have a valid hole to allocate 
+number of unmarked lines, we'll test whether we have a valid hole to allocate
 into:
 
 ```rust
@@ -208,7 +208,7 @@ into:
 Here we convert line-based math back into block byte-offset values and return
 the new bump-pointer and upper limit.
 
-Otherwise, if the above conditions failed but we've still reached a marked 
+Otherwise, if the above conditions failed but we've still reached a marked
 line, reset the state:
 
 ```rust
@@ -236,7 +236,7 @@ We need to update `inner_alloc()` with a new condition:
 
 (Note that for a fresh, new block, `self.limit` is set to the block size.)
 
-If the above condition is not met, we will call 
+If the above condition is not met, we will call
 `BlockMeta::find_next_available_hole()` to get a new `cursor` and `limit`
 to try, and repeat that until we've either _found_ a big enough hole or
 reached the end of the block, exhausting our options.
@@ -252,8 +252,8 @@ and as you can see, this implementation is recursive.
 
 ## Wrapping this up
 
-At the beginning of this chapter I stated that given a pointer to an object, 
-by zeroing the bits of the pointer that represent the block size, the result 
+At the beginning of this chapter I stated that given a pointer to an object,
+by zeroing the bits of the pointer that represent the block size, the result
 points to the beginning of the block.
 
 We'll make use of that now.
@@ -266,10 +266,10 @@ so that given any object pointer, we can obtain the `BlockMeta` instance.
 In the next chapter we'll handle multiple `BumpBlock`s so that we can keep
 allocating objects after one block is full.
 
+----
 
 [^1]: Note that objects can be written from the end of the block down to the beginning
 too, decrementing the bump pointer. This is usually [slightly simpler and more
 efficient to implement](https://fitzgeraldnick.com/2019/11/01/always-bump-downwards.html).
 
 [1]: http://www.cs.utexas.edu/users/speedway/DaCapo/papers/immix-pldi-2008.pdf
-

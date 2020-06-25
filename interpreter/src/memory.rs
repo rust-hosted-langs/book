@@ -15,9 +15,11 @@ use crate::taggedptr::{FatPtr, TaggedPtr};
 ///
 /// It implements `MutatorScope` such that any `TaggedScopedPtr` or `Value` instances must be lifetime-
 /// limited to the lifetime of this instance using `&'scope dyn MutatorScope`;
+// ANCHOR: DefMutatorView
 pub struct MutatorView<'memory> {
     heap: &'memory Heap,
 }
+// ANCHOR_END: DefMutatorView
 
 impl<'memory> MutatorView<'memory> {
     fn new(mem: &'memory Memory) -> MutatorView<'memory> {
@@ -30,6 +32,7 @@ impl<'memory> MutatorView<'memory> {
     }
 
     /// Write an object into the heap and return a scope-limited pointer to it
+    // ANCHOR: DefMutatorViewAlloc
     pub fn alloc<T>(&self, object: T) -> Result<ScopedPtr<'_, T>, RuntimeError>
     where
         T: AllocObject<TypeList>,
@@ -39,6 +42,7 @@ impl<'memory> MutatorView<'memory> {
             self.heap.alloc(object)?.scoped_ref(self),
         ))
     }
+    // ANCHOR_END: DefMutatorViewAlloc
 
     /// Write an object into the heap and return a scope-limited runtime-tagged pointer to it
     pub fn alloc_tagged<T>(&self, object: T) -> Result<TaggedScopedPtr<'_>, RuntimeError>
@@ -63,13 +67,17 @@ impl<'memory> MutatorView<'memory> {
 impl<'memory> MutatorScope for MutatorView<'memory> {}
 
 /// The heap implementation
+// ANCHOR: DefHeapStorage
 pub type HeapStorage = StickyImmixHeap<ObjectHeader>;
+// ANCHOR_END: DefHeapStorage
 
-// Heap memory types.
+/// Heap memory types.
+// ANCHOR: DefHeap
 struct Heap {
     heap: HeapStorage,
     syms: SymbolMap,
 }
+// ANCHOR_END: DefHeap
 
 impl Heap {
     fn new() -> Heap {
@@ -85,12 +93,14 @@ impl Heap {
     }
 
     /// Write an object to the heap and return the raw pointer to it
+    // ANCHOR: DefHeapAlloc
     fn alloc<T>(&self, object: T) -> Result<RawPtr<T>, RuntimeError>
     where
         T: AllocObject<TypeList>,
     {
         Ok(self.heap.alloc(object)?)
     }
+    // ANCHOR_END: DefHeapAlloc
 
     /// Write an object into the heap and return a tagged pointer to it
     fn alloc_tagged<T>(&self, object: T) -> Result<TaggedPtr, RuntimeError>
@@ -107,9 +117,11 @@ impl Heap {
 }
 
 /// Wraps a heap and provides scope-limited access to the heap
+// ANCHOR: DefMemory
 pub struct Memory {
     heap: Heap,
 }
+// ANCHOR_END: DefMemory
 
 impl Memory {
     /// Instantiate a new memory environment
@@ -118,16 +130,20 @@ impl Memory {
     }
 
     /// Run a mutator process
+    // ANCHOR: DefMemoryMutate
     pub fn mutate<M: Mutator>(&self, m: &M, input: M::Input) -> Result<M::Output, RuntimeError> {
         let mut guard = MutatorView::new(self);
         m.run(&mut guard, input)
     }
+    // ANCHOR_END: DefMemoryMutate
 }
 
 /// Defines the interface a heap-mutating type must use to be allowed access to the heap
+// ANCHOR: DefMutator
 pub trait Mutator: Sized {
     type Input;
     type Output;
 
     fn run(&self, mem: &MutatorView, input: Self::Input) -> Result<Self::Output, RuntimeError>;
 }
+// ANCHOR_END: DefMutator

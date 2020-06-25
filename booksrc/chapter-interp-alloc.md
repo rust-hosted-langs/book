@@ -136,9 +136,9 @@ The guard pattern is what we'll use, if the hint wasn't strong enough.
 
 We'll construct some types that ensure that safe pointers such as
 `ScopedPtr<T>`, and access to the heap at in any way, are mediated by an
-instance of a type that can provide access.
+instance of a guard type that can provide access.
 
-We will end up passing a reference to this guard instance around everywhere. In
+We will end up passing a reference to the guard instance around everywhere. In
 most cases we won't care about the instance type itself so much as the lifetime
 that it carries with it. As such, we'll define a trait for this type to
 implement that so that we can refer to the guard instance by this trait rather
@@ -152,27 +152,32 @@ proxy the main scope-guarding instance.
 You may have noticed that we've jumped from `RawPtr<T>` to `ScopedPtr<T>` with
 seemingly nothing to bridge the gap. How do we _get_ a `ScopedPtr<T>`?
 
-We'll create a wrapper around `RawPtr<T>` that will complete the picture.
+We'll create a wrapper around `RawPtr<T>` that will complete the picture. This
+wrapper type is what will hold pointers at rest inside any data structures.
 
 ```rust
 {{#include ../interpreter/src/safeptr.rs:DefCellPtr}}
 ```
 
 This is straightforwardly a `RawPtr<T>` in a `Cell` to allow for modifying the
-pointer. We won't allow direct access to the `Cell` instance though.
+pointer. We won't allow dereferencing from this type either though.
 
 Remember that dereferencing a heap object pointer is only safe when we are
 in the right scope? We need to create a `ScopedPtr<T>` _from_ a `CellPtr<T>`
 to be able to use it.
 
 First we'll add a helper function to `RawPtr<T>` in our interpreter crate so
-we can safely dereference a `RawPtr<T>`:
+we can safely dereference a `RawPtr<T>`. This code says that, given an instance
+of a `MutatorScope`-implementing type, give me back a reference type with
+the same lifetime as the guard that I can safely use. Since the `_guard`
+parameter is never used except to define a lifetime, it should be optimized
+out by the compiler!
 
 ```rust
 {{#include ../interpreter/src/pointerops.rs:DefScopedRef}}
 ```
 
-And then we'll use that in our `CellPtr<T>` to obtain a `ScopedPtr<T>`:
+We'll use this in our `CellPtr<T>` to obtain a `ScopedPtr<T>`:
 
 ```rust
 impl<T: Sized> CellPtr<T> {
@@ -186,11 +191,186 @@ during the scope-guarded mutator code will obtain `ScopedPtr<T>` instances
 that can be safely dereferenced.
 
 
-## The heap
+## The heap and the mutator
 
-[describe memory.rs]
+The next question is: where do we get an instance of `MutatorScope` from?
+
+The lifetime of an instance of a `MutatorScope` will define the lifetime
+of any safe object accesses. By following the guard pattern, we will find
+we have:
+
+* a heap struct that contains an instance of the Sticky Immix heap
+* a guard struct that proxies the heap struct for the duration of a scope
+* a mechanism to enforce the scope limit
+
+### A heap struct
+
+Let's make a type alias for the Sticky Immix heap so we aren't referring
+to it as such throughout the interpreter:
+
+```rust
+{{#include ../interpreter/src/memory.rs:DefHeapStorage}}
+```
+
+The let's put that into a heap struct, along with any other
+interpreter-global storage:
+
+```rust
+{{#include ../interpreter/src/memory.rs:DefHeap}}
+```
+
+We'll discuss the `SymbolMap` type in the next chapter.
+
+Now, since we've wrapped the Sticky Immix heap in our own `Heap` struct,
+we'll need to `impl` an `alloc()` method to proxy the Sticky Immix
+allocation function.
+
+```rust
+impl Heap {
+{{#include ../interpreter/src/memory.rs:DefHeapAlloc}}
+}
+```
+
+A couple things to note about this function:
+
+* It returns `RuntimeError` in the error case, this type converts `From` the
+  Sticky Immix crate's error type.
+* The `where` constraint is similar to that of `AllocRaw::alloc()` but in now
+  we have a concrete `TypeList` type to bind to. We'll look at `TypeList`
+  in the next chapter along with `SymbolMap`.
+
+### A guard struct
+
+This next struct will be used as a scope-limited proxy for the `Heap` struct
+with one major difference: function return types will no longer be `RawPtr<T>`
+but `ScopedPtr<T>`.
+
+```rust
+{{#include ../interpreter/src/memory.rs:DefMutatorView}}
+```
+
+Here in this struct definition, it becomes clear that all we are doing is
+borrowing the `Heap` instance for a limited lifetime. Thus, the lifetime of
+the `MutatorView` instance _will be_ the lifetime that all safe object
+access is constrained to.
+
+A look at the `alloc()` function now:
+
+```rust
+impl<'memory> MutatorView<'memory> {
+{{#include ../interpreter/src/memory.rs:DefMutatorViewAlloc}}
+}
+```
+
+Very similar to `Heap::alloc()` but the return type is now a `ScopedPtr<T>`
+whose lifetime is the same as the `MutatorView` instance.
+
+### Enforcing a scope limit
+
+We now have a `Heap` and a guard, `MutatorView`, but we want one more thing:
+to prevent an instance of `MutatorView` from being returned from anywhere -
+that is, enforcing a scope within which an instance of `MutatorView` will
+live and die. This will make it easier to separate mutator operations and
+garbage collection operations.
+
+First we'll apply a constraint on how a mutator _gains_ heap access: through
+a trait.
+
+```rust
+{{#include ../interpreter/src/memory.rs:DefMutator}}
+```
+
+If a piece of code wants to access the heap, it _must_ implement this trait!
+
+Secondly, we'll apply another wrapper struct, this time to the `Heap` type.
+This is so that we can borrow the `heap` member instance.
+
+```rust
+{{#include ../interpreter/src/memory.rs:DefMemory}}
+```
+
+This `Memory` struct and the `Mutator` trait are now tied together with a
+function:
+
+```rust
+impl Memory {
+{{#include ../interpreter/src/memory.rs:DefMemoryMutate}}
+
+}
+```
+
+The key to the scope limitation mechanism is that this `mutate` function is
+the only way to gain access to the heap. It creates an instance of
+`MutatorView` that goes out of scope at the end of the function and thus
+can't leak outside of the call stack.
 
 
+## An example
+
+Let's construct a simple example to demonstrate these many parts. This
+will omit defining a `TypeId` and any other types that we didn't discuss
+above.
+
+```rust
+struct LittleCatZ {}
+
+impl LittleCatZ {
+    fn miaow(&self) {
+        println!("Miaow!");
+    }
+}
+
+struct LittleCatY {
+    inner_cat: CellPtr<LittleCatZ>
+}
+
+impl LittleCatY {
+    fn new(cat: ScopedPtr<'_, LittleCatZ>) -> LittleCatY {
+        LittleCatY {
+            inner_cat: CellPtr::new_with(cat)
+        }
+    }
+}
+
+struct CatInTheHat {}
+
+impl Mutator for CatInTheHat {
+    type Input: ();
+    type Output: LittleCatY;
+
+    fn run(&self, mem: &MutatorView, input: Self::Input) -> Result<Self::Output, RuntimeError> {
+        let cat_z = mem.alloc(LittleCatZ {})?;   // returns a ScopedPtr<'_, LittleCatZ>
+        cat_z.miaow();
+
+        let cat_y = LittleCatY::new(cat_z);
+
+        let cat_z_2 = cat_y.inner_get.get(mem);  // returns a ScopedPtr<'_, LittleCatZ>
+        cat_z_2.miaow();
+
+        Ok(cat_y)
+    }
+}
+
+fn main() {
+    ...
+    let cat = CatInTheHat {};
+
+    let result memory.mutate(&cat, ());
+    ...
+}
+```
+
+In this simple example, we instantiated a `LittleCatZ` on the heap. An instance
+of `LittleCatY` is created on the stack and given a pointer to the `LittleCatZ`
+instance. The mutator returns the `LittleCatY` object, which continues to
+hold a pointer to a heap object. However, outside of the `run()` function, the
+`inner_cat` member can't be safely accesed.
+
+## And then?
+
+Up next: using this framework to implement parsing!
+
+----
 
 [^1]: This is the topic of discussion in Felix Klock's series
 [GC and Rust](http://blog.pnkfx.org/blog/categories/gc/) which is recommended

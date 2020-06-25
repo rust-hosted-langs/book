@@ -12,3 +12,4 @@
   - [Implementing the API](./chapter-allocation-impl.md)
 - [The Eval-rs](./part-interpreter.md)
   - [Allocating safely](./chapter-interp-alloc.md)
+  - [Parsing](./chapter-interp-parser.md)

@@ -77,6 +77,8 @@ let alignment = size_of::<usize>() * 2;
 let size = (size_of::<T>() & !(alignment - 1)) + alignment;
 ```
 
+----
+
 [^1]: For a more detailed explanation of alignment adjustment calculations, see
 [phil-opp](https://github.com/phil-opp)'s kernel
 [heap allocator](https://os.phil-opp.com/kernel-heap/#alignment).
