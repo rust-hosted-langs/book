@@ -1,4 +1,4 @@
-# Sticky Immix: Allocation
+# An allocator: Sticky Immix
 
 Quickly, some terminology:
 

@@ -1,4 +1,4 @@
-# The Eval-rs
+# An interpreter: Eval-rs
 
 In this part of the book we'll dive into creating:
 * a safe Rust layer on top of the Sticky Immix API of the previous part

@@ -312,61 +312,64 @@ will omit defining a `TypeId` and any other types that we didn't discuss
 above.
 
 ```rust
-struct LittleCatZ {}
+struct Stack {}
 
-impl LittleCatZ {
-    fn miaow(&self) {
-        println!("Miaow!");
+impl Stack {
+    fn say_hello(&self) {
+        println!("I'm the stack!");
     }
 }
 
-struct LittleCatY {
-    inner_cat: CellPtr<LittleCatZ>
+struct Roots {
+    stack: CellPtr<Stack>
 }
 
-impl LittleCatY {
-    fn new(cat: ScopedPtr<'_, LittleCatZ>) -> LittleCatY {
-        LittleCatY {
-            inner_cat: CellPtr::new_with(cat)
+impl Roots {
+    fn new(stack: ScopedPtr<'_, Stack>) -> Roots {
+        Roots {
+            stack: CellPtr::new_with(stack)
         }
     }
 }
 
-struct CatInTheHat {}
+struct Interpreter {}
 
-impl Mutator for CatInTheHat {
+impl Mutator for Interpreter {
     type Input: ();
-    type Output: LittleCatY;
+    type Output: Roots;
 
     fn run(&self, mem: &MutatorView, input: Self::Input) -> Result<Self::Output, RuntimeError> {
-        let cat_z = mem.alloc(LittleCatZ {})?;   // returns a ScopedPtr<'_, LittleCatZ>
-        cat_z.miaow();
+        let stack = mem.alloc(Stack {})?;   // returns a ScopedPtr<'_, Stack>
+        stack.say_hello();
 
-        let cat_y = LittleCatY::new(cat_z);
+        let roots = Roots::new(stack);
 
-        let cat_z_2 = cat_y.inner_get.get(mem);  // returns a ScopedPtr<'_, LittleCatZ>
-        cat_z_2.miaow();
+        let stack_ptr = roots.stack.get(mem);  // returns a ScopedPtr<'_, Stack>
+        stack_ptr.say_hello();
 
-        Ok(cat_y)
+        Ok(roots)
     }
 }
 
 fn main() {
     ...
-    let cat = CatInTheHat {};
+    let interp = Interpreter {};
 
-    let result memory.mutate(&cat, ());
+    let result = memory.mutate(&interp, ());
+
+    let roots = result.unwrap();
+
+    // no way to do this - compile error
+    let stack = roots.stack.get();
     ...
 }
 ```
 
-In this simple example, we instantiated a `LittleCatZ` on the heap. An instance
-of `LittleCatY` is created on the stack and given a pointer to the `LittleCatZ`
-instance. The mutator returns the `LittleCatY` object, which continues to
-hold a pointer to a heap object. However, outside of the `run()` function, the
-`inner_cat` member can't be safely accesed.
-
-## And then?
+In this simple, contrived example, we instantiated a `Stack` on the heap.
+An instance of `Roots` is created on the native stack and given a pointer
+to the `Stack` instance. The mutator returns the `Roots` object, which
+continues to hold a pointer to a heap object. However, outside of the `run()`
+function, the `stack` member can't be safely accesed.
 
 Up next: using this framework to implement parsing!
 
