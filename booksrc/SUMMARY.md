@@ -12,4 +12,5 @@
   - [Implementing the API](./chapter-allocation-impl.md)
 - [An interpreter: Eval-rs](./part-interpreter.md)
   - [Allocating safely](./chapter-interp-alloc.md)
+  - [Tagged pointers and symbols](./chapter-interp-tagged-symbols.md)
   - [Parsing](./chapter-interp-parser.md)

@@ -211,6 +211,7 @@ impl PartialEq for FatPtr {
 }
 
 /// An packed Tagged Pointer which carries type information in the pointers low 2 bits
+// ANCHOR: DefTaggedPtr
 #[derive(Copy, Clone)]
 pub union TaggedPtr {
     tag: usize,
@@ -219,6 +220,7 @@ pub union TaggedPtr {
     pair: NonNull<Pair>,
     object: NonNull<()>,
 }
+// ANCHOR_END: DefTaggedPtr
 
 impl TaggedPtr {
     /// Construct a nil TaggedPtr

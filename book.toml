@@ -4,3 +4,6 @@ multilingual = false
 language = "en"
 src = "booksrc"
 title = "Writing Interpreters in Rust: a Guide"
+
+
+[preprocess.links]

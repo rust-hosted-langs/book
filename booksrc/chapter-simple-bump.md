@@ -16,14 +16,14 @@ Our block size will be 32k, a reasonably optimal size arrived at in the
 original [Immix][1] paper. This size can be any power of two though and
 different use cases may show different optimal sizes.
 
-```rust
+```rust,ignore
 {{#include ../stickyimmix/src/constants.rs:ConstBlockSize}}
 ```
 
 Next, we'll define a struct that wraps the block with a bump pointer and other
 metadata.
 
-```rust
+```rust,ignore
 {{#include ../stickyimmix/src/bumpblock.rs:DefBumpBlock}}
 ```
 
@@ -42,7 +42,7 @@ of bytes of memory requested. We'll assume that the value provided is equivalent
 to an exact number of words so that we don't end up with badly aligned object
 placement.
 
-```rust
+```rust,ignore
 impl BumpBlock {
     pub fn inner_alloc(&mut self, alloc_size: usize) -> Option<*const u8> {
         let next_bump = self.cursor + alloc_size;
@@ -67,7 +67,7 @@ returns a pointer to an available space.  Writing the object will simply
 require invoking the `std::ptr::write` function. We will do that in a separate
 module but for completeness of this chapter, this might look something like:
 
-```rust
+```rust,ignore
 use std::ptr::write;
 
 unsafe fn write<T>(dest: *const u8, object: T) {
@@ -92,13 +92,13 @@ We'll need a data structure to represent this. we'll call it `BlockMeta`,
 but first some constants that we need in order to know how big a line is
 and how many are in a block:
 
-```rust
+```rust,ignore
 {{#include ../stickyimmix/src/constants.rs:ConstLineSize}}
 ```
 
 And now the definition of `BlockMeta`:
 
-```rust
+```rust,ignore
 {{#include ../stickyimmix/src/blockmeta.rs:DefBlockMeta}}
 ```
 
@@ -110,7 +110,7 @@ deallocated.
 
 This struct contains one function we will study:
 
-```rust
+```rust,ignore
 {{#include ../stickyimmix/src/blockmeta.rs:DefFindNextHole}}
 ```
 
@@ -127,14 +127,14 @@ available hole.
 The first thing this function does is convert from block byte offset math
 to line count math:
 
-```rust
+```rust,ignore
          let starting_line = starting_at / constants::LINE_SIZE;
 ```
 
 And then iterate over the lines starting with the line that the requested
 byte offset starting point corresponds with:
 
-```rust
+```rust,ignore
          for (index, marked) in self.line_mark[starting_line..].iter().enumerate() {
              let abs_index = starting_line + index;
 ```
@@ -142,7 +142,7 @@ byte offset starting point corresponds with:
 We're looking for unmarked lines to allocate into, so we'll count how many
 we get so we can later calculate the start and end offsets of a hole:
 
-```rust
+```rust,ignore
             // count unmarked lines
             if !*marked {
                 count += 1;
@@ -150,7 +150,7 @@ we get so we can later calculate the start and end offsets of a hole:
 
 Up next are a couple lines of code that need longer explanation:
 
-```rust
+```rust,ignore
                 if count == 1 && abs_index > 0 {
                     continue;
                 }
@@ -173,7 +173,7 @@ Once that condition has passed and we're clear of any conservatively-marked
 line, we can consider the next unmarked line as totally available. Here we
 save the index of this line in the variable `start`:
 
-```rust
+```rust,ignore
                 if start.is_none() {
                     start = Some(abs_index);
                 }
@@ -182,7 +182,7 @@ save the index of this line in the variable `start`:
 Now we have a starting line for the overall hole between marked objects. Next
 we'll close the `if *marked` scope by setting the end of the hole:
 
-```rust
+```rust,ignore
                 stop = abs_index + 1;
             }
 ```
@@ -194,7 +194,7 @@ As soon as we hit a marked line or the end of the block, and we have a nonzero
 number of unmarked lines, we'll test whether we have a valid hole to allocate
 into:
 
-```rust
+```rust,ignore
             if count > 0 && (*marked || stop >= constants::LINE_COUNT) {
                 if let Some(start) = start {
                     let cursor = start * constants::LINE_SIZE;
@@ -211,7 +211,7 @@ the new bump-pointer and upper limit.
 Otherwise, if the above conditions failed but we've still reached a marked
 line, reset the state:
 
-```rust
+```rust,ignore
             if *marked {
                 count = 0;
                 start = None;
@@ -243,7 +243,7 @@ reached the end of the block, exhausting our options.
 
 The new definition of `BumpBlock::inner_alloc()` reads as follows:
 
-```rust
+```rust,ignore
 {{#include ../stickyimmix/src/bumpblock.rs:DefBumpBlockAlloc}}
 ```
 

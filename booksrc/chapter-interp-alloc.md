@@ -5,7 +5,7 @@ defined in the Sticky Immix crate.
 
 Let's first recall this interface:
 
-```rust
+```rust,ignore
 {{#include ../stickyimmix/src/allocator.rs:DefAllocRaw}}
 ```
 
@@ -62,7 +62,7 @@ The key concept to think about now is "scope."
 In an interpreted language there are two major operations on the objects
 in memory:
 
-```rust
+```rust,ignore
 fn run_mutator() {
     parse_source_code();
     compile();
@@ -72,7 +72,7 @@ fn run_mutator() {
 
 and
 
-```rust
+```rust,ignore
 fn run_garbage_collection() {
    trace_objects();
    free_dead_objects();
@@ -121,7 +121,7 @@ heap by the mutator is safe.
 First, let's define a simple pointer type that can wrap an allocated type `T`
 in a lifetime:
 
-```rust
+```rust,ignore
 {{#include ../interpreter/src/safeptr.rs:DefScopedPtr}}
 ```
 
@@ -145,7 +145,7 @@ implement that so that we can refer to the guard instance by this trait rather
 than having to know the concrete type. This'll also allow other types to
 proxy the main scope-guarding instance.
 
-```rust
+```rust,ignore
 {{#include ../interpreter/src/safeptr.rs:DefMutatorScope}}
 ```
 
@@ -155,7 +155,7 @@ seemingly nothing to bridge the gap. How do we _get_ a `ScopedPtr<T>`?
 We'll create a wrapper around `RawPtr<T>` that will complete the picture. This
 wrapper type is what will hold pointers at rest inside any data structures.
 
-```rust
+```rust,ignore
 {{#include ../interpreter/src/safeptr.rs:DefCellPtr}}
 ```
 
@@ -173,13 +173,13 @@ the same lifetime as the guard that I can safely use. Since the `_guard`
 parameter is never used except to define a lifetime, it should be optimized
 out by the compiler!
 
-```rust
+```rust,ignore
 {{#include ../interpreter/src/pointerops.rs:DefScopedRef}}
 ```
 
 We'll use this in our `CellPtr<T>` to obtain a `ScopedPtr<T>`:
 
-```rust
+```rust,ignore
 impl<T: Sized> CellPtr<T> {
 {{#include ../interpreter/src/safeptr.rs:DefCellPtrGet}}
 }
@@ -208,14 +208,14 @@ we have:
 Let's make a type alias for the Sticky Immix heap so we aren't referring
 to it as such throughout the interpreter:
 
-```rust
+```rust,ignore
 {{#include ../interpreter/src/memory.rs:DefHeapStorage}}
 ```
 
 The let's put that into a heap struct, along with any other
 interpreter-global storage:
 
-```rust
+```rust,ignore
 {{#include ../interpreter/src/memory.rs:DefHeap}}
 ```
 
@@ -225,7 +225,7 @@ Now, since we've wrapped the Sticky Immix heap in our own `Heap` struct,
 we'll need to `impl` an `alloc()` method to proxy the Sticky Immix
 allocation function.
 
-```rust
+```rust,ignore
 impl Heap {
 {{#include ../interpreter/src/memory.rs:DefHeapAlloc}}
 }
@@ -245,7 +245,7 @@ This next struct will be used as a scope-limited proxy for the `Heap` struct
 with one major difference: function return types will no longer be `RawPtr<T>`
 but `ScopedPtr<T>`.
 
-```rust
+```rust,ignore
 {{#include ../interpreter/src/memory.rs:DefMutatorView}}
 ```
 
@@ -256,7 +256,7 @@ access is constrained to.
 
 A look at the `alloc()` function now:
 
-```rust
+```rust,ignore
 impl<'memory> MutatorView<'memory> {
 {{#include ../interpreter/src/memory.rs:DefMutatorViewAlloc}}
 }
@@ -276,7 +276,7 @@ garbage collection operations.
 First we'll apply a constraint on how a mutator _gains_ heap access: through
 a trait.
 
-```rust
+```rust,ignore
 {{#include ../interpreter/src/memory.rs:DefMutator}}
 ```
 
@@ -285,14 +285,14 @@ If a piece of code wants to access the heap, it _must_ implement this trait!
 Secondly, we'll apply another wrapper struct, this time to the `Heap` type.
 This is so that we can borrow the `heap` member instance.
 
-```rust
+```rust,ignore
 {{#include ../interpreter/src/memory.rs:DefMemory}}
 ```
 
 This `Memory` struct and the `Mutator` trait are now tied together with a
 function:
 
-```rust
+```rust,ignore
 impl Memory {
 {{#include ../interpreter/src/memory.rs:DefMemoryMutate}}
 
@@ -311,7 +311,7 @@ Let's construct a simple example to demonstrate these many parts. This
 will omit defining a `TypeId` and any other types that we didn't discuss
 above.
 
-```rust
+```rust,ignore
 struct Stack {}
 
 impl Stack {

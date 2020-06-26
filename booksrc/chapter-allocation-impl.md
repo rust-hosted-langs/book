@@ -5,7 +5,7 @@ In this final chapter of the allocation part of the book, we'll cover the
 
 This trait is implemented on the `StickyImmixHeap` struct:
 
-```rust
+```rust,ignore
 impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
     type Header = H;
 
@@ -27,7 +27,7 @@ The first function to implement is `AllocRaw::alloc<T>()`. This function must:
 
 Let's look at the implementation.
 
-```rust
+```rust,ignore
 impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
 {{#include ../stickyimmix/src/heap.rs:DefAlloc}}
 }
@@ -47,7 +47,7 @@ allocation. The key differences are that the type is fixed to a `u8` pointer
 and the array is initialized to zero bytes. It is up to the interpreter to
 write into the array itself.
 
-```rust
+```rust,ignore
 impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
 {{#include ../stickyimmix/src/heap.rs:DefAllocArray}}
 }
@@ -67,7 +67,7 @@ For our Immix implementation, since headers are placed immediately
 ahead of an object, we simply subtract the header size from the object
 pointer.
 
-```rust
+```rust,ignore
 impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
 {{#include ../stickyimmix/src/heap.rs:DefGetHeader}}
 }
@@ -76,7 +76,7 @@ impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
 Getting the object from a header is the reverse - adding the header size
 to the header pointer results in the object pointer:
 
-```rust
+```rust,ignore
 impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
 {{#include ../stickyimmix/src/heap.rs:DefGetObject}}
 }

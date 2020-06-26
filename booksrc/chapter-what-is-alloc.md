@@ -16,7 +16,7 @@ We need to follow suit, but we'll leave `Sync` for advanced chapters.
 An interface that satisfies the interior mutability property, by borrowing
 the allocator instance immutably, might look like:
 
-```rust
+```rust,ignore
 trait AllocRaw {
     fn alloc<T>(&self, object: T) -> *const T;
 }

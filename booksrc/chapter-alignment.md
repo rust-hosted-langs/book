@@ -70,7 +70,7 @@ memory required for an object will be two words anyway.
 
 Thus, the allocated size of an object will be calculated[^1] by
 
-```rust
+```rust,ignore
 let alignment = size_of::<usize>() * 2;
 // mask out the least significant bits that correspond to the alignment - 1
 // then add the full alignment

@@ -11,9 +11,7 @@ use stickyimmix::{
 use crate::headers::TypeList;
 
 /// Allocation header for an Arena-allocated value
-pub struct ArenaHeader {
-    // TODO
-}
+pub struct ArenaHeader {}
 
 /// Since we're not using this functionality in an Arena, the impl is just
 /// a set of no-ops.

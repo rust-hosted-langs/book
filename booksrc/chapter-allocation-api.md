@@ -3,7 +3,7 @@
 Let's look back at the allocator prototype API we defined in the introductory
 chapter.
 
-```rust
+```rust,ignore
 trait AllocRaw {
     fn alloc<T>(&self, object: T) -> *const T;
 }
@@ -15,7 +15,7 @@ pointer. That is certainly a workable solution but is not going to feel
 idiomatic or ergonomic for how we want to use the API. Let's make a couple
 changes:
 
-```rust
+```rust,ignore
 trait AllocRaw {
     fn alloc<T>(&self, object: T) -> Result<RawPtr<T>, AllocError>;
 }
@@ -27,7 +27,7 @@ often not that useful but working with `Result` is far more idiomatic Rust
 than checking a pointer for being null. We'll allow for distinguishing between
 Out Of Memory and an allocation request that for whatever reason is invalid.
 
-```rust
+```rust,ignore
 {{#include ../stickyimmix/src/allocator.rs:DefAllocError}}
 ```
 
@@ -36,7 +36,7 @@ discriminant we'll wrap a pointer in a new struct: `RawPtr<T>`. This wrapper
 will amount to little more than containing a `std::ptr::NonNull` instance
 and some functions to access the pointer.
 
-```rust
+```rust,ignore
 {{#include ../stickyimmix/src/rawptr.rs:DefRawPtr}}
 ```
 
@@ -62,7 +62,7 @@ collector in _this_ crate need.
 
 We'll define a trait for the user to implement.
 
-```rust
+```rust,ignore
 {{#include ../stickyimmix/src/allocator.rs:DefAllocHeader}}
 ```
 
@@ -87,14 +87,14 @@ interface, while at the same time being flexible enough for the user to make
 interpreter-appropriate decisions about the header design.
 
 First up, an object header implementation must define an associated type
-```rust
+```rust,ignore
 pub trait AllocHeader: Sized {
     type TypeId: AllocTypeId;
 }
 ```
 where `AllocTypeId` is define simply as:
 
-```rust
+```rust,ignore
 {{#include ../stickyimmix/src/allocator.rs:DefAllocTypeId}}
 ```
 
@@ -103,7 +103,7 @@ it pleases, the only constraint is that it implements this trait.
 
 Next, the definition of the header constructor,
 
-```rust
+```rust,ignore
 pub trait AllocHeader: Sized {
     ...
 
@@ -123,7 +123,7 @@ header is being instantiated for.
 
 And what is `AllocObject`? Simply:
 
-```rust
+```rust,ignore
 {{#include ../stickyimmix/src/allocator.rs:DefAllocObject}}
 ```
 
@@ -140,7 +140,7 @@ Let's implement a couple of traits to make it more concrete.
 The simplest form of type identifier is an enum. Each discriminant describes
 a type that the interpreter will use at runtime.
 
-```rust
+```rust,ignore
 #[derive(PartialEq, Copy, Clone)]
 enum MyTypeId {
     Number,
@@ -154,7 +154,7 @@ impl AllocTypeId for TestTypeId {}
 A hypothetical numeric type for our interpreter with the type identifier as
 associated constant:
 
-```rust
+```rust,ignore
 struct Number {
     value: i64
 }
@@ -167,7 +167,7 @@ impl AllocObject<TestTypeId> for Big {
 And finally, here is a possible object header struct and the implementation of
 `AllocHeader::new()`:
 
-```rust
+```rust,ignore
 struct MyHeader {
     size: u32,
     size_class: SizeClass,
@@ -224,7 +224,7 @@ We will add an associated type to tie the allocator
 API to the header type and indirectly to the type identification that will be
 used.
 
-```rust
+```rust,ignore
 pub trait AllocRaw {
 
     type Header: AllocHeader;
@@ -236,7 +236,7 @@ pub trait AllocRaw {
 Then we can update the `alloc()` function definition to constrain the types
 that can be allocated to only those that implement the appropriate traits.
 
-```rust
+```rust,ignore
 pub trait AllocRaw {
     ...
 
@@ -261,7 +261,7 @@ an object pointer, derive the type of the object.
 The function signature therefore cannot refer to the type. That is,
 we can't write
 
-```rust
+```rust,ignore
 pub trait AllocRaw {
     ...
 
@@ -277,7 +277,7 @@ pub trait AllocRaw {
 even though it seems this would be good and right. Instead this function will
 have to be much simpler:
 
-```rust
+```rust,ignore
 pub trait AllocRaw {
     ...
 
@@ -289,7 +289,7 @@ pub trait AllocRaw {
 
 We also need a function to get the object _from_ the header:
 
-```rust
+```rust,ignore
 pub trait AllocRaw {
     ...
 
@@ -338,7 +338,7 @@ As the definition of `AllocTypeId` is up to the interpreter, this crate can't
 know the type id of an array. Instead, we will require the interpreter to
 implement a function on the `AllocHeader` trait:
 
-```rust
+```rust,ignore
 pub trait AllocHeader: Sized {
     ...
 
@@ -354,7 +354,7 @@ appropriate type identifier.
 We will also add a function to the `AllocRaw` trait for allocating arrays that
 returns the `RawPtr<u8>` type.
 
-```rust
+```rust,ignore
 pub trait AllocRaw {
     ...
 
@@ -366,7 +366,7 @@ pub trait AllocRaw {
 
 Our complete `AllocRaw` trait definition now looks like this:
 
-```rust
+```rust,ignore
 {{#include ../stickyimmix/src/allocator.rs:DefAllocRaw}}
 ```
 

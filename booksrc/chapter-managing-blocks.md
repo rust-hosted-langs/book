@@ -7,7 +7,7 @@ blocks so we can allocate - in theory - indefinitely.
 
 We'll need a new struct for wrapping multiple blocks:
 
-```rust
+```rust,ignore
 {{#include ../stickyimmix/src/heap.rs:DefBlockList}}
 ```
 
@@ -75,7 +75,7 @@ types and won't be instantiated except on demand.
 For allocating into the overflow block we'll define a function in the
 `BlockList` impl:
 
-```rust
+```rust,ignore
 impl BlockList {
     fn overflow_alloc(&mut self, alloc_size: usize) -> Result<*const u8, AllocError> {
         ...
@@ -93,7 +93,7 @@ The logic inside will divide into three branches:
    a list of preinstantiated free blocks yet) and then, since that block
    is empty and we have a medium sized object, we can expect the allocation
    to succeed.
-   ```rust
+   ```rust,ignore
        match self.overflow {
            Some ...,
            None => {
@@ -111,7 +111,7 @@ The logic inside will divide into three branches:
        }
    ```
 2. We _have_ an overflow block and the object fits. Easy.
-   ```rust
+   ```rust,ignore
         match self.overflow {
             // We already have an overflow block to try to use...
             Some(ref mut overflow) => {
@@ -130,7 +130,7 @@ The logic inside will divide into three branches:
    list (in future it will make a good candidate for recycing!). Again,
    since we're writing a medium object into a block, we can expect allocation
    to succeed.
-   ```rust
+   ```rust,ignore
         match self.overflow {
             // We already have an overflow block to try to use...
             Some(ref mut overflow) => {
@@ -171,7 +171,7 @@ The crate interface will require us to consider object headers and so in the
 struct definition below there is reference to a generic type `H` that
 the _user_ of the heap will define as the object header.
 
-```rust
+```rust,ignore
 {{#include ../stickyimmix/src/heap.rs:DefStickyImmixHeap}}
 ```
 
@@ -193,7 +193,7 @@ runtime borrow checking.
 We've already taken care of the overflow block, now we'll handle allocation
 into the `head` block. We'll define a new function:
 
-```rust
+```rust,ignore
 impl StickyImmixHeap {
     fn find_space(
         &self,
@@ -215,7 +215,7 @@ function defined earlier. It has more or less the same cases to walk through:
    `alloc_overflow()` function and query the size of the object - if this is
    is a medium object and the current hole between marked lines in the `head`
    block is too small, call into `alloc_overflow()` and return.
-   ```rust
+   ```rust,ignore
                 if size_class == SizeClass::Medium && alloc_size > head.current_hole_size() {
                     return blocks.overflow_alloc(alloc_size);
                 }
@@ -230,7 +230,7 @@ in a later chapter. Right now we'll make it an error to try to allocate a large
 object by putting this at the beginning of the `StickyImmixHeap::inner_alloc()`
 function:
 
-```rust
+```rust,ignore
         if size_class == SizeClass::Large {
             return Err(AllocError::BadRequest);
         }
