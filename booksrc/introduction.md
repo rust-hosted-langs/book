@@ -36,11 +36,3 @@ as there are strong parallels.
 * Felix S Klock II - [GC and Rust Part 0: Garbage Collection Background](http://blog.pnkfx.org/blog/2015/10/27/gc-and-rust-part-0-how-does-gc-work/)
 * Felix S Klock II - [GC and Rust Part 1: Specifying the Problem](http://blog.pnkfx.org/blog/2015/11/10/gc-and-rust-part-1-specing-the-problem/)
 * Felix S Klock II - [GC and Rust Part 2: The Roots of the Problem](http://blog.pnkfx.org/blog/2016/01/01/gc-and-rust-part-2-roots-of-the-problem/)
-
-### Related and interesting Rust projects
-
-* The [Inko](https://gitlab.com/inko-lang/inko) programming language
-* The [Gluon](https://github.com/gluon-lang/gluon) programming language
-* The [ketos](https://github.com/murarth/ketos) programming language
-* jorendorff - [cell-gc](https://github.com/jorendorff/cell-gc)
-* kyren - [gc-arena](https://github.com/kyren/gc-arena) and [luster](https://github.com/kyren/luster)
