@@ -1,8 +1,16 @@
 # Summary
 
 - [Introduction](./introduction.md)
-- [Allocators](./part-allocators.md)
+- [Allocation](./part-allocators.md)
   - [Alignment](./chapter-alignment.md)
   - [Obtaining blocks of memory](./chapter-blocks.md)
   - [The type of allocation](./chapter-what-is-alloc.md)
-  - [Simple bump allocation](./chapter-simple-bump.md)
+- [An allocator: Sticky Immix](./part-stickyimmix.md)
+  - [Bump allocation](./chapter-simple-bump.md)
+  - [Allocating into multiple blocks](./chapter-managing-blocks.md)
+  - [Defining the allocation API](./chapter-allocation-api.md)
+  - [Implementing the API](./chapter-allocation-impl.md)
+- [An interpreter: Eval-rs](./part-interpreter.md)
+  - [Allocating safely](./chapter-interp-alloc.md)
+  - [Tagged pointers and symbols](./chapter-interp-tagged-symbols.md)
+  - [Parsing](./chapter-interp-parser.md)

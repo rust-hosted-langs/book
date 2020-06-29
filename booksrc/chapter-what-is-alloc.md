@@ -11,17 +11,20 @@ without needing to follow the rules of borrowing and mutable aliasing,
 it is essentially a container that implements `Sync` and the interior
 mutability pattern.
 
-We need to follow suit, but we'll leave `Sync` until later chapters.
+We need to follow suit, but we'll leave `Sync` for advanced chapters.
 
-An interface that satisfies the interior mutability property might look
-like
+An interface that satisfies the interior mutability property, by borrowing
+the allocator instance immutably, might look like:
 
-```rust
-trait AllocBare {
-    fn alloc<T>(object: T) -> *const T;
+```rust,ignore
+trait AllocRaw {
+    fn alloc<T>(&self, object: T) -> *const T;
 }
 ```
 
-naming it `AllocBare` because when layering on top of `Block` we'll
-work with bare pointers and not concern ourselves with the lifetime of
+naming it `AllocRaw` because when layering on top of `Block` we'll
+work with raw pointers and not concern ourselves with the lifetime of
 allocated objects.
+
+It will become a little more complex than this but for now, this captures
+the essence of the interface.

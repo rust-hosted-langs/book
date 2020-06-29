@@ -1,0 +1,14 @@
+[package]
+name = "evalrus"
+version = "0.0.1"
+authors = ["Peter Liniker <peter.liniker+github@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+clap = "2.20.3"
+dirs = "1.0"
+fnv = "1.0.3"
+itertools = "0.9"
+rustyline = "6.1.2"
+stickyimmix = { path = "../stickyimmix" }
+blockalloc = { path = "../blockalloc" }

@@ -11,8 +11,10 @@ correctness to entire chapter content! Feel free to add yourself to the
 
 ## Licensing
 
-This repository is under the CC-BY license - see `LICENSE.txt`.
+Text in this repository is under the CC-BY 4.0 license - see `LICENSE.txt`.
 Copyrights retained by contributors.
+
+All code is licensed under the Mozilla Public License 2.0 - see `LICENSE-code.txt`.
 
 ## Code of Conduct
 
