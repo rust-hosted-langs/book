@@ -1,0 +1,1868 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Writing Interpreters in Rust: a Guide</title>
+        
+        <meta name="robots" content="noindex" />
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="part-allocators.html"><strong aria-hidden="true">2.</strong> Allocation</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-alignment.html"><strong aria-hidden="true">2.1.</strong> Alignment</a></li><li class="chapter-item expanded "><a href="chapter-blocks.html"><strong aria-hidden="true">2.2.</strong> Obtaining blocks of memory</a></li><li class="chapter-item expanded "><a href="chapter-what-is-alloc.html"><strong aria-hidden="true">2.3.</strong> The type of allocation</a></li></ol></li><li class="chapter-item expanded "><a href="part-stickyimmix.html"><strong aria-hidden="true">3.</strong> An allocator: Sticky Immix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-simple-bump.html"><strong aria-hidden="true">3.1.</strong> Bump allocation</a></li><li class="chapter-item expanded "><a href="chapter-managing-blocks.html"><strong aria-hidden="true">3.2.</strong> Allocating into multiple blocks</a></li><li class="chapter-item expanded "><a href="chapter-allocation-api.html"><strong aria-hidden="true">3.3.</strong> Defining the allocation API</a></li><li class="chapter-item expanded "><a href="chapter-allocation-impl.html"><strong aria-hidden="true">3.4.</strong> Implementing the API</a></li></ol></li><li class="chapter-item expanded "><a href="part-interpreter.html"><strong aria-hidden="true">4.</strong> An interpreter: Eval-rs</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-interp-alloc.html"><strong aria-hidden="true">4.1.</strong> Allocating safely</a></li><li class="chapter-item expanded "><a href="chapter-interp-tagged-symbols.html"><strong aria-hidden="true">4.2.</strong> Tagged pointers and symbols</a></li><li class="chapter-item expanded "><a href="chapter-interp-parser.html"><strong aria-hidden="true">4.3.</strong> Parsing</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Writing Interpreters in Rust: a Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#writing-interpreters-in-rust-a-guide" id="writing-interpreters-in-rust-a-guide">Writing Interpreters in Rust: a Guide</a></h1>
+<h2><a class="header" href="#welcome" id="welcome">Welcome!</a></h2>
+<p>In this book we will walk through the basics of interpreted language
+implementation in Rust with a focus on the challenges that are specifc
+to using Rust.</p>
+<p>At a glance, these are:</p>
+<ul>
+<li>A custom allocator for use in an interpreter</li>
+<li>A safe-Rust wrapper over allocation</li>
+<li>A compiler and VM that interact with the above two layers</li>
+</ul>
+<p>The goal of this book is not to cover a full featured language but rather to
+provide a solid foundation on which you can build further features.</p>
+<p>We hope you find this book to be informative!</p>
+<h2><a class="header" href="#further-reading-and-other-projects-to-study" id="further-reading-and-other-projects-to-study">Further reading and other projects to study:</a></h2>
+<p>All the links below are acknowledged as inspiration or prior art.</p>
+<h3><a class="header" href="#interpreters" id="interpreters">Interpreters</a></h3>
+<p>Bob Nystrom's <a href="http://craftinginterpreters.com/">Crafting Interpreters</a>
+is recommended companion reading to this book for beginners to the topic
+as there are strong parallels.</p>
+<h3><a class="header" href="#memory-management" id="memory-management">Memory management</a></h3>
+<ul>
+<li>Richard Jones, Anthony Hosking, Elliot Moss - <a href="http://gchandbook.org/">The Garbage Collection Handbook</a></li>
+<li>Stephen M. Blackburn &amp; Kathryn S. McKinley -
+<a href="http://www.cs.utexas.edu/users/speedway/DaCapo/papers/immix-pldi-2008.pdf">Immix: A Mark-Region Garbage Collector with Space Efficiency, Fast Collection, and Mutator Performance</a></li>
+<li>Felix S Klock II - <a href="http://blog.pnkfx.org/blog/2015/10/27/gc-and-rust-part-0-how-does-gc-work/">GC and Rust Part 0: Garbage Collection Background</a></li>
+<li>Felix S Klock II - <a href="http://blog.pnkfx.org/blog/2015/11/10/gc-and-rust-part-1-specing-the-problem/">GC and Rust Part 1: Specifying the Problem</a></li>
+<li>Felix S Klock II - <a href="http://blog.pnkfx.org/blog/2016/01/01/gc-and-rust-part-2-roots-of-the-problem/">GC and Rust Part 2: The Roots of the Problem</a></li>
+</ul>
+<h1><a class="header" href="#allocators" id="allocators">Allocators</a></h1>
+<p>This section gives an overview and implementation detail of allocating blocks
+of memory.</p>
+<p><em>What this is not: a custom allocator to replace the global Rust allocator</em></p>
+<h1><a class="header" href="#alignment" id="alignment">Alignment</a></h1>
+<p>There are subtleties in memory access alignment:</p>
+<ul>
+<li>Some hardware architectures and implementations may fault on unaligned
+memory access.</li>
+<li>Atomic operations require word-aligned access.</li>
+<li>SIMD operations typically require double-word-aligned access.</li>
+<li>In practice on 64 bit architectures, allocators align objects to 8 byte
+boundaries for 64 bit objects and smaller and 16 byte boundaries for larger
+objects for performance optimization and the above reasons.</li>
+</ul>
+<p>Intel 32 and 64 bit x86 architectures allow general access to be unaligned but
+will probably incur an access penalty. The story on 32bit ARM and aarch64 is
+sufficiently similar but there is a higher chance that an ARM core is
+configured to raise a bus error on a misaligned access.</p>
+<p>Another very important factor is atomic memory operations.
+Atomic access works on a whole word basis - any unaligned access by nature
+cannot be guaranteed to be atomic as it will probably involve more than one
+access.  To support atomic operations, alignment must be minmally on word
+boundaries.</p>
+<p>SIMD operations, tending to be 128 bits wide or higher, should be
+aligned to 16 byte boundaries for optimal code generation and performance.
+Unaligned loads and stores may be allowed but normally these incur
+performance penalties.</p>
+<p>While Intel allows unaligned access, the
+<a href="https://software.intel.com/sites/default/files/managed/9e/bc/64-ia-32-architectures-optimization-manual.pdf?wapkw=248966">recommended</a>
+(see section 3.6.4) alignment for objects larger than 64 bits is to 16 byte
+boundaries.</p>
+<p>Apparently system <code>malloc()</code> implementations
+<a href="http://www.erahm.org/2016/03/24/minimum-alignment-of-allocation-across-platforms/">tend to comply</a>
+with the 16 byte boundary.</p>
+<p>To verify the above, a rough test of both the system allocator and jemalloc
+on x86_64 by using <code>Box::new()</code> on a set of types (<code>u8</code>, <code>u16</code>, <code>u32</code>, <code>u64</code>,
+<code>String</code> and a larger <code>struct</code>) confirms a minimum of 8 byte alignment for
+anything word size or smaller and 16 byte alignment for everything bigger.
+Sample pointer printouts below are for jemalloc but Linux libc malloc produced
+the same pattern:</p>
+<pre><code>p=0x7fb78b421028 u8
+p=0x7fb78b421030 u16
+p=0x7fb78b421038 u32
+p=0x7fb78b421050 u64
+p=0x7fb78b420060 &quot;spam&quot;
+p=0x7fb78b4220f0 Hoge { y: 2, z: &quot;ほげ&quot;, x: 1 }
+</code></pre>
+<p>Compare with <code>std::mem::align_of&lt;T&gt;()</code> which, on x86_64 for example,
+returns alignment values:</p>
+<ul>
+<li><code>u8</code>: 1 byte</li>
+<li><code>u16</code>: 2 bytes</li>
+<li><code>u32</code>: 4 bytes</li>
+<li><code>u64</code>: 8 bytes</li>
+<li>any bigger struct: 8</li>
+</ul>
+<p>Thus despite the value of <code>std::mem::align_of::&lt;T&gt;()</code>, mature allocators will
+do what is most pragmatic and follow recommended practice in support of optimal
+performance.</p>
+<p>With all that in mind, to keep things simple, we'll align everything to a
+double-word boundaries. When we add in prepending an object header, the minimum
+memory required for an object will be two words anyway.</p>
+<p>Thus, the allocated size of an object will be calculated<sup class="footnote-reference"><a href="#1">1</a></sup> by</p>
+<pre><code class="language-rust ignore">let alignment = size_of::&lt;usize&gt;() * 2;
+// mask out the least significant bits that correspond to the alignment - 1
+// then add the full alignment
+let size = (size_of::&lt;T&gt;() &amp; !(alignment - 1)) + alignment;
+</code></pre>
+<hr />
+<div class="footnote-definition" id="1"><sup class="footnote-definition-label">1</sup>
+<p>For a more detailed explanation of alignment adjustment calculations, see
+<a href="https://github.com/phil-opp">phil-opp</a>'s kernel
+<a href="https://os.phil-opp.com/kernel-heap/#alignment">heap allocator</a>.</p>
+</div>
+<h1><a class="header" href="#obtaining-blocks-of-memory" id="obtaining-blocks-of-memory">Obtaining Blocks of Memory</a></h1>
+<p>When requesting blocks of memory at a time, one of the questions is <em>what
+is the desired block alignment?</em></p>
+<ul>
+<li>In deciding, one factor is that using an alignment that is a multiple of the
+page size can make it easier to return memory to the operating system.</li>
+<li>Another factor is that if the block is aligned to it's size, it is fast to
+do bitwise arithmetic on a pointer to an object in a block to compute the
+block boundary and therefore the location of any block metadata.</li>
+</ul>
+<p>With both these in mind we'll look at how to allocate blocks that are
+aligned to the size of the block.</p>
+<h2><a class="header" href="#a-basic-crate-interface" id="a-basic-crate-interface">A basic crate interface</a></h2>
+<p>A block of memory is defined as a base address and a size, so we need a struct
+that contains these elements.</p>
+<p>To wrap the base address pointer, we'll use the recommended type for building
+collections, <a href="https://doc.rust-lang.org/std/ptr/struct.NonNull.html"><code>std::ptr::NonNull&lt;T&gt;</code></a>,
+which is available on stable.</p>
+<pre><code class="language-rust ignore">pub struct Block {
+    ptr: BlockPtr,
+    size: BlockSize,
+}
+</code></pre>
+<p>Where <code>BlockPtr</code> and <code>BlockSize</code> are defined as:</p>
+<pre><code class="language-rust ignore">pub type BlockPtr = NonNull&lt;u8&gt;;
+pub type BlockSize = usize;
+</code></pre>
+<p>To obtain a <code>Block</code>, we'll create a <code>Block::new()</code> function which, along with
+<code>Block::drop()</code>, is implemented internally by wrapping the stabilized Rust alloc
+routines:</p>
+<pre><code class="language-rust ignore">    pub fn new(size: BlockSize) -&gt; Result&lt;Block, BlockError&gt; {
+        // validate that size is a power of two
+        if !(size &amp; (size - 1) == 0) {
+            return Err(BlockError::BadRequest);
+        }
+
+        Ok(Block {
+            ptr: internal::alloc_block(size)?,
+            size,
+        })
+    }
+</code></pre>
+<p>Where parameter <code>size</code> must be a power of two, which is validated on the first
+line of the function.  Requiring the block size to be a power of two means
+simple bit arithmetic can be used to find the beginning and end of a block in
+memory, if the block size is always the same.</p>
+<p>Errors take one of two forms, an invalid block-size or out-of-memory, both
+of which may be returned by <code>Block::new()</code>.</p>
+<pre><code class="language-rust ignore">#[derive(Debug, PartialEq)]
+pub enum BlockError {
+    /// Usually means requested block size, and therefore alignment, wasn't a
+    /// power of two
+    BadRequest,
+    /// Insufficient memory, couldn't allocate a block
+    OOM,
+}
+</code></pre>
+<p>Now on to the platform-specific implementations.</p>
+<h2><a class="header" href="#custom-aligned-allocation-on-stable-rust" id="custom-aligned-allocation-on-stable-rust">Custom aligned allocation on stable Rust</a></h2>
+<p>On the stable rustc channel we have access to some features of the
+<a href="https://doc.rust-lang.org/std/alloc/index.html">Alloc</a> API.</p>
+<p>This is the ideal option since it abstracts platform specifics for us, we do
+not need to write different code for Unix and Windows ourselves.</p>
+<p>Fortunately there is enough stable functionality to
+fully implement what we need.</p>
+<p>With an appropriate underlying implementation this code should compile and
+execute for any target. The allocation function, implemented in the <code>internal</code>
+mod, reads:</p>
+<pre><code class="language-rust ignore">    pub fn alloc_block(size: BlockSize) -&gt; Result&lt;BlockPtr, BlockError&gt; {
+        unsafe {
+            let layout = Layout::from_size_align_unchecked(size, size);
+
+            let ptr = alloc(layout);
+            if ptr.is_null() {
+                Err(BlockError::OOM)
+            } else {
+                Ok(NonNull::new_unchecked(ptr))
+            }
+        }
+    }
+</code></pre>
+<p>Once a block has been allocated, there is no safe abstraction at this level
+to access the memory. The <code>Block</code> will provide a bare pointer to the beginning
+of the memory and it is up to the user to avoid invalid pointer arithmetic
+and reading or writing outside of the block boundary.</p>
+<pre><code class="language-rust ignore">    pub fn as_ptr(&amp;self) -&gt; *const u8 {
+        self.ptr.as_ptr()
+    }
+</code></pre>
+<h2><a class="header" href="#deallocation" id="deallocation">Deallocation</a></h2>
+<p>Again, using the stable Alloc functions:</p>
+<pre><code class="language-rust ignore">    pub fn dealloc_block(ptr: BlockPtr, size: BlockSize) {
+        unsafe {
+            let layout = Layout::from_size_align_unchecked(size, size);
+
+            dealloc(ptr.as_ptr(), layout);
+        }
+    }
+</code></pre>
+<p>The implementation of <code>Block::drop()</code> calls the deallocation function
+for us so we can create and drop <code>Block</code> instances without leaking memory.</p>
+<h2><a class="header" href="#testing" id="testing">Testing</a></h2>
+<p>We want to be sure that the system level allocation APIs do indeed return
+block-size-aligned blocks. Checking for this is straightforward.</p>
+<p>A correctly aligned block should have it's low bits
+set to <code>0</code> for a number of bits that represents the range of the block
+size - that is, the block size minus one. A bitwise XOR will highlight any
+bits that shouldn't be set:</p>
+<pre><code class="language-rust ignore">        // the block address bitwise AND the alignment bits (size - 1) should
+        // be a mutually exclusive set of bits
+        let mask = size - 1;
+        assert!((block.ptr.as_ptr() as usize &amp; mask) ^ mask == mask);
+</code></pre>
+<h1><a class="header" href="#the-type-of-allocation" id="the-type-of-allocation">The type of allocation</a></h1>
+<p>Before we start writing objects into <code>Block</code>s, we need to know the nature of
+the interface in Rust terms.</p>
+<p>If we consider the global allocator in Rust, implicitly available via
+<code>Box::new()</code>, <code>Vec::new()</code> and so on, we'll notice that since the global
+allocator is available on every thread and allows the creation of new
+objects on the heap (that is, mutation of the heap) from any code location
+without needing to follow the rules of borrowing and mutable aliasing,
+it is essentially a container that implements <code>Sync</code> and the interior
+mutability pattern.</p>
+<p>We need to follow suit, but we'll leave <code>Sync</code> for advanced chapters.</p>
+<p>An interface that satisfies the interior mutability property, by borrowing
+the allocator instance immutably, might look like:</p>
+<pre><code class="language-rust ignore">trait AllocRaw {
+    fn alloc&lt;T&gt;(&amp;self, object: T) -&gt; *const T;
+}
+</code></pre>
+<p>naming it <code>AllocRaw</code> because when layering on top of <code>Block</code> we'll
+work with raw pointers and not concern ourselves with the lifetime of
+allocated objects.</p>
+<p>It will become a little more complex than this but for now, this captures
+the essence of the interface.</p>
+<h1><a class="header" href="#an-allocator-sticky-immix" id="an-allocator-sticky-immix">An allocator: Sticky Immix</a></h1>
+<p>Quickly, some terminology:</p>
+<ul>
+<li>Mutator: the thread of execution that writes and modifies objects on the heap.</li>
+<li>Live objects: the graph of objects that the mutator can reach, either directly
+from it's stack or indirectly through other reachable objects.</li>
+<li>Dead objects: any object that is disconnected from the mutator's graph of live
+objects.</li>
+<li>Collector: the thread of execution that identifies objects that are no longer
+reachable by the mutator and marks them as free space that can be reused</li>
+<li>Fragmentation: as objects have many different sizes, after allocating and
+freeing many objects, gaps of unused memory appear between objects that are
+too small for most objects but that add up to a measurable percentage of
+wasted space.</li>
+<li>Evacuation: when the collector <em>moves</em> live objects to another block of memory
+so that the originating block can be _de_fragmented</li>
+</ul>
+<h2><a class="header" href="#about-immix" id="about-immix">About Immix</a></h2>
+<p>Immix is a memory management scheme that considers blocks of fixed size at a time.
+Each block is divided into lines. In the original paper, blocks are sized at 32k
+and lines at 128 bytes.  Objects are allocated into blocks using bump allocation.
+Objects can cross line boundaries.</p>
+<p>During tracing to discover live objects, objects are marked as live, but the
+line, or lines, that each object occupies are also marked as live. This can mean, of
+course, that a line may contain a dead object and a live object but the whole
+line is marked as live.</p>
+<p>During collection, only lines not marked as live are considered available for
+re-use. Inevitably then, there is acceptance of some amount of fragementation
+at this point.</p>
+<p><em>Full</em> Immix implements evacuating objects out of the most fragmented blocks
+into fresh, empty blocks, for defragmentation.</p>
+<p>For simplicity of implementation, we'll leave out this evacuation operation
+in this guide. This is called <em>Sticky</em> Immix.</p>
+<p>We'll also stick to a single thread for the mutator and collector to avoid the
+complexity overhead of a multi-threaded implementation for now.</p>
+<p>Recommended reading: <a href="http://www.cs.utexas.edu/users/speedway/DaCapo/papers/immix-pldi-2008.pdf">Stephen M. Blackburn &amp; Kathryn S. McKinley - Immix: A Mark-Region Garbage Collector with Space Efficiency, Fast Collection, and Mutator Performance</a></p>
+<h2><a class="header" href="#about-this-part-of-the-book" id="about-this-part-of-the-book">About this part of the book</a></h2>
+<p>This section will describe a Rust crate that implements a Sticky Immix heap.
+As part of this implementation we will dive into the crate API details to
+understand how we can define an interface between the heap and the language
+VM that will come later.</p>
+<p><em>What this is not: custom memory management to replace the global Rust
+allocator! The APIs we arrive at will be substantially incompatible with the
+global Rust allocator.</em></p>
+<h1><a class="header" href="#bump-allocation" id="bump-allocation">Bump allocation</a></h1>
+<p>Now that we can get blocks of raw memory, we need to write objects into it. The
+simplest way to do this is to write objects into a block one after the other
+in consecutive order. This is bump allocation - we have a pointer, the bump
+pointer, which points at the space in the block after the last object that
+was written. When the next object is written, the bump pointer is incremented
+to point to the space after <em>that</em> object <sup class="footnote-reference"><a href="#1">1</a></sup>.</p>
+<p>We will used a fixed power-of-two block size. The benefit of this is that
+given a pointer to an object, by zeroing the bits of the pointer that represent
+the block size, the result points to the beginning of the block. This will
+be useful later when implementing garbage collection.</p>
+<p>Our block size will be 32k, a reasonably optimal size arrived at in the
+original <a href="http://www.cs.utexas.edu/users/speedway/DaCapo/papers/immix-pldi-2008.pdf">Immix</a> paper. This size can be any power of two though and
+different use cases may show different optimal sizes.</p>
+<pre><code class="language-rust ignore">pub const BLOCK_SIZE_BITS: usize = 15;
+pub const BLOCK_SIZE: usize = 1 &lt;&lt; BLOCK_SIZE_BITS;
+</code></pre>
+<p>Next, we'll define a struct that wraps the block with a bump pointer and other
+metadata.</p>
+<pre><code class="language-rust ignore">pub struct BumpBlock {
+    cursor: usize,
+    limit: usize,
+    block: Block,
+    meta: Box&lt;BlockMeta&gt;,
+}
+</code></pre>
+<h2><a class="header" href="#bump-allocation-basics" id="bump-allocation-basics">Bump allocation basics</a></h2>
+<p>In this struct definition, there are two members that we are interested in
+for this section. The other two, <code>limit</code> and <code>meta</code>, will be discussed in the
+next section.</p>
+<ul>
+<li><code>cursor</code>: this is the bump pointer. In our implementation it is the index
+into the block where the next object can be written.</li>
+<li><code>block</code>: this is the <code>Block</code> itself in which objects will be written.</li>
+</ul>
+<p>For this bump allocation function, the <code>alloc_size</code> parameter should be a number
+of bytes of memory requested. We'll assume that the value provided is equivalent
+to an exact number of words so that we don't end up with badly aligned object
+placement.</p>
+<pre><code class="language-rust ignore">impl BumpBlock {
+    pub fn inner_alloc(&amp;mut self, alloc_size: usize) -&gt; Option&lt;*const u8&gt; {
+        let next_bump = self.cursor + alloc_size;
+
+        if next_bump &gt; constants::BLOCK_SIZE {
+            None
+        } else {
+            let offset = self.cursor;
+            self.cursor = next_bump;
+            unsafe { Some(self.block.as_ptr().add(offset) as *const u8) }
+        }
+    }
+}
+</code></pre>
+<p>In this overly simplistic initial implementation, allocation will simply return
+<code>None</code> if the block is full. If there <em>is</em> space, it will be returned as a
+<code>Some(*const u8)</code> pointer.</p>
+<p>Note that this function does not <em>write</em> the object to memory, it merely
+returns a pointer to an available space.  Writing the object will simply
+require invoking the <code>std::ptr::write</code> function. We will do that in a separate
+module but for completeness of this chapter, this might look something like:</p>
+<pre><code class="language-rust ignore">use std::ptr::write;
+
+unsafe fn write&lt;T&gt;(dest: *const u8, object: T) {
+    write(dest as *mut T, object);
+}
+</code></pre>
+<h2><a class="header" href="#some-time-passes" id="some-time-passes">Some time passes...</a></h2>
+<p>After allocating and freeing objects, we will have gaps between objects in a
+block that can be reused. The above bump allocation algorithm is unaware of
+these gaps so we'll have to modify it before it can allocate into fragmented
+blocks.</p>
+<p>Remember that in Immix, only whole lines are considered for reuse. To recap,
+a block is divided into lines. When objects are marked as live, so are the
+lines that an object occupies. Therefore, only lines that are <em>not</em> marked
+as live are usable for allocation into.</p>
+<p>We'll need a data structure to represent this. we'll call it <code>BlockMeta</code>,
+but first some constants that we need in order to know how big a line is
+and how many are in a block:</p>
+<pre><code class="language-rust ignore">pub const LINE_SIZE_BITS: usize = 7;
+pub const LINE_SIZE: usize = 1 &lt;&lt; LINE_SIZE_BITS;
+pub const LINE_COUNT: usize = BLOCK_SIZE / LINE_SIZE;
+</code></pre>
+<p>And now the definition of <code>BlockMeta</code>:</p>
+<pre><code class="language-rust ignore">pub struct BlockMeta {
+    line_mark: [bool; constants::LINE_COUNT],
+    block_mark: bool,
+}
+</code></pre>
+<ul>
+<li><code>line_mark</code> is an array of boolean flags, one for each line in a
+block, to indicate whether it has been marked or not.</li>
+<li><code>block_mark</code> simply says whether the entire block has
+marked objects in it. If this is ever <code>false</code>, the entire block can be
+deallocated.</li>
+</ul>
+<p>This struct contains one function we will study:</p>
+<pre><code class="language-rust ignore">    pub fn find_next_available_hole(&amp;self, starting_at: usize) -&gt; Option&lt;(usize, usize)&gt; {
+        let mut count = 0;
+        let mut start: Option&lt;usize&gt; = None;
+        let mut stop: usize = 0;
+
+        let starting_line = starting_at / constants::LINE_SIZE;
+
+        for (index, marked) in self.line_mark[starting_line..].iter().enumerate() {
+            let abs_index = starting_line + index;
+
+            // count unmarked lines
+            if !*marked {
+                count += 1;
+
+                // if this is the first line in a hole (and not the zeroth line), consider it
+                // conservatively marked and skip to the next line
+                if count == 1 &amp;&amp; abs_index &gt; 0 {
+                    continue;
+                }
+
+                // record the first hole index
+                if start.is_none() {
+                    start = Some(abs_index);
+                }
+
+                // stop is now at the end of this line
+                stop = abs_index + 1;
+            }
+
+            // if we reached a marked line or the end of the block, see if we have
+            // a valid hole to work with
+            if count &gt; 0 &amp;&amp; (*marked || stop &gt;= constants::LINE_COUNT) {
+                if let Some(start) = start {
+                    let cursor = start * constants::LINE_SIZE;
+                    let limit = stop * constants::LINE_SIZE;
+
+                    return Some((cursor, limit));
+                }
+            }
+
+            // if this line is marked and we didn't return a new cursor/limit pair by now,
+            // reset the hole state
+            if *marked {
+                count = 0;
+                start = None;
+            }
+        }
+
+        None
+    }
+</code></pre>
+<ul>
+<li>The input to this function, <code>starting_at</code>, is the offset into the block at
+which we are looking for a large enough consecutive set of unmarked lines
+to write an object into. The value passed in will be the bump pointer, of
+course, since that is where we last successfully wrote to the block at.</li>
+<li>The return value is <code>None</code> if no unmarked lines are found.</li>
+<li>If there <em>are</em> unmarked lines after the <code>starting_at</code> point, the return
+value will be a pair of numbers - <code>(cursor, limit)</code> - where <code>cursor</code> will
+be the new bump pointer value and <code>limit</code> will be the upper bound of the
+available hole.</li>
+</ul>
+<p>The first thing this function does is convert from block byte offset math
+to line count math:</p>
+<pre><code class="language-rust ignore">         let starting_line = starting_at / constants::LINE_SIZE;
+</code></pre>
+<p>And then iterate over the lines starting with the line that the requested
+byte offset starting point corresponds with:</p>
+<pre><code class="language-rust ignore">         for (index, marked) in self.line_mark[starting_line..].iter().enumerate() {
+             let abs_index = starting_line + index;
+</code></pre>
+<p>We're looking for unmarked lines to allocate into, so we'll count how many
+we get so we can later calculate the start and end offsets of a hole:</p>
+<pre><code class="language-rust ignore">            // count unmarked lines
+            if !*marked {
+                count += 1;
+</code></pre>
+<p>Up next are a couple lines of code that need longer explanation:</p>
+<pre><code class="language-rust ignore">                if count == 1 &amp;&amp; abs_index &gt; 0 {
+                    continue;
+                }
+</code></pre>
+<p>The Immix authors found that marking <em>every</em> line that contains a live object
+could be expensive. For example, many small objects might cross line boundaries,
+requiring two lines to be marked as live. This would require looking up the
+object size and calculating whether the object crosses the boundary into the
+next line. To save CPU cycles, they simplified the algorithm by saying that
+any object that fits in a line <em>might</em> cross into the next line so we will
+conservatively <em>consider</em> the next line marked just in case. This sped up
+marking at little fragmentation expense.</p>
+<p>So the three lines of code above simply say: if we've so-far only found one
+unmarked block, consider that it might be a conservatively-marked line and
+ignore it.</p>
+<p>Once that condition has passed and we're clear of any conservatively-marked
+line, we can consider the next unmarked line as totally available. Here we
+save the index of this line in the variable <code>start</code>:</p>
+<pre><code class="language-rust ignore">                if start.is_none() {
+                    start = Some(abs_index);
+                }
+</code></pre>
+<p>Now we have a starting line for the overall hole between marked objects. Next
+we'll close the <code>if *marked</code> scope by setting the end of the hole:</p>
+<pre><code class="language-rust ignore">                stop = abs_index + 1;
+            }
+</code></pre>
+<p>The loop will continue and while there are consecutive unmarked lines, <code>stop</code>
+will continue to be updated to a later line boundary.</p>
+<p>As soon as we hit a marked line or the end of the block, and we have a nonzero
+number of unmarked lines, we'll test whether we have a valid hole to allocate
+into:</p>
+<pre><code class="language-rust ignore">            if count &gt; 0 &amp;&amp; (*marked || stop &gt;= constants::LINE_COUNT) {
+                if let Some(start) = start {
+                    let cursor = start * constants::LINE_SIZE;
+                    let limit = stop * constants::LINE_SIZE;
+
+                    return Some((cursor, limit));
+                }
+            }
+</code></pre>
+<p>Here we convert line-based math back into block byte-offset values and return
+the new bump-pointer and upper limit.</p>
+<p>Otherwise, if the above conditions failed but we've still reached a marked
+line, reset the state:</p>
+<pre><code class="language-rust ignore">            if *marked {
+                count = 0;
+                start = None;
+            }
+</code></pre>
+<p>Finally, if the whole loop terminates without returning a new
+<code>Some((cursor, limit))</code> pair, return <code>None</code> as our way of saying this block
+has no usable holes to allocate into.</p>
+<p>We'll return to the <code>BumpBlock::inner_alloc()</code> function now to make use of
+<code>BlockMeta</code> and it's hole finding operation.</p>
+<p>The <code>BumpBlock</code> struct contains two more members: <code>limit</code> and <code>meta</code>. These
+should now be obvious - <code>limit</code> is the known byte offset limit into which
+we can allocate, and <code>meta</code> is the <code>BlockMeta</code> instance associated with the
+block.</p>
+<p>We need to update <code>inner_alloc()</code> with a new condition:</p>
+<ul>
+<li>the size being requested must fit between <code>self.cursor</code> and <code>self.limit</code></li>
+</ul>
+<p>(Note that for a fresh, new block, <code>self.limit</code> is set to the block size.)</p>
+<p>If the above condition is not met, we will call
+<code>BlockMeta::find_next_available_hole()</code> to get a new <code>cursor</code> and <code>limit</code>
+to try, and repeat that until we've either <em>found</em> a big enough hole or
+reached the end of the block, exhausting our options.</p>
+<p>The new definition of <code>BumpBlock::inner_alloc()</code> reads as follows:</p>
+<pre><code class="language-rust ignore">    pub fn inner_alloc(&amp;mut self, alloc_size: usize) -&gt; Option&lt;*const u8&gt; {
+        let next_bump = self.cursor + alloc_size;
+
+        if next_bump &gt; self.limit {
+            if self.limit &lt; constants::BLOCK_SIZE {
+                if let Some((cursor, limit)) = self.meta.find_next_available_hole(self.limit) {
+                    self.cursor = cursor;
+                    self.limit = limit;
+                    return self.inner_alloc(alloc_size);
+                }
+            }
+
+            None
+        } else {
+            let offset = self.cursor;
+            self.cursor = next_bump;
+            unsafe { Some(self.block.as_ptr().add(offset) as *const u8) }
+        }
+    }
+</code></pre>
+<p>and as you can see, this implementation is recursive.</p>
+<h2><a class="header" href="#wrapping-this-up" id="wrapping-this-up">Wrapping this up</a></h2>
+<p>At the beginning of this chapter I stated that given a pointer to an object,
+by zeroing the bits of the pointer that represent the block size, the result
+points to the beginning of the block.</p>
+<p>We'll make use of that now.</p>
+<p>During the mark phase of garbage collection, we will need to know which line
+or lines to mark, in addition to marking the object itself. We will make a
+copy of the <code>BlockMeta</code> instance pointer in the 0th word of the memory block
+so that given any object pointer, we can obtain the <code>BlockMeta</code> instance.</p>
+<p>In the next chapter we'll handle multiple <code>BumpBlock</code>s so that we can keep
+allocating objects after one block is full.</p>
+<hr />
+<div class="footnote-definition" id="1"><sup class="footnote-definition-label">1</sup>
+<p>Note that objects can be written from the end of the block down to the beginning
+too, decrementing the bump pointer. This is usually <a href="https://fitzgeraldnick.com/2019/11/01/always-bump-downwards.html">slightly simpler and more
+efficient to implement</a>.</p>
+</div>
+<h1><a class="header" href="#allocating-into-multiple-blocks" id="allocating-into-multiple-blocks">Allocating into Multiple Blocks</a></h1>
+<p>Let's now zoom out of the fractal code soup one level and begin arranging multiple
+blocks so we can allocate - in theory - indefinitely.</p>
+<h2><a class="header" href="#lists-of-blocks" id="lists-of-blocks">Lists of blocks</a></h2>
+<p>We'll need a new struct for wrapping multiple blocks:</p>
+<pre><code class="language-rust ignore">struct BlockList {
+    head: Option&lt;BumpBlock&gt;,
+    overflow: Option&lt;BumpBlock&gt;,
+    rest: Vec&lt;BumpBlock&gt;,
+}
+</code></pre>
+<p>Immix maintains several lists of blocks. We won't include them all in the first
+iteration but in short they are:</p>
+<ul>
+<li><code>free</code>: a list of blocks that contain no objects. These blocks are held at the
+ready to allocate into on demand</li>
+<li><code>recycle</code>: a list of blocks that contain some objects but also at least one
+line that can be allocated into</li>
+<li><code>large</code>: not a list of blocks, necessarily, but a list of objects larger than
+the block size, or some other method of accounting for large objects</li>
+<li><code>rest</code>: the rest of the blocks that have been allocated into but are not
+suitable for recycling</li>
+</ul>
+<p>In our first iteration we'll only keep the <code>rest</code> list of blocks and two blocks
+to immediately allocate into. Why two? To understand why, we need to understand
+how Immix thinks about object sizes.</p>
+<h3><a class="header" href="#immix-and-object-sizes" id="immix-and-object-sizes">Immix and object sizes</a></h3>
+<p>We've seen that there are two numbers that define granularity in Immix: the
+block size and the line size.  These numbers give us the ability to categorize
+object sizes:</p>
+<ul>
+<li>small: those that (with object header and alignment overhead) fit inside a
+line</li>
+<li>medium: those that (again with object header and alignment overhead) are
+larger than one line but smaller than a block</li>
+<li>large: those that are larger than a block</li>
+</ul>
+<p>In the previous chapter we described the basic allocation algorithm: when
+an object is being allocated, the current block is scanned for a hole between
+marked lines large enough to allocate into. This does seem like it could
+be inefficient. We could spend a lot of CPU cycles looking for a big enough
+hole, especially for a medium sized object.</p>
+<p>To avoid this, Immix maintains a second block, an overflow block, to allocate
+medium objects into that don't fit the first available hole in the
+main block being allocated into.</p>
+<p>Thus two blocks to immediately allocate into:</p>
+<ul>
+<li><code>head</code>: the current block being allocated into</li>
+<li><code>overflow</code>: a block kept handy for writing medium objects into that don't
+fit the <code>head</code> block's current hole</li>
+</ul>
+<p>We'll be ignoring large objects for now and attending only to allocating small
+and medium objects into blocks.</p>
+<p>Instead of recycling blocks with holes, or maintaining a list of pre-allocated
+free blocks, we'll allocate a new block on demand whenever we need more space.
+We'll get to identifying holes and recyclable blocks in a later chapter.</p>
+<h3><a class="header" href="#managing-the-overflow-block" id="managing-the-overflow-block">Managing the overflow block</a></h3>
+<p>Generally in our code for this book, we will try to default to not allocating
+memory unless it is needed. For example, when an array is instantiated,
+the backing storage will remain unallocated until a value is pushed on to
+it.</p>
+<p>Thus in the definition of <code>BlockList</code>, <code>head</code> and <code>overflow</code> are <code>Option</code>
+types and won't be instantiated except on demand.</p>
+<p>For allocating into the overflow block we'll define a function in the
+<code>BlockList</code> impl:</p>
+<pre><code class="language-rust ignore">impl BlockList {
+    fn overflow_alloc(&amp;mut self, alloc_size: usize) -&gt; Result&lt;*const u8, AllocError&gt; {
+        ...
+    }
+}
+</code></pre>
+<p>The input constraint is that, since overflow is for medium objects, <code>alloc_size</code>
+must be less than the block size.</p>
+<p>The logic inside will divide into three branches:</p>
+<ol>
+<li>We haven't got an overflow block yet - <code>self.overflow</code> is <code>None</code>. In this
+case we have to instantiate a new block (since we're not maintaining
+a list of preinstantiated free blocks yet) and then, since that block
+is empty and we have a medium sized object, we can expect the allocation
+to succeed.
+<pre><code class="language-rust ignore">    match self.overflow {
+        Some ...,
+        None =&gt; {
+             let mut overflow = BumpBlock::new()?;
+
+             // object size &lt; block size means we can't fail this expect
+             let space = overflow
+                 .inner_alloc(alloc_size)
+                 .expect(&quot;We expected this object to fit!&quot;);
+
+             self.overflow = Some(overflow);
+
+             space
+         }
+    }
+</code></pre>
+</li>
+<li>We <em>have</em> an overflow block and the object fits. Easy.
+<pre><code class="language-rust ignore">     match self.overflow {
+         // We already have an overflow block to try to use...
+         Some(ref mut overflow) =&gt; {
+             // This is a medium object that might fit in the current block...
+             match overflow.inner_alloc(alloc_size) {
+                 // the block has a suitable hole
+                 Some(space) =&gt; space,
+                 ...
+             }
+         },
+         None =&gt; ...
+     }
+</code></pre>
+</li>
+<li>We have an overflow block but the object does not fit. Now we simply
+instantiate a <em>new</em> overflow block, adding the old one to the <code>rest</code>
+list (in future it will make a good candidate for recycing!). Again,
+since we're writing a medium object into a block, we can expect allocation
+to succeed.
+<pre><code class="language-rust ignore">     match self.overflow {
+         // We already have an overflow block to try to use...
+         Some(ref mut overflow) =&gt; {
+             // This is a medium object that might fit in the current block...
+             match overflow.inner_alloc(alloc_size) {
+                 Some ...,
+                 // the block does not have a suitable hole
+                 None =&gt; {
+                     let previous = replace(overflow, BumpBlock::new()?);
+
+                     self.rest.push(previous);
+
+                     overflow.inner_alloc(alloc_size).expect(&quot;Unexpected error!&quot;)
+                 }
+             }
+         },
+         None =&gt; ...
+     }
+</code></pre>
+</li>
+</ol>
+<p>In this logic, the only error can come from failing to create a new block.</p>
+<p>On success, at this level of interface we continue to return a <code>*const u8</code>
+pointer to the available space as we're not yet handling the type of the
+object being allocated.</p>
+<p>You may have noticed that the function signature for <code>overflow_alloc</code> takes a
+<code>&amp;mut self</code>.  This isn't compatible with the interior mutability model
+of allocation.  We'll have to wrap the <code>BlockList</code> struct in another struct
+that handles this change of API model.</p>
+<h2><a class="header" href="#the-heap-struct" id="the-heap-struct">The heap struct</a></h2>
+<p>This outer struct will provide the external crate interface and some further
+implementation of block management.</p>
+<p>The crate interface will require us to consider object headers and so in the
+struct definition below there is reference to a generic type <code>H</code> that
+the <em>user</em> of the heap will define as the object header.</p>
+<pre><code class="language-rust ignore">pub struct StickyImmixHeap&lt;H&gt; {
+    blocks: UnsafeCell&lt;BlockList&gt;,
+
+    _header_type: PhantomData&lt;*const H&gt;,
+}
+</code></pre>
+<p>Since object headers are not owned directly by the heap struct, we need a
+<code>PhantomData</code> instance to associate with <code>H</code>.  We'll discuss object headers
+in a later chapter.</p>
+<p>Now let's focus on the use of the <code>BlockList</code>.</p>
+<p>The instance of <code>BlockList</code> in the <code>StickyImmixHeap</code> struct is wrapped in an
+<code>UnsafeCell</code> because we need interior mutability. We need to be able to
+borrow the <code>BlockList</code> mutably while presenting an immutable interface to
+the outside world.  Since we won't be borrowing the <code>BlockList</code> in multiple
+places in the same call tree, we don't need <code>RefCell</code> and we can avoid it's
+runtime borrow checking.</p>
+<h3><a class="header" href="#allocating-into-the-head-block" id="allocating-into-the-head-block">Allocating into the head block</a></h3>
+<p>We've already taken care of the overflow block, now we'll handle allocation
+into the <code>head</code> block. We'll define a new function:</p>
+<pre><code class="language-rust ignore">impl StickyImmixHeap {
+    fn find_space(
+        &amp;self,
+        alloc_size: usize,
+        size_class: SizeClass,
+    ) -&gt; Result&lt;*const u8, AllocError&gt; {
+        let blocks = unsafe { &amp;mut *self.blocks.get() };
+        ...
+    }
+}
+</code></pre>
+<p>This function is going to look almost identical to the <code>alloc_overflow()</code>
+function defined earlier. It has more or less the same cases to walk through:</p>
+<ol>
+<li><code>head</code> block is <code>None</code>, i.e. we haven't allocated a head block yet. Allocate
+one and write the object into it.</li>
+<li>We have <code>Some(ref mut head)</code> in <code>head</code>.  At this point we divert from the
+<code>alloc_overflow()</code> function and query the size of the object - if this is
+is a medium object and the current hole between marked lines in the <code>head</code>
+block is too small, call into <code>alloc_overflow()</code> and return.
+<pre><code class="language-rust ignore">             if size_class == SizeClass::Medium &amp;&amp; alloc_size &gt; head.current_hole_size() {
+                 return blocks.overflow_alloc(alloc_size);
+             }
+</code></pre>
+Otherwise, continue to allocate into <code>head</code> and return.</li>
+<li>We have <code>Some(ref mut head)</code> in <code>head</code> but this block is unable to
+accommodate the object, whether medium or small. We must append the current
+head to the <code>rest</code> list and create a new <code>BumpBlock</code> to allocate into.</li>
+</ol>
+<p>There is one more thing to mention. What about large objects? We'll cover those
+in a later chapter. Right now we'll make it an error to try to allocate a large
+object by putting this at the beginning of the <code>StickyImmixHeap::inner_alloc()</code>
+function:</p>
+<pre><code class="language-rust ignore">        if size_class == SizeClass::Large {
+            return Err(AllocError::BadRequest);
+        }
+
+</code></pre>
+<h2><a class="header" href="#where-to-next" id="where-to-next">Where to next?</a></h2>
+<p>We have a scheme for finding space in blocks for small and medium objects
+and so, in the next chapter we will define the external interface to the crate.</p>
+<h1><a class="header" href="#defining-the-allocation-api" id="defining-the-allocation-api">Defining the allocation API</a></h1>
+<p>Let's look back at the allocator prototype API we defined in the introductory
+chapter.</p>
+<pre><code class="language-rust ignore">trait AllocRaw {
+    fn alloc&lt;T&gt;(&amp;self, object: T) -&gt; *const T;
+}
+</code></pre>
+<p>This will quickly prove to be inadequate and non-idiomatic. For starters, there
+is no way to report that allocation failed except for perhaps returning a null
+pointer. That is certainly a workable solution but is not going to feel
+idiomatic or ergonomic for how we want to use the API. Let's make a couple
+changes:</p>
+<pre><code class="language-rust ignore">trait AllocRaw {
+    fn alloc&lt;T&gt;(&amp;self, object: T) -&gt; Result&lt;RawPtr&lt;T&gt;, AllocError&gt;;
+}
+</code></pre>
+<p>Now we're returning a <code>Result</code>, the failure side of which is an error type
+where we can distinguish between different allocation failure modes. This is
+often not that useful but working with <code>Result</code> is far more idiomatic Rust
+than checking a pointer for being null. We'll allow for distinguishing between
+Out Of Memory and an allocation request that for whatever reason is invalid.</p>
+<pre><code class="language-rust ignore">#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum AllocError {
+    /// Some attribute of the allocation, most likely the size requested,
+    /// could not be fulfilled
+    BadRequest,
+    /// Out of memory - allocating the space failed
+    OOM,
+}
+</code></pre>
+<p>The second change is that instead of a <code>*const T</code> value in the success
+discriminant we'll wrap a pointer in a new struct: <code>RawPtr&lt;T&gt;</code>. This wrapper
+will amount to little more than containing a <code>std::ptr::NonNull</code> instance
+and some functions to access the pointer.</p>
+<pre><code class="language-rust ignore">pub struct RawPtr&lt;T: Sized&gt; {
+    ptr: NonNull&lt;T&gt;,
+}
+</code></pre>
+<p>This'll be better to work with on the user-of-the-crate side.</p>
+<p>It'll also make it easier to modify internals or even swap out entire
+implementations. This is a motivating factor for the design of this interface
+as we'll see as we continue to amend it to account for object headers now.</p>
+<h2><a class="header" href="#object-headers" id="object-headers">Object headers</a></h2>
+<p>The purpose of an object header is to provide the allocator, the language
+runtime and the garbage collector with information about the object that
+is needed at runtime. Typical data points that are stored might include:</p>
+<ul>
+<li>object size</li>
+<li>some kind of type identifier</li>
+<li>garbage collection information such as a mark flag</li>
+</ul>
+<p>We want to create a flexible interface to a language while also ensuring that
+the interpreter will provide the information that the allocator and garbage
+collector in <em>this</em> crate need.</p>
+<p>We'll define a trait for the user to implement.</p>
+<pre><code class="language-rust ignore">pub trait AllocHeader: Sized {
+    /// Associated type that identifies the allocated object type
+    type TypeId: AllocTypeId;
+
+    /// Create a new header for object type O
+    fn new&lt;O: AllocObject&lt;Self::TypeId&gt;&gt;(size: u32, size_class: SizeClass, mark: Mark) -&gt; Self;
+
+    /// Create a new header for an array type
+    fn new_array(size: ArraySize, size_class: SizeClass, mark: Mark) -&gt; Self;
+
+    /// Set the Mark value to &quot;marked&quot;
+    fn mark(&amp;mut self);
+
+    /// Get the current Mark value
+    fn is_marked(&amp;self) -&gt; bool;
+
+    /// Get the size class of the object
+    fn size_class(&amp;self) -&gt; SizeClass;
+
+    /// Get the size of the object in bytes
+    fn size(&amp;self) -&gt; u32;
+
+    /// Get the type of the object
+    fn type_id(&amp;self) -&gt; Self::TypeId;
+}
+</code></pre>
+<p>Now we have a bunch more questions to answer! Some of these trait methods are
+straightforward - <code>fn size(&amp;self) -&gt; u32</code> returns the object size; <code>mark()</code>
+and <code>is_marked()</code> must be GC related. Some are less obvious, such as
+<code>new_array()</code> which we'll cover at the end of this chapter.</p>
+<p>But this struct references some more types that must be defined and explained.</p>
+<h3><a class="header" href="#type-identification" id="type-identification">Type identification</a></h3>
+<p>What follows is a set of design trade-offs made for the purposes of this book;
+there are many ways this could be implemented.</p>
+<p>The types described next are all about sharing compile-time and runtime object
+type information between the allocator, the GC and the interpreter.</p>
+<p>We ideally want to make it difficult for the user to make mistakes with this
+and leak undefined behavior. We would also prefer this to be a safe-Rust
+interface, while at the same time being flexible enough for the user to make
+interpreter-appropriate decisions about the header design.</p>
+<p>First up, an object header implementation must define an associated type</p>
+<pre><code class="language-rust ignore">pub trait AllocHeader: Sized {
+    type TypeId: AllocTypeId;
+}
+</code></pre>
+<p>where <code>AllocTypeId</code> is define simply as:</p>
+<pre><code class="language-rust ignore">pub trait AllocTypeId: Copy + Clone {}
+</code></pre>
+<p>This means the interpreter is free to implement a type identifier type however
+it pleases, the only constraint is that it implements this trait.</p>
+<p>Next, the definition of the header constructor,</p>
+<pre><code class="language-rust ignore">pub trait AllocHeader: Sized {
+    ...
+
+    fn new&lt;O: AllocObject&lt;Self::TypeId&gt;&gt;(
+        size: u32,
+        size_class: SizeClass,
+        mark: Mark
+    ) -&gt; Self;
+
+    ...
+}
+</code></pre>
+<p>refers to a type <code>O</code> that must implement <code>AllocObject</code> which in turn must refer
+to the common <code>AllocTypeId</code>. The generic type <code>O</code> is the object for which the
+header is being instantiated for.</p>
+<p>And what is <code>AllocObject</code>? Simply:</p>
+<pre><code class="language-rust ignore">pub trait AllocObject&lt;T: AllocTypeId&gt; {
+    const TYPE_ID: T;
+}
+</code></pre>
+<p>In summary, we have:</p>
+<ul>
+<li><code>AllocHeader</code>: a trait that the header type must implement</li>
+<li><code>AllocTypeId</code>: a trait that a type identifier must implement</li>
+<li><code>AllocObject</code>: a trait that objects that can be allocated must implement</li>
+</ul>
+<h3><a class="header" href="#an-example" id="an-example">An example</a></h3>
+<p>Let's implement a couple of traits to make it more concrete.</p>
+<p>The simplest form of type identifier is an enum. Each discriminant describes
+a type that the interpreter will use at runtime.</p>
+<pre><code class="language-rust ignore">#[derive(PartialEq, Copy, Clone)]
+enum MyTypeId {
+    Number,
+    String,
+    Array,
+}
+
+impl AllocTypeId for TestTypeId {}
+</code></pre>
+<p>A hypothetical numeric type for our interpreter with the type identifier as
+associated constant:</p>
+<pre><code class="language-rust ignore">struct Number {
+    value: i64
+}
+
+impl AllocObject&lt;TestTypeId&gt; for Big {
+    const TYPE_ID: MyTypeId = MyTypeId::Number;
+}
+</code></pre>
+<p>And finally, here is a possible object header struct and the implementation of
+<code>AllocHeader::new()</code>:</p>
+<pre><code class="language-rust ignore">struct MyHeader {
+    size: u32,
+    size_class: SizeClass,
+    mark: Mark,
+    type_id: MyTypeId,
+}
+
+impl AllocHeader for MyHeader {
+    type TypeId = MyTypeId;
+
+    fn new&lt;O: AllocObject&lt;Self::TypeId&gt;&gt;(
+        size: u32,
+        size_class: SizeClass,
+        mark: Mark
+    ) -&gt; Self {
+        MyHeader {
+            size,
+            size_class,
+            mark,
+            type_id: O::TYPE_ID,
+        }
+    }
+
+    ...
+}
+</code></pre>
+<p>These would all be defined and implemented in the interpreter and are not
+provided by the Sticky Immix crate, while all the functions in the trait
+<code>AllocHeader</code> are intended to be called internally by the allocator itself,
+not on the interpreter side.</p>
+<p>The types <code>SizeClass</code> and <code>Mark</code> <em>are</em> provided by this crate and are enums.</p>
+<p>The one drawback to this scheme is that it's possible to associate an incorrect
+type id constant with an object. This would result in objects being misidentified
+at runtime and accessed incorrectly, likely leading to panics.</p>
+<p>Fortunately, this kind of trait implementation boilerplate is ideal for derive
+macros. Since the language side will be implementing these structs and traits,
+we'll defer until the relevant interpreter chapter to go over that.</p>
+<h2><a class="header" href="#back-to-allocraw" id="back-to-allocraw">Back to AllocRaw</a></h2>
+<p>Now that we have some object and header definitions and constraints, we need to
+apply them to the <code>AllocRaw</code> API. We can't allocate an object unless it
+implements <code>AllocObject</code> and has an associated constant that implements
+<code>AllocTypeId</code>.  We also need to expand the interface with functions that the
+interpreter can use to reliably get the header for an object and the object
+for a header.</p>
+<p>We will add an associated type to tie the allocator
+API to the header type and indirectly to the type identification that will be
+used.</p>
+<pre><code class="language-rust ignore">pub trait AllocRaw {
+
+    type Header: AllocHeader;
+
+    ...
+}
+</code></pre>
+<p>Then we can update the <code>alloc()</code> function definition to constrain the types
+that can be allocated to only those that implement the appropriate traits.</p>
+<pre><code class="language-rust ignore">pub trait AllocRaw {
+    ...
+
+    fn alloc&lt;T&gt;(&amp;self, object: T) -&gt; Result&lt;RawPtr&lt;T&gt;, AllocError&gt;
+    where
+        T: AllocObject&lt;&lt;Self::Header as AllocHeader&gt;::TypeId&gt;;
+
+    ...
+}
+</code></pre>
+<p>We need the user and the garbage collector to be able to access the header,
+so we need a function that will return the header given an object pointer.</p>
+<p>The garbage collector does not know about concrete types, it will need to
+be able to get the header without knowing the object type. It's likely
+that the interpreter will, at times, also not know the type at runtime.</p>
+<p>Indeed, one of the functions of an object header is to, at runtime, given
+an object pointer, derive the type of the object.</p>
+<p>The function signature therefore cannot refer to the type. That is,
+we can't write</p>
+<pre><code class="language-rust ignore">pub trait AllocRaw {
+    ...
+
+    // looks good but won't work in all cases
+    fn get_header&lt;T&gt;(object: RawPtr&lt;T&gt;) -&gt; NonNull&lt;Self::Header&gt;
+    where
+        T: AllocObject&lt;&lt;Self::Header as AllocHeader&gt;::TypeId&gt;;
+
+    ...
+}
+</code></pre>
+<p>even though it seems this would be good and right. Instead this function will
+have to be much simpler:</p>
+<pre><code class="language-rust ignore">pub trait AllocRaw {
+    ...
+
+    fn get_header(object: NonNull&lt;()&gt;) -&gt; NonNull&lt;Self::Header&gt;;
+
+    ...
+}
+</code></pre>
+<p>We also need a function to get the object <em>from</em> the header:</p>
+<pre><code class="language-rust ignore">pub trait AllocRaw {
+    ...
+
+    fn get_object(header: NonNull&lt;Self::Header&gt;) -&gt; NonNull&lt;()&gt;;
+
+    ...
+}
+</code></pre>
+<p>These functions are not unsafe but they do return <code>NonNull</code> which implies that
+dereferencing the result should be considered unsafe - there is no protection
+against passing in garbage and getting garbage out.</p>
+<p>Now we have an object allocation function, traits that constrain what can be
+allocated, allocation header definitions and functions for switching
+between an object and it's header.</p>
+<p>There's one missing piece: we can allocate objects of type <code>T</code>, but
+such objects always have compile-time defined size. <code>T</code> is constrained to
+<code>Sized</code> types in the <code>RawPtr</code> definition. So how do we allocate dynamically
+sized objects, such as arrays?</p>
+<h2><a class="header" href="#dynamically-sized-types" id="dynamically-sized-types">Dynamically sized types</a></h2>
+<p>Since we can allocate objects of type <code>T</code>, and each <code>T</code> must derive
+<code>AllocObject</code> and have an associated const of type <code>AllocTypeId</code>, dynamically
+sized allocations must fit into this type identification scheme.</p>
+<p>Allocating dynamically sized types, or in short, arrays, means there's some
+ambiguity about the type at compile time as far as the allocator is concerned:</p>
+<ul>
+<li>Are we allocating one object or an array of objects? If we're allocating an
+array of objects, we'll have to initialize them all. Perhaps we don't want to
+impose that overhead up front?</li>
+<li>If the allocator knows how many objects compose an array, do we want to bake
+fat pointers into the interface to carry that number around?</li>
+</ul>
+<p>In the same way, then, that the underlying implementation of <code>std::vec::Vec</code> is
+backed by an array of <code>u8</code>, we'll do the same. We shall define the return type
+of an array allocation to be of type <code>RawPtr&lt;u8&gt;</code> and the size requested to be
+in bytes. We'll leave it to the interpreter to build layers on top of this to
+handle the above questions.</p>
+<p>As the definition of <code>AllocTypeId</code> is up to the interpreter, this crate can't
+know the type id of an array. Instead, we will require the interpreter to
+implement a function on the <code>AllocHeader</code> trait:</p>
+<pre><code class="language-rust ignore">pub trait AllocHeader: Sized {
+    ...
+
+    fn new_array(size: ArraySize, size_class: SizeClass, mark: Mark) -&gt; Self;
+
+    ...
+}
+</code></pre>
+<p>This function should return a new object header for an array of u8 with the
+appropriate type identifier.</p>
+<p>We will also add a function to the <code>AllocRaw</code> trait for allocating arrays that
+returns the <code>RawPtr&lt;u8&gt;</code> type.</p>
+<pre><code class="language-rust ignore">pub trait AllocRaw {
+    ...
+
+    fn alloc_array(&amp;self, size_bytes: ArraySize) -&gt; Result&lt;RawPtr&lt;u8&gt;, AllocError&gt;;
+
+    ...
+}
+</code></pre>
+<p>Our complete <code>AllocRaw</code> trait definition now looks like this:</p>
+<pre><code class="language-rust ignore">pub trait AllocRaw {
+    /// An implementation of an object header type
+    type Header: AllocHeader;
+
+    /// Allocate a single object of type T.
+    fn alloc&lt;T&gt;(&amp;self, object: T) -&gt; Result&lt;RawPtr&lt;T&gt;, AllocError&gt;
+    where
+        T: AllocObject&lt;&lt;Self::Header as AllocHeader&gt;::TypeId&gt;;
+
+    /// Allocating an array allows the client to put anything in the resulting data
+    /// block but the type of the memory block will simply be 'Array'. No other
+    /// type information will be stored in the object header.
+    /// This is just a special case of alloc&lt;T&gt;() for T=u8 but a count &gt; 1 of u8
+    /// instances.  The caller is responsible for the content of the array.
+    fn alloc_array(&amp;self, size_bytes: ArraySize) -&gt; Result&lt;RawPtr&lt;u8&gt;, AllocError&gt;;
+
+    /// Given a bare pointer to an object, return the expected header address
+    fn get_header(object: NonNull&lt;()&gt;) -&gt; NonNull&lt;Self::Header&gt;;
+
+    /// Given a bare pointer to an object's header, return the expected object address
+    fn get_object(header: NonNull&lt;Self::Header&gt;) -&gt; NonNull&lt;()&gt;;
+}
+</code></pre>
+<p>In the next chapter we'll build out the <code>AllocRaw</code> trait implementation.</p>
+<h1><a class="header" href="#implementing-the-allocation-api" id="implementing-the-allocation-api">Implementing the Allocation API</a></h1>
+<p>In this final chapter of the allocation part of the book, we'll cover the
+<code>AllocRaw</code> trait implementation.</p>
+<p>This trait is implemented on the <code>StickyImmixHeap</code> struct:</p>
+<pre><code class="language-rust ignore">impl&lt;H: AllocHeader&gt; AllocRaw for StickyImmixHeap&lt;H&gt; {
+    type Header = H;
+
+    ...
+}
+</code></pre>
+<p>Here the associated header type is provided as the generic type <code>H</code>, leaving it
+up to the interpreter to define.</p>
+<h2><a class="header" href="#allocating-objects" id="allocating-objects">Allocating objects</a></h2>
+<p>The first function to implement is <code>AllocRaw::alloc&lt;T&gt;()</code>. This function must:</p>
+<ul>
+<li>calculate how much space in bytes is required by the object and header</li>
+<li>allocate that space</li>
+<li>instantiate an object header and write it to the first bytes of the space</li>
+<li>copy the object itself to the remaining bytes of the space</li>
+<li>return a pointer to where the object lives in this space</li>
+</ul>
+<p>Let's look at the implementation.</p>
+<pre><code class="language-rust ignore">impl&lt;H: AllocHeader&gt; AllocRaw for StickyImmixHeap&lt;H&gt; {
+    fn alloc&lt;T&gt;(&amp;self, object: T) -&gt; Result&lt;RawPtr&lt;T&gt;, AllocError&gt;
+    where
+        T: AllocObject&lt;&lt;Self::Header as AllocHeader&gt;::TypeId&gt;,
+    {
+        // calculate the total size of the object and it's header
+        let header_size = size_of::&lt;Self::Header&gt;();
+        let object_size = size_of::&lt;T&gt;();
+        let total_size = header_size + object_size;
+
+        // round the size to the next word boundary to keep objects aligned and get the size class
+        let alloc_size = alloc_size_of(total_size);
+        let size_class = SizeClass::get_for_size(alloc_size)?;
+
+        // attempt to allocate enough space for the header and the object
+        let space = self.find_space(alloc_size, size_class)?;
+
+        // instantiate an object header for type T, setting the mark bit to &quot;allocated&quot;
+        let header = Self::Header::new::&lt;T&gt;(object_size as ArraySize, size_class, Mark::Allocated);
+
+        // write the header into the front of the allocated space
+        unsafe {
+            write(space as *mut Self::Header, header);
+        }
+
+        // write the object into the allocated space after the header
+        let object_space = unsafe { space.offset(header_size as isize) };
+        unsafe {
+            write(object_space as *mut T, object);
+        }
+
+        // return a pointer to the object in the allocated space
+        Ok(RawPtr::new(object_space as *const T))
+    }
+}
+</code></pre>
+<p>This, hopefully, is easy enough to follow after the previous chapters -</p>
+<ul>
+<li><code>self.find_space()</code> is the function described in the chapter
+<a href="./chapter-managing-blocks.html#allocating-into-the-head-block">Allocating into multiple blocks</a></li>
+<li><code>Self::Header::new()</code> will be implemented by the interpreter</li>
+<li><code>write(space as *mut Self::Header, header)</code> calls the std function
+<code>std::ptr::write</code></li>
+</ul>
+<h2><a class="header" href="#allocating-arrays" id="allocating-arrays">Allocating arrays</a></h2>
+<p>We need a similar (but awkwardly different enough) implementation for array
+allocation. The key differences are that the type is fixed to a <code>u8</code> pointer
+and the array is initialized to zero bytes. It is up to the interpreter to
+write into the array itself.</p>
+<pre><code class="language-rust ignore">impl&lt;H: AllocHeader&gt; AllocRaw for StickyImmixHeap&lt;H&gt; {
+    fn alloc_array(&amp;self, size_bytes: ArraySize) -&gt; Result&lt;RawPtr&lt;u8&gt;, AllocError&gt; {
+        // calculate the total size of the array and it's header
+        let header_size = size_of::&lt;Self::Header&gt;();
+        let total_size = header_size + size_bytes as usize;
+
+        // round the size to the next word boundary to keep objects aligned and get the size class
+        let alloc_size = alloc_size_of(total_size);
+        let size_class = SizeClass::get_for_size(alloc_size)?;
+
+        // attempt to allocate enough space for the header and the array
+        let space = self.find_space(alloc_size, size_class)?;
+
+        // instantiate an object header for an array, setting the mark bit to &quot;allocated&quot;
+        let header = Self::Header::new_array(size_bytes, size_class, Mark::Allocated);
+
+        // write the header into the front of the allocated space
+        unsafe {
+            write(space as *mut Self::Header, header);
+        }
+
+        // calculate where the array will begin after the header
+        let array_space = unsafe { space.offset(header_size as isize) };
+
+        // Initialize object_space to zero here.
+        // If using the system allocator for any objects (SizeClass::Large, for example),
+        // the memory may already be zeroed.
+        let array = unsafe { from_raw_parts_mut(array_space as *mut u8, size_bytes as usize) };
+        // The compiler should recognize this as optimizable
+        for byte in array {
+            *byte = 0;
+        }
+
+        // return a pointer to the array in the allocated space
+        Ok(RawPtr::new(array_space as *const u8))
+    }
+}
+</code></pre>
+<h2><a class="header" href="#switching-between-header-and-object" id="switching-between-header-and-object">Switching between header and object</a></h2>
+<p>As stated in the previous chapter, these functions are essentially pointer
+operations that do not dereference the pointers. Thus they are not unsafe
+to call, but the types they operate <em>on</em> should have a suitably unsafe API.</p>
+<p><code>NonNull</code> is the chosen parameter and return type and the pointer arithmetic
+for obtaining the header from an object pointer of unknown type is shown
+below.</p>
+<p>For our Immix implementation, since headers are placed immediately
+ahead of an object, we simply subtract the header size from the object
+pointer.</p>
+<pre><code class="language-rust ignore">impl&lt;H: AllocHeader&gt; AllocRaw for StickyImmixHeap&lt;H&gt; {
+    fn get_header(object: NonNull&lt;()&gt;) -&gt; NonNull&lt;Self::Header&gt; {
+        unsafe { NonNull::new_unchecked(object.cast::&lt;Self::Header&gt;().as_ptr().offset(-1)) }
+    }
+}
+</code></pre>
+<p>Getting the object from a header is the reverse - adding the header size
+to the header pointer results in the object pointer:</p>
+<pre><code class="language-rust ignore">impl&lt;H: AllocHeader&gt; AllocRaw for StickyImmixHeap&lt;H&gt; {
+    fn get_object(header: NonNull&lt;Self::Header&gt;) -&gt; NonNull&lt;()&gt; {
+        unsafe { NonNull::new_unchecked(header.as_ptr().offset(1).cast::&lt;()&gt;()) }
+    }
+}
+</code></pre>
+<h2><a class="header" href="#conclusion" id="conclusion">Conclusion</a></h2>
+<p>Thus ends the first part of our Immix implementation. In the next part of the
+book we will jump over the fence to the interpreter and begin using the
+interfaces we've defined in this part.</p>
+<h1><a class="header" href="#an-interpreter-eval-rs" id="an-interpreter-eval-rs">An interpreter: Eval-rs</a></h1>
+<p>In this part of the book we'll dive into creating:</p>
+<ul>
+<li>a safe Rust layer on top of the Sticky Immix API of the previous part</li>
+<li>a compiler for a primitive s-expression syntax language</li>
+<li>a bytecode based virtual machine</li>
+</ul>
+<p>So what kind of interpreter will we implement? This book is a guide to help
+you along your own journey and not not intended to provide an exhaustive
+language ecosystem. The direction we'll take is to support John McCarthy's
+classic s-expression based meta-circular evaluator<sup class="footnote-reference"><a href="#1">1</a></sup>.</p>
+<p>Along the way we'll need to implement fundamental data types and structures
+from scratch upon our safe layer - symbols, pairs, arrays and dicts - with
+each chapter building upon the previous ones.</p>
+<p>While this will not result in an exhaustive language implementation,
+you'll see that we <em>will</em> end up with all the building blocks for you to take
+it the rest of the way!</p>
+<p>We shall name our interpreter &quot;Eval-rs&quot;, for which we have an appropriate
+illustration generously provided by the author's then 10 year old daughter.</p>
+<p><img src="evalrus-medium.png" alt="The Evalrus" /></p>
+<p>We'll begin by defining the safe abstration over the Sticky Immix interface.
+Then we'll put that to use in parsing s-expressions into a very simple data
+structure.</p>
+<p>Once we've covered those basics, we'll build arrays and dicts and then
+use those in the compiler and virtual machine.</p>
+<div class="footnote-definition" id="1"><sup class="footnote-definition-label">1</sup>
+<p>These days this is cliché but that is substantially to our benefit. We're
+not trying to create yet another Lisp, rather the fact that there is a
+preexisting design of some elegance and historical interest is a convenience.
+For a practical, accessible introduction to the topic, do see Paul
+Graham's <a href="http://www.paulgraham.com/rootsoflisp.html">The Roots of Lisp</a></p>
+</div>
+<h1><a class="header" href="#allocating-safely" id="allocating-safely">Allocating safely</a></h1>
+<p>In this chapter we'll build some safe Rust abstractions over the allocation API
+defined in the Sticky Immix crate.</p>
+<p>Let's first recall this interface:</p>
+<pre><code class="language-rust ignore">pub trait AllocRaw {
+    /// An implementation of an object header type
+    type Header: AllocHeader;
+
+    /// Allocate a single object of type T.
+    fn alloc&lt;T&gt;(&amp;self, object: T) -&gt; Result&lt;RawPtr&lt;T&gt;, AllocError&gt;
+    where
+        T: AllocObject&lt;&lt;Self::Header as AllocHeader&gt;::TypeId&gt;;
+
+    /// Allocating an array allows the client to put anything in the resulting data
+    /// block but the type of the memory block will simply be 'Array'. No other
+    /// type information will be stored in the object header.
+    /// This is just a special case of alloc&lt;T&gt;() for T=u8 but a count &gt; 1 of u8
+    /// instances.  The caller is responsible for the content of the array.
+    fn alloc_array(&amp;self, size_bytes: ArraySize) -&gt; Result&lt;RawPtr&lt;u8&gt;, AllocError&gt;;
+
+    /// Given a bare pointer to an object, return the expected header address
+    fn get_header(object: NonNull&lt;()&gt;) -&gt; NonNull&lt;Self::Header&gt;;
+
+    /// Given a bare pointer to an object's header, return the expected object address
+    fn get_object(header: NonNull&lt;Self::Header&gt;) -&gt; NonNull&lt;()&gt;;
+}
+</code></pre>
+<p>These are the functions we'll be calling. When we allocate an object, we'll get
+back a <code>RawPtr&lt;T&gt;</code> which has no safe way to dereference it. This is impractical,
+we very much do not want to wrap every dereferencing in <code>unsafe { ... }</code>.
+We'll need a layer over <code>RawPtr&lt;T&gt;</code> where we can guarantee safe dereferencing.</p>
+<h2><a class="header" href="#pointers" id="pointers">Pointers</a></h2>
+<p>In safe Rust, mutable (<code>&amp;mut</code>) and immutable (<code>&amp;</code>) references are passed around
+to access objects. These reference types are compile-time constrained pointers
+where the constraints are</p>
+<ol>
+<li>the mutability of the access</li>
+<li>the lifetime of the access</li>
+</ol>
+<p>For our layer over <code>RawPtr&lt;T&gt;</code> we'll have to consider both these constraints.</p>
+<h3><a class="header" href="#mutability" id="mutability">Mutability</a></h3>
+<p>This constraint is concerned with shared access to an object. In other words,
+it cares about how many pointers there are to an object at any time and whether
+they allow mutable or immutable access.</p>
+<p>The short of it is:</p>
+<ul>
+<li>Either only one <code>&amp;mut</code> reference may be held in a scope</li>
+<li>Or many <code>&amp;</code> immutable references may be held in a scope</li>
+</ul>
+<p>The compiler must be able to determine that a <code>&amp;mut</code> reference is the only
+live reference in it's scope that points at an object in order
+for mutable access to that object to be safe of data races.</p>
+<p>In a runtime memory managed language such as the interpreter we are building,
+we will not have compile time knowledge of shared access to objects. We
+won't know at compile time how many pointers to an object we may have at
+any time. This is the normal state of things in languages such as Python,
+Ruby or Javascript.</p>
+<p>This means that we can't allow <code>&amp;mut</code> references in our safe layer at all!</p>
+<p>If we're restricted to <code>&amp;</code> immutable references everywhere, that then means
+we must apply the interior mutability pattern everywhere in our design in
+order to comply with the laws of safe Rust.</p>
+<h3><a class="header" href="#lifetime" id="lifetime">Lifetime</a></h3>
+<p>The second aspect to references is their lifetime. This concerns the
+duration of the reference, from inception until it goes out of scope.</p>
+<p>The key concept to think about now is &quot;scope.&quot;</p>
+<p>In an interpreted language there are two major operations on the objects
+in memory:</p>
+<pre><code class="language-rust ignore">fn run_mutator() {
+    parse_source_code();
+    compile();
+    execute_bytecode();
+}
+</code></pre>
+<p>and</p>
+<pre><code class="language-rust ignore">fn run_garbage_collection() {
+   trace_objects();
+   free_dead_objects();
+}
+</code></pre>
+<p>A few paragraphs earlier we determined that we can't have <code>&amp;mut</code> references
+to objects in our interpreter.</p>
+<p>By extension, we can't safely hold a mutable reference to the entire heap
+as a data structure.</p>
+<p>Except, that is exactly what garbage collection requires. The nature of
+garbage collection is that it views the entire heap as a single data structure
+in it's own right that it needs to traverse and modify. It wants the
+heap to be <code>&amp;mut</code>.</p>
+<p>Consider, especially, that some garbage collectors <em>move</em> objects, so that
+pointers to moved objects, wherever they may be, must be modified by the
+garbage collector without breaking the mutator! The garbage collector must
+be able to reliably discover <em>every single pointer to moved objects</em> to avoid
+leaving invalid pointers scattered around<sup class="footnote-reference"><a href="#1">1</a></sup>.</p>
+<p>Thus we have two mutually exclusive interface requirements, one that must
+only hold <code>&amp;</code> object references and applies <em>interior</em> mutability to the heap
+and the other that wants the whole heap to be <code>&amp;mut</code>.</p>
+<p>For this part of the book, we'll focus on the use of the allocator and save
+garbage collection for a later part.</p>
+<p>This mutual exclusivity constraint on the allocator results in the statements:</p>
+<ul>
+<li>When garbage collection is running, it is not safe to run the mutator<sup class="footnote-reference"><a href="#2">2</a></sup></li>
+<li>When garbage collection is not running, it is safe to run the mutator</li>
+</ul>
+<p>Thus our abstraction must encapsulate a concept of a time when &quot;it is safe to
+run the mutator&quot; and since we're working with safe Rust, this must be a
+compile time concept.</p>
+<p>Scopes and lifetimes are perfect for this abstraction. What we'll need is
+some way to define a lifetime (that is, a scope) within which access to the
+heap by the mutator is safe.</p>
+<h3><a class="header" href="#some-pointer-types" id="some-pointer-types">Some pointer types</a></h3>
+<p>First, let's define a simple pointer type that can wrap an allocated type <code>T</code>
+in a lifetime:</p>
+<pre><code class="language-rust ignore">pub struct ScopedPtr&lt;'guard, T: Sized&gt; {
+    value: &amp;'guard T,
+}
+</code></pre>
+<p>This type will implement <code>Clone</code>, <code>Copy</code> and <code>Deref</code> - it can be passed around
+freely within the scope and safely dereferenced.</p>
+<p>As you can see we have a lifetime <code>'guard</code> that we'll use to restrict the
+scope in which this pointer can be accessed. We need a mechanism to restrict
+this scope.</p>
+<p>The guard pattern is what we'll use, if the hint wasn't strong enough.</p>
+<p>We'll construct some types that ensure that safe pointers such as
+<code>ScopedPtr&lt;T&gt;</code>, and access to the heap at in any way, are mediated by an
+instance of a guard type that can provide access.</p>
+<p>We will end up passing a reference to the guard instance around everywhere. In
+most cases we won't care about the instance type itself so much as the lifetime
+that it carries with it. As such, we'll define a trait for this type to
+implement that so that we can refer to the guard instance by this trait rather
+than having to know the concrete type. This'll also allow other types to
+proxy the main scope-guarding instance.</p>
+<pre><code class="language-rust ignore">pub trait MutatorScope {}
+</code></pre>
+<p>You may have noticed that we've jumped from <code>RawPtr&lt;T&gt;</code> to <code>ScopedPtr&lt;T&gt;</code> with
+seemingly nothing to bridge the gap. How do we <em>get</em> a <code>ScopedPtr&lt;T&gt;</code>?</p>
+<p>We'll create a wrapper around <code>RawPtr&lt;T&gt;</code> that will complete the picture. This
+wrapper type is what will hold pointers at rest inside any data structures.</p>
+<pre><code class="language-rust ignore">#[derive(Clone)]
+pub struct CellPtr&lt;T: Sized&gt; {
+    inner: Cell&lt;RawPtr&lt;T&gt;&gt;,
+}
+</code></pre>
+<p>This is straightforwardly a <code>RawPtr&lt;T&gt;</code> in a <code>Cell</code> to allow for modifying the
+pointer. We won't allow dereferencing from this type either though.</p>
+<p>Remember that dereferencing a heap object pointer is only safe when we are
+in the right scope? We need to create a <code>ScopedPtr&lt;T&gt;</code> <em>from</em> a <code>CellPtr&lt;T&gt;</code>
+to be able to use it.</p>
+<p>First we'll add a helper function to <code>RawPtr&lt;T&gt;</code> in our interpreter crate so
+we can safely dereference a <code>RawPtr&lt;T&gt;</code>. This code says that, given an instance
+of a <code>MutatorScope</code>-implementing type, give me back a reference type with
+the same lifetime as the guard that I can safely use. Since the <code>_guard</code>
+parameter is never used except to define a lifetime, it should be optimized
+out by the compiler!</p>
+<pre><code class="language-rust ignore">pub trait ScopedRef&lt;T&gt; {
+    fn scoped_ref&lt;'scope&gt;(&amp;self, guard: &amp;'scope dyn MutatorScope) -&gt; &amp;'scope T;
+}
+
+impl&lt;T&gt; ScopedRef&lt;T&gt; for RawPtr&lt;T&gt; {
+    fn scoped_ref&lt;'scope&gt;(&amp;self, _guard: &amp;'scope dyn MutatorScope) -&gt; &amp;'scope T {
+        unsafe { &amp;*self.as_ptr() }
+    }
+}
+</code></pre>
+<p>We'll use this in our <code>CellPtr&lt;T&gt;</code> to obtain a <code>ScopedPtr&lt;T&gt;</code>:</p>
+<pre><code class="language-rust ignore">impl&lt;T: Sized&gt; CellPtr&lt;T&gt; {
+    pub fn get&lt;'guard&gt;(&amp;self, guard: &amp;'guard dyn MutatorScope) -&gt; ScopedPtr&lt;'guard, T&gt; {
+        ScopedPtr::new(guard, self.inner.get().scoped_ref(guard))
+    }
+}
+</code></pre>
+<p>Thus, anywhere (structs, enums) that needs to store a pointer to something on
+the heap will use <code>CellPtr&lt;T&gt;</code> and any code that accesses these pointers
+during the scope-guarded mutator code will obtain <code>ScopedPtr&lt;T&gt;</code> instances
+that can be safely dereferenced.</p>
+<h2><a class="header" href="#the-heap-and-the-mutator" id="the-heap-and-the-mutator">The heap and the mutator</a></h2>
+<p>The next question is: where do we get an instance of <code>MutatorScope</code> from?</p>
+<p>The lifetime of an instance of a <code>MutatorScope</code> will define the lifetime
+of any safe object accesses. By following the guard pattern, we will find
+we have:</p>
+<ul>
+<li>a heap struct that contains an instance of the Sticky Immix heap</li>
+<li>a guard struct that proxies the heap struct for the duration of a scope</li>
+<li>a mechanism to enforce the scope limit</li>
+</ul>
+<h3><a class="header" href="#a-heap-struct" id="a-heap-struct">A heap struct</a></h3>
+<p>Let's make a type alias for the Sticky Immix heap so we aren't referring
+to it as such throughout the interpreter:</p>
+<pre><code class="language-rust ignore">pub type HeapStorage = StickyImmixHeap&lt;ObjectHeader&gt;;
+</code></pre>
+<p>The let's put that into a heap struct, along with any other
+interpreter-global storage:</p>
+<pre><code class="language-rust ignore">struct Heap {
+    heap: HeapStorage,
+    syms: SymbolMap,
+}
+</code></pre>
+<p>We'll discuss the <code>SymbolMap</code> type in the next chapter.</p>
+<p>Now, since we've wrapped the Sticky Immix heap in our own <code>Heap</code> struct,
+we'll need to <code>impl</code> an <code>alloc()</code> method to proxy the Sticky Immix
+allocation function.</p>
+<pre><code class="language-rust ignore">impl Heap {
+    fn alloc&lt;T&gt;(&amp;self, object: T) -&gt; Result&lt;RawPtr&lt;T&gt;, RuntimeError&gt;
+    where
+        T: AllocObject&lt;TypeList&gt;,
+    {
+        Ok(self.heap.alloc(object)?)
+    }
+}
+</code></pre>
+<p>A couple things to note about this function:</p>
+<ul>
+<li>It returns <code>RuntimeError</code> in the error case, this type converts <code>From</code> the
+Sticky Immix crate's error type.</li>
+<li>The <code>where</code> constraint is similar to that of <code>AllocRaw::alloc()</code> but in now
+we have a concrete <code>TypeList</code> type to bind to. We'll look at <code>TypeList</code>
+in the next chapter along with <code>SymbolMap</code>.</li>
+</ul>
+<h3><a class="header" href="#a-guard-struct" id="a-guard-struct">A guard struct</a></h3>
+<p>This next struct will be used as a scope-limited proxy for the <code>Heap</code> struct
+with one major difference: function return types will no longer be <code>RawPtr&lt;T&gt;</code>
+but <code>ScopedPtr&lt;T&gt;</code>.</p>
+<pre><code class="language-rust ignore">pub struct MutatorView&lt;'memory&gt; {
+    heap: &amp;'memory Heap,
+}
+</code></pre>
+<p>Here in this struct definition, it becomes clear that all we are doing is
+borrowing the <code>Heap</code> instance for a limited lifetime. Thus, the lifetime of
+the <code>MutatorView</code> instance <em>will be</em> the lifetime that all safe object
+access is constrained to.</p>
+<p>A look at the <code>alloc()</code> function now:</p>
+<pre><code class="language-rust ignore">impl&lt;'memory&gt; MutatorView&lt;'memory&gt; {
+    pub fn alloc&lt;T&gt;(&amp;self, object: T) -&gt; Result&lt;ScopedPtr&lt;'_, T&gt;, RuntimeError&gt;
+    where
+        T: AllocObject&lt;TypeList&gt;,
+    {
+        Ok(ScopedPtr::new(
+            self,
+            self.heap.alloc(object)?.scoped_ref(self),
+        ))
+    }
+}
+</code></pre>
+<p>Very similar to <code>Heap::alloc()</code> but the return type is now a <code>ScopedPtr&lt;T&gt;</code>
+whose lifetime is the same as the <code>MutatorView</code> instance.</p>
+<h3><a class="header" href="#enforcing-a-scope-limit" id="enforcing-a-scope-limit">Enforcing a scope limit</a></h3>
+<p>We now have a <code>Heap</code> and a guard, <code>MutatorView</code>, but we want one more thing:
+to prevent an instance of <code>MutatorView</code> from being returned from anywhere -
+that is, enforcing a scope within which an instance of <code>MutatorView</code> will
+live and die. This will make it easier to separate mutator operations and
+garbage collection operations.</p>
+<p>First we'll apply a constraint on how a mutator <em>gains</em> heap access: through
+a trait.</p>
+<pre><code class="language-rust ignore">pub trait Mutator: Sized {
+    type Input;
+    type Output;
+
+    fn run(&amp;self, mem: &amp;MutatorView, input: Self::Input) -&gt; Result&lt;Self::Output, RuntimeError&gt;;
+}
+</code></pre>
+<p>If a piece of code wants to access the heap, it <em>must</em> implement this trait!</p>
+<p>Secondly, we'll apply another wrapper struct, this time to the <code>Heap</code> type.
+This is so that we can borrow the <code>heap</code> member instance.</p>
+<pre><code class="language-rust ignore">pub struct Memory {
+    heap: Heap,
+}
+</code></pre>
+<p>This <code>Memory</code> struct and the <code>Mutator</code> trait are now tied together with a
+function:</p>
+<pre><code class="language-rust ignore">impl Memory {
+    pub fn mutate&lt;M: Mutator&gt;(&amp;self, m: &amp;M, input: M::Input) -&gt; Result&lt;M::Output, RuntimeError&gt; {
+        let mut guard = MutatorView::new(self);
+        m.run(&amp;mut guard, input)
+    }
+
+}
+</code></pre>
+<p>The key to the scope limitation mechanism is that this <code>mutate</code> function is
+the only way to gain access to the heap. It creates an instance of
+<code>MutatorView</code> that goes out of scope at the end of the function and thus
+can't leak outside of the call stack.</p>
+<h2><a class="header" href="#an-example-1" id="an-example-1">An example</a></h2>
+<p>Let's construct a simple example to demonstrate these many parts. This
+will omit defining a <code>TypeId</code> and any other types that we didn't discuss
+above.</p>
+<pre><code class="language-rust ignore">struct Stack {}
+
+impl Stack {
+    fn say_hello(&amp;self) {
+        println!(&quot;I'm the stack!&quot;);
+    }
+}
+
+struct Roots {
+    stack: CellPtr&lt;Stack&gt;
+}
+
+impl Roots {
+    fn new(stack: ScopedPtr&lt;'_, Stack&gt;) -&gt; Roots {
+        Roots {
+            stack: CellPtr::new_with(stack)
+        }
+    }
+}
+
+struct Interpreter {}
+
+impl Mutator for Interpreter {
+    type Input: ();
+    type Output: Roots;
+
+    fn run(&amp;self, mem: &amp;MutatorView, input: Self::Input) -&gt; Result&lt;Self::Output, RuntimeError&gt; {
+        let stack = mem.alloc(Stack {})?;   // returns a ScopedPtr&lt;'_, Stack&gt;
+        stack.say_hello();
+
+        let roots = Roots::new(stack);
+
+        let stack_ptr = roots.stack.get(mem);  // returns a ScopedPtr&lt;'_, Stack&gt;
+        stack_ptr.say_hello();
+
+        Ok(roots)
+    }
+}
+
+fn main() {
+    ...
+    let interp = Interpreter {};
+
+    let result = memory.mutate(&amp;interp, ());
+
+    let roots = result.unwrap();
+
+    // no way to do this - compile error
+    let stack = roots.stack.get();
+    ...
+}
+</code></pre>
+<p>In this simple, contrived example, we instantiated a <code>Stack</code> on the heap.
+An instance of <code>Roots</code> is created on the native stack and given a pointer
+to the <code>Stack</code> instance. The mutator returns the <code>Roots</code> object, which
+continues to hold a pointer to a heap object. However, outside of the <code>run()</code>
+function, the <code>stack</code> member can't be safely accesed.</p>
+<p>Up next: using this framework to implement parsing!</p>
+<hr />
+<div class="footnote-definition" id="1"><sup class="footnote-definition-label">1</sup>
+<p>This is the topic of discussion in Felix Klock's series
+<a href="http://blog.pnkfx.org/blog/categories/gc/">GC and Rust</a> which is recommended
+reading.</p>
+</div>
+<div class="footnote-definition" id="2"><sup class="footnote-definition-label">2</sup>
+<p>while this distinction exists at the interface level, in reality there
+are multiple phases in garbage collection and not all of them require
+exclusive access to the heap. This is an advanced topic that we won't
+bring into consideration yet.</p>
+</div>
+<h1><a class="header" href="#tagged-pointers-and-symbols" id="tagged-pointers-and-symbols">Tagged pointers and symbols</a></h1>
+<p>In the previous chapter, we introduced a pointer type <code>ScopedPtr&lt;T&gt;</code>. This
+pointer type has compile time knowledge of the type it is pointing at.</p>
+<p>In our interpreter we won't always have that. As a dynamic language
+interpreter, our compiler won't do type checking. We'll depend on runtime
+type identification in our virtual machine.</p>
+<p>In Python, for example, the following code does not have compile time
+protection against passing in strings:</p>
+<pre><code class="language-python">def multiply(a, b):
+    return a * b
+
+multiply(&quot;bob&quot;, &quot;alice&quot;)
+</code></pre>
+<p>This script will result in a runtime error and not a compile time error.
+Our lannguage will behave similarly.</p>
+<p>For this to work, we need an alternative to <code>ScopedPtr&lt;T&gt;</code> that does not
+care about compile time types <em>but</em> from which the type can be resolved
+at runtime.</p>
+<p>We'll spend some time now inventing some new pointer types to support this.</p>
+<h1><a class="header" href="#parsing" id="parsing">Parsing</a></h1>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+        
+        <script type="text/javascript">
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+        
+        
+
+    </body>
+</html>

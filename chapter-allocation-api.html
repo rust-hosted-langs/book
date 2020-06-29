@@ -1,0 +1,556 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Defining the allocation API - Writing Interpreters in Rust: a Guide</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="part-allocators.html"><strong aria-hidden="true">2.</strong> Allocation</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-alignment.html"><strong aria-hidden="true">2.1.</strong> Alignment</a></li><li class="chapter-item expanded "><a href="chapter-blocks.html"><strong aria-hidden="true">2.2.</strong> Obtaining blocks of memory</a></li><li class="chapter-item expanded "><a href="chapter-what-is-alloc.html"><strong aria-hidden="true">2.3.</strong> The type of allocation</a></li></ol></li><li class="chapter-item expanded "><a href="part-stickyimmix.html"><strong aria-hidden="true">3.</strong> An allocator: Sticky Immix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-simple-bump.html"><strong aria-hidden="true">3.1.</strong> Bump allocation</a></li><li class="chapter-item expanded "><a href="chapter-managing-blocks.html"><strong aria-hidden="true">3.2.</strong> Allocating into multiple blocks</a></li><li class="chapter-item expanded "><a href="chapter-allocation-api.html" class="active"><strong aria-hidden="true">3.3.</strong> Defining the allocation API</a></li><li class="chapter-item expanded "><a href="chapter-allocation-impl.html"><strong aria-hidden="true">3.4.</strong> Implementing the API</a></li></ol></li><li class="chapter-item expanded "><a href="part-interpreter.html"><strong aria-hidden="true">4.</strong> An interpreter: Eval-rs</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-interp-alloc.html"><strong aria-hidden="true">4.1.</strong> Allocating safely</a></li><li class="chapter-item expanded "><a href="chapter-interp-tagged-symbols.html"><strong aria-hidden="true">4.2.</strong> Tagged pointers and symbols</a></li><li class="chapter-item expanded "><a href="chapter-interp-parser.html"><strong aria-hidden="true">4.3.</strong> Parsing</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Writing Interpreters in Rust: a Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#defining-the-allocation-api" id="defining-the-allocation-api">Defining the allocation API</a></h1>
+<p>Let's look back at the allocator prototype API we defined in the introductory
+chapter.</p>
+<pre><code class="language-rust ignore">trait AllocRaw {
+    fn alloc&lt;T&gt;(&amp;self, object: T) -&gt; *const T;
+}
+</code></pre>
+<p>This will quickly prove to be inadequate and non-idiomatic. For starters, there
+is no way to report that allocation failed except for perhaps returning a null
+pointer. That is certainly a workable solution but is not going to feel
+idiomatic or ergonomic for how we want to use the API. Let's make a couple
+changes:</p>
+<pre><code class="language-rust ignore">trait AllocRaw {
+    fn alloc&lt;T&gt;(&amp;self, object: T) -&gt; Result&lt;RawPtr&lt;T&gt;, AllocError&gt;;
+}
+</code></pre>
+<p>Now we're returning a <code>Result</code>, the failure side of which is an error type
+where we can distinguish between different allocation failure modes. This is
+often not that useful but working with <code>Result</code> is far more idiomatic Rust
+than checking a pointer for being null. We'll allow for distinguishing between
+Out Of Memory and an allocation request that for whatever reason is invalid.</p>
+<pre><code class="language-rust ignore">#[derive(Copy, Clone, Debug, PartialEq)]
+pub enum AllocError {
+    /// Some attribute of the allocation, most likely the size requested,
+    /// could not be fulfilled
+    BadRequest,
+    /// Out of memory - allocating the space failed
+    OOM,
+}
+</code></pre>
+<p>The second change is that instead of a <code>*const T</code> value in the success
+discriminant we'll wrap a pointer in a new struct: <code>RawPtr&lt;T&gt;</code>. This wrapper
+will amount to little more than containing a <code>std::ptr::NonNull</code> instance
+and some functions to access the pointer.</p>
+<pre><code class="language-rust ignore">pub struct RawPtr&lt;T: Sized&gt; {
+    ptr: NonNull&lt;T&gt;,
+}
+</code></pre>
+<p>This'll be better to work with on the user-of-the-crate side.</p>
+<p>It'll also make it easier to modify internals or even swap out entire
+implementations. This is a motivating factor for the design of this interface
+as we'll see as we continue to amend it to account for object headers now.</p>
+<h2><a class="header" href="#object-headers" id="object-headers">Object headers</a></h2>
+<p>The purpose of an object header is to provide the allocator, the language
+runtime and the garbage collector with information about the object that
+is needed at runtime. Typical data points that are stored might include:</p>
+<ul>
+<li>object size</li>
+<li>some kind of type identifier</li>
+<li>garbage collection information such as a mark flag</li>
+</ul>
+<p>We want to create a flexible interface to a language while also ensuring that
+the interpreter will provide the information that the allocator and garbage
+collector in <em>this</em> crate need.</p>
+<p>We'll define a trait for the user to implement.</p>
+<pre><code class="language-rust ignore">pub trait AllocHeader: Sized {
+    /// Associated type that identifies the allocated object type
+    type TypeId: AllocTypeId;
+
+    /// Create a new header for object type O
+    fn new&lt;O: AllocObject&lt;Self::TypeId&gt;&gt;(size: u32, size_class: SizeClass, mark: Mark) -&gt; Self;
+
+    /// Create a new header for an array type
+    fn new_array(size: ArraySize, size_class: SizeClass, mark: Mark) -&gt; Self;
+
+    /// Set the Mark value to &quot;marked&quot;
+    fn mark(&amp;mut self);
+
+    /// Get the current Mark value
+    fn is_marked(&amp;self) -&gt; bool;
+
+    /// Get the size class of the object
+    fn size_class(&amp;self) -&gt; SizeClass;
+
+    /// Get the size of the object in bytes
+    fn size(&amp;self) -&gt; u32;
+
+    /// Get the type of the object
+    fn type_id(&amp;self) -&gt; Self::TypeId;
+}
+</code></pre>
+<p>Now we have a bunch more questions to answer! Some of these trait methods are
+straightforward - <code>fn size(&amp;self) -&gt; u32</code> returns the object size; <code>mark()</code>
+and <code>is_marked()</code> must be GC related. Some are less obvious, such as
+<code>new_array()</code> which we'll cover at the end of this chapter.</p>
+<p>But this struct references some more types that must be defined and explained.</p>
+<h3><a class="header" href="#type-identification" id="type-identification">Type identification</a></h3>
+<p>What follows is a set of design trade-offs made for the purposes of this book;
+there are many ways this could be implemented.</p>
+<p>The types described next are all about sharing compile-time and runtime object
+type information between the allocator, the GC and the interpreter.</p>
+<p>We ideally want to make it difficult for the user to make mistakes with this
+and leak undefined behavior. We would also prefer this to be a safe-Rust
+interface, while at the same time being flexible enough for the user to make
+interpreter-appropriate decisions about the header design.</p>
+<p>First up, an object header implementation must define an associated type</p>
+<pre><code class="language-rust ignore">pub trait AllocHeader: Sized {
+    type TypeId: AllocTypeId;
+}
+</code></pre>
+<p>where <code>AllocTypeId</code> is define simply as:</p>
+<pre><code class="language-rust ignore">pub trait AllocTypeId: Copy + Clone {}
+</code></pre>
+<p>This means the interpreter is free to implement a type identifier type however
+it pleases, the only constraint is that it implements this trait.</p>
+<p>Next, the definition of the header constructor,</p>
+<pre><code class="language-rust ignore">pub trait AllocHeader: Sized {
+    ...
+
+    fn new&lt;O: AllocObject&lt;Self::TypeId&gt;&gt;(
+        size: u32,
+        size_class: SizeClass,
+        mark: Mark
+    ) -&gt; Self;
+
+    ...
+}
+</code></pre>
+<p>refers to a type <code>O</code> that must implement <code>AllocObject</code> which in turn must refer
+to the common <code>AllocTypeId</code>. The generic type <code>O</code> is the object for which the
+header is being instantiated for.</p>
+<p>And what is <code>AllocObject</code>? Simply:</p>
+<pre><code class="language-rust ignore">pub trait AllocObject&lt;T: AllocTypeId&gt; {
+    const TYPE_ID: T;
+}
+</code></pre>
+<p>In summary, we have:</p>
+<ul>
+<li><code>AllocHeader</code>: a trait that the header type must implement</li>
+<li><code>AllocTypeId</code>: a trait that a type identifier must implement</li>
+<li><code>AllocObject</code>: a trait that objects that can be allocated must implement</li>
+</ul>
+<h3><a class="header" href="#an-example" id="an-example">An example</a></h3>
+<p>Let's implement a couple of traits to make it more concrete.</p>
+<p>The simplest form of type identifier is an enum. Each discriminant describes
+a type that the interpreter will use at runtime.</p>
+<pre><code class="language-rust ignore">#[derive(PartialEq, Copy, Clone)]
+enum MyTypeId {
+    Number,
+    String,
+    Array,
+}
+
+impl AllocTypeId for TestTypeId {}
+</code></pre>
+<p>A hypothetical numeric type for our interpreter with the type identifier as
+associated constant:</p>
+<pre><code class="language-rust ignore">struct Number {
+    value: i64
+}
+
+impl AllocObject&lt;TestTypeId&gt; for Big {
+    const TYPE_ID: MyTypeId = MyTypeId::Number;
+}
+</code></pre>
+<p>And finally, here is a possible object header struct and the implementation of
+<code>AllocHeader::new()</code>:</p>
+<pre><code class="language-rust ignore">struct MyHeader {
+    size: u32,
+    size_class: SizeClass,
+    mark: Mark,
+    type_id: MyTypeId,
+}
+
+impl AllocHeader for MyHeader {
+    type TypeId = MyTypeId;
+
+    fn new&lt;O: AllocObject&lt;Self::TypeId&gt;&gt;(
+        size: u32,
+        size_class: SizeClass,
+        mark: Mark
+    ) -&gt; Self {
+        MyHeader {
+            size,
+            size_class,
+            mark,
+            type_id: O::TYPE_ID,
+        }
+    }
+
+    ...
+}
+</code></pre>
+<p>These would all be defined and implemented in the interpreter and are not
+provided by the Sticky Immix crate, while all the functions in the trait
+<code>AllocHeader</code> are intended to be called internally by the allocator itself,
+not on the interpreter side.</p>
+<p>The types <code>SizeClass</code> and <code>Mark</code> <em>are</em> provided by this crate and are enums.</p>
+<p>The one drawback to this scheme is that it's possible to associate an incorrect
+type id constant with an object. This would result in objects being misidentified
+at runtime and accessed incorrectly, likely leading to panics.</p>
+<p>Fortunately, this kind of trait implementation boilerplate is ideal for derive
+macros. Since the language side will be implementing these structs and traits,
+we'll defer until the relevant interpreter chapter to go over that.</p>
+<h2><a class="header" href="#back-to-allocraw" id="back-to-allocraw">Back to AllocRaw</a></h2>
+<p>Now that we have some object and header definitions and constraints, we need to
+apply them to the <code>AllocRaw</code> API. We can't allocate an object unless it
+implements <code>AllocObject</code> and has an associated constant that implements
+<code>AllocTypeId</code>.  We also need to expand the interface with functions that the
+interpreter can use to reliably get the header for an object and the object
+for a header.</p>
+<p>We will add an associated type to tie the allocator
+API to the header type and indirectly to the type identification that will be
+used.</p>
+<pre><code class="language-rust ignore">pub trait AllocRaw {
+
+    type Header: AllocHeader;
+
+    ...
+}
+</code></pre>
+<p>Then we can update the <code>alloc()</code> function definition to constrain the types
+that can be allocated to only those that implement the appropriate traits.</p>
+<pre><code class="language-rust ignore">pub trait AllocRaw {
+    ...
+
+    fn alloc&lt;T&gt;(&amp;self, object: T) -&gt; Result&lt;RawPtr&lt;T&gt;, AllocError&gt;
+    where
+        T: AllocObject&lt;&lt;Self::Header as AllocHeader&gt;::TypeId&gt;;
+
+    ...
+}
+</code></pre>
+<p>We need the user and the garbage collector to be able to access the header,
+so we need a function that will return the header given an object pointer.</p>
+<p>The garbage collector does not know about concrete types, it will need to
+be able to get the header without knowing the object type. It's likely
+that the interpreter will, at times, also not know the type at runtime.</p>
+<p>Indeed, one of the functions of an object header is to, at runtime, given
+an object pointer, derive the type of the object.</p>
+<p>The function signature therefore cannot refer to the type. That is,
+we can't write</p>
+<pre><code class="language-rust ignore">pub trait AllocRaw {
+    ...
+
+    // looks good but won't work in all cases
+    fn get_header&lt;T&gt;(object: RawPtr&lt;T&gt;) -&gt; NonNull&lt;Self::Header&gt;
+    where
+        T: AllocObject&lt;&lt;Self::Header as AllocHeader&gt;::TypeId&gt;;
+
+    ...
+}
+</code></pre>
+<p>even though it seems this would be good and right. Instead this function will
+have to be much simpler:</p>
+<pre><code class="language-rust ignore">pub trait AllocRaw {
+    ...
+
+    fn get_header(object: NonNull&lt;()&gt;) -&gt; NonNull&lt;Self::Header&gt;;
+
+    ...
+}
+</code></pre>
+<p>We also need a function to get the object <em>from</em> the header:</p>
+<pre><code class="language-rust ignore">pub trait AllocRaw {
+    ...
+
+    fn get_object(header: NonNull&lt;Self::Header&gt;) -&gt; NonNull&lt;()&gt;;
+
+    ...
+}
+</code></pre>
+<p>These functions are not unsafe but they do return <code>NonNull</code> which implies that
+dereferencing the result should be considered unsafe - there is no protection
+against passing in garbage and getting garbage out.</p>
+<p>Now we have an object allocation function, traits that constrain what can be
+allocated, allocation header definitions and functions for switching
+between an object and it's header.</p>
+<p>There's one missing piece: we can allocate objects of type <code>T</code>, but
+such objects always have compile-time defined size. <code>T</code> is constrained to
+<code>Sized</code> types in the <code>RawPtr</code> definition. So how do we allocate dynamically
+sized objects, such as arrays?</p>
+<h2><a class="header" href="#dynamically-sized-types" id="dynamically-sized-types">Dynamically sized types</a></h2>
+<p>Since we can allocate objects of type <code>T</code>, and each <code>T</code> must derive
+<code>AllocObject</code> and have an associated const of type <code>AllocTypeId</code>, dynamically
+sized allocations must fit into this type identification scheme.</p>
+<p>Allocating dynamically sized types, or in short, arrays, means there's some
+ambiguity about the type at compile time as far as the allocator is concerned:</p>
+<ul>
+<li>Are we allocating one object or an array of objects? If we're allocating an
+array of objects, we'll have to initialize them all. Perhaps we don't want to
+impose that overhead up front?</li>
+<li>If the allocator knows how many objects compose an array, do we want to bake
+fat pointers into the interface to carry that number around?</li>
+</ul>
+<p>In the same way, then, that the underlying implementation of <code>std::vec::Vec</code> is
+backed by an array of <code>u8</code>, we'll do the same. We shall define the return type
+of an array allocation to be of type <code>RawPtr&lt;u8&gt;</code> and the size requested to be
+in bytes. We'll leave it to the interpreter to build layers on top of this to
+handle the above questions.</p>
+<p>As the definition of <code>AllocTypeId</code> is up to the interpreter, this crate can't
+know the type id of an array. Instead, we will require the interpreter to
+implement a function on the <code>AllocHeader</code> trait:</p>
+<pre><code class="language-rust ignore">pub trait AllocHeader: Sized {
+    ...
+
+    fn new_array(size: ArraySize, size_class: SizeClass, mark: Mark) -&gt; Self;
+
+    ...
+}
+</code></pre>
+<p>This function should return a new object header for an array of u8 with the
+appropriate type identifier.</p>
+<p>We will also add a function to the <code>AllocRaw</code> trait for allocating arrays that
+returns the <code>RawPtr&lt;u8&gt;</code> type.</p>
+<pre><code class="language-rust ignore">pub trait AllocRaw {
+    ...
+
+    fn alloc_array(&amp;self, size_bytes: ArraySize) -&gt; Result&lt;RawPtr&lt;u8&gt;, AllocError&gt;;
+
+    ...
+}
+</code></pre>
+<p>Our complete <code>AllocRaw</code> trait definition now looks like this:</p>
+<pre><code class="language-rust ignore">pub trait AllocRaw {
+    /// An implementation of an object header type
+    type Header: AllocHeader;
+
+    /// Allocate a single object of type T.
+    fn alloc&lt;T&gt;(&amp;self, object: T) -&gt; Result&lt;RawPtr&lt;T&gt;, AllocError&gt;
+    where
+        T: AllocObject&lt;&lt;Self::Header as AllocHeader&gt;::TypeId&gt;;
+
+    /// Allocating an array allows the client to put anything in the resulting data
+    /// block but the type of the memory block will simply be 'Array'. No other
+    /// type information will be stored in the object header.
+    /// This is just a special case of alloc&lt;T&gt;() for T=u8 but a count &gt; 1 of u8
+    /// instances.  The caller is responsible for the content of the array.
+    fn alloc_array(&amp;self, size_bytes: ArraySize) -&gt; Result&lt;RawPtr&lt;u8&gt;, AllocError&gt;;
+
+    /// Given a bare pointer to an object, return the expected header address
+    fn get_header(object: NonNull&lt;()&gt;) -&gt; NonNull&lt;Self::Header&gt;;
+
+    /// Given a bare pointer to an object's header, return the expected object address
+    fn get_object(header: NonNull&lt;Self::Header&gt;) -&gt; NonNull&lt;()&gt;;
+}
+</code></pre>
+<p>In the next chapter we'll build out the <code>AllocRaw</code> trait implementation.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="chapter-managing-blocks.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="chapter-allocation-impl.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="chapter-managing-blocks.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="chapter-allocation-impl.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

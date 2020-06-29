@@ -1,0 +1,262 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>An allocator: Sticky Immix - Writing Interpreters in Rust: a Guide</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="part-allocators.html"><strong aria-hidden="true">2.</strong> Allocation</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-alignment.html"><strong aria-hidden="true">2.1.</strong> Alignment</a></li><li class="chapter-item expanded "><a href="chapter-blocks.html"><strong aria-hidden="true">2.2.</strong> Obtaining blocks of memory</a></li><li class="chapter-item expanded "><a href="chapter-what-is-alloc.html"><strong aria-hidden="true">2.3.</strong> The type of allocation</a></li></ol></li><li class="chapter-item expanded "><a href="part-stickyimmix.html" class="active"><strong aria-hidden="true">3.</strong> An allocator: Sticky Immix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-simple-bump.html"><strong aria-hidden="true">3.1.</strong> Bump allocation</a></li><li class="chapter-item expanded "><a href="chapter-managing-blocks.html"><strong aria-hidden="true">3.2.</strong> Allocating into multiple blocks</a></li><li class="chapter-item expanded "><a href="chapter-allocation-api.html"><strong aria-hidden="true">3.3.</strong> Defining the allocation API</a></li><li class="chapter-item expanded "><a href="chapter-allocation-impl.html"><strong aria-hidden="true">3.4.</strong> Implementing the API</a></li></ol></li><li class="chapter-item expanded "><a href="part-interpreter.html"><strong aria-hidden="true">4.</strong> An interpreter: Eval-rs</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-interp-alloc.html"><strong aria-hidden="true">4.1.</strong> Allocating safely</a></li><li class="chapter-item expanded "><a href="chapter-interp-tagged-symbols.html"><strong aria-hidden="true">4.2.</strong> Tagged pointers and symbols</a></li><li class="chapter-item expanded "><a href="chapter-interp-parser.html"><strong aria-hidden="true">4.3.</strong> Parsing</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Writing Interpreters in Rust: a Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#an-allocator-sticky-immix" id="an-allocator-sticky-immix">An allocator: Sticky Immix</a></h1>
+<p>Quickly, some terminology:</p>
+<ul>
+<li>Mutator: the thread of execution that writes and modifies objects on the heap.</li>
+<li>Live objects: the graph of objects that the mutator can reach, either directly
+from it's stack or indirectly through other reachable objects.</li>
+<li>Dead objects: any object that is disconnected from the mutator's graph of live
+objects.</li>
+<li>Collector: the thread of execution that identifies objects that are no longer
+reachable by the mutator and marks them as free space that can be reused</li>
+<li>Fragmentation: as objects have many different sizes, after allocating and
+freeing many objects, gaps of unused memory appear between objects that are
+too small for most objects but that add up to a measurable percentage of
+wasted space.</li>
+<li>Evacuation: when the collector <em>moves</em> live objects to another block of memory
+so that the originating block can be _de_fragmented</li>
+</ul>
+<h2><a class="header" href="#about-immix" id="about-immix">About Immix</a></h2>
+<p>Immix is a memory management scheme that considers blocks of fixed size at a time.
+Each block is divided into lines. In the original paper, blocks are sized at 32k
+and lines at 128 bytes.  Objects are allocated into blocks using bump allocation.
+Objects can cross line boundaries.</p>
+<p>During tracing to discover live objects, objects are marked as live, but the
+line, or lines, that each object occupies are also marked as live. This can mean, of
+course, that a line may contain a dead object and a live object but the whole
+line is marked as live.</p>
+<p>During collection, only lines not marked as live are considered available for
+re-use. Inevitably then, there is acceptance of some amount of fragementation
+at this point.</p>
+<p><em>Full</em> Immix implements evacuating objects out of the most fragmented blocks
+into fresh, empty blocks, for defragmentation.</p>
+<p>For simplicity of implementation, we'll leave out this evacuation operation
+in this guide. This is called <em>Sticky</em> Immix.</p>
+<p>We'll also stick to a single thread for the mutator and collector to avoid the
+complexity overhead of a multi-threaded implementation for now.</p>
+<p>Recommended reading: <a href="http://www.cs.utexas.edu/users/speedway/DaCapo/papers/immix-pldi-2008.pdf">Stephen M. Blackburn &amp; Kathryn S. McKinley - Immix: A Mark-Region Garbage Collector with Space Efficiency, Fast Collection, and Mutator Performance</a></p>
+<h2><a class="header" href="#about-this-part-of-the-book" id="about-this-part-of-the-book">About this part of the book</a></h2>
+<p>This section will describe a Rust crate that implements a Sticky Immix heap.
+As part of this implementation we will dive into the crate API details to
+understand how we can define an interface between the heap and the language
+VM that will come later.</p>
+<p><em>What this is not: custom memory management to replace the global Rust
+allocator! The APIs we arrive at will be substantially incompatible with the
+global Rust allocator.</em></p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="chapter-what-is-alloc.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="chapter-simple-bump.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="chapter-what-is-alloc.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="chapter-simple-bump.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

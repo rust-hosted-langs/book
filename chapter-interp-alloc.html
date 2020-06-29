@@ -1,0 +1,571 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Allocating safely - Writing Interpreters in Rust: a Guide</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="part-allocators.html"><strong aria-hidden="true">2.</strong> Allocation</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-alignment.html"><strong aria-hidden="true">2.1.</strong> Alignment</a></li><li class="chapter-item expanded "><a href="chapter-blocks.html"><strong aria-hidden="true">2.2.</strong> Obtaining blocks of memory</a></li><li class="chapter-item expanded "><a href="chapter-what-is-alloc.html"><strong aria-hidden="true">2.3.</strong> The type of allocation</a></li></ol></li><li class="chapter-item expanded "><a href="part-stickyimmix.html"><strong aria-hidden="true">3.</strong> An allocator: Sticky Immix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-simple-bump.html"><strong aria-hidden="true">3.1.</strong> Bump allocation</a></li><li class="chapter-item expanded "><a href="chapter-managing-blocks.html"><strong aria-hidden="true">3.2.</strong> Allocating into multiple blocks</a></li><li class="chapter-item expanded "><a href="chapter-allocation-api.html"><strong aria-hidden="true">3.3.</strong> Defining the allocation API</a></li><li class="chapter-item expanded "><a href="chapter-allocation-impl.html"><strong aria-hidden="true">3.4.</strong> Implementing the API</a></li></ol></li><li class="chapter-item expanded "><a href="part-interpreter.html"><strong aria-hidden="true">4.</strong> An interpreter: Eval-rs</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-interp-alloc.html" class="active"><strong aria-hidden="true">4.1.</strong> Allocating safely</a></li><li class="chapter-item expanded "><a href="chapter-interp-tagged-symbols.html"><strong aria-hidden="true">4.2.</strong> Tagged pointers and symbols</a></li><li class="chapter-item expanded "><a href="chapter-interp-parser.html"><strong aria-hidden="true">4.3.</strong> Parsing</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Writing Interpreters in Rust: a Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#allocating-safely" id="allocating-safely">Allocating safely</a></h1>
+<p>In this chapter we'll build some safe Rust abstractions over the allocation API
+defined in the Sticky Immix crate.</p>
+<p>Let's first recall this interface:</p>
+<pre><code class="language-rust ignore">pub trait AllocRaw {
+    /// An implementation of an object header type
+    type Header: AllocHeader;
+
+    /// Allocate a single object of type T.
+    fn alloc&lt;T&gt;(&amp;self, object: T) -&gt; Result&lt;RawPtr&lt;T&gt;, AllocError&gt;
+    where
+        T: AllocObject&lt;&lt;Self::Header as AllocHeader&gt;::TypeId&gt;;
+
+    /// Allocating an array allows the client to put anything in the resulting data
+    /// block but the type of the memory block will simply be 'Array'. No other
+    /// type information will be stored in the object header.
+    /// This is just a special case of alloc&lt;T&gt;() for T=u8 but a count &gt; 1 of u8
+    /// instances.  The caller is responsible for the content of the array.
+    fn alloc_array(&amp;self, size_bytes: ArraySize) -&gt; Result&lt;RawPtr&lt;u8&gt;, AllocError&gt;;
+
+    /// Given a bare pointer to an object, return the expected header address
+    fn get_header(object: NonNull&lt;()&gt;) -&gt; NonNull&lt;Self::Header&gt;;
+
+    /// Given a bare pointer to an object's header, return the expected object address
+    fn get_object(header: NonNull&lt;Self::Header&gt;) -&gt; NonNull&lt;()&gt;;
+}
+</code></pre>
+<p>These are the functions we'll be calling. When we allocate an object, we'll get
+back a <code>RawPtr&lt;T&gt;</code> which has no safe way to dereference it. This is impractical,
+we very much do not want to wrap every dereferencing in <code>unsafe { ... }</code>.
+We'll need a layer over <code>RawPtr&lt;T&gt;</code> where we can guarantee safe dereferencing.</p>
+<h2><a class="header" href="#pointers" id="pointers">Pointers</a></h2>
+<p>In safe Rust, mutable (<code>&amp;mut</code>) and immutable (<code>&amp;</code>) references are passed around
+to access objects. These reference types are compile-time constrained pointers
+where the constraints are</p>
+<ol>
+<li>the mutability of the access</li>
+<li>the lifetime of the access</li>
+</ol>
+<p>For our layer over <code>RawPtr&lt;T&gt;</code> we'll have to consider both these constraints.</p>
+<h3><a class="header" href="#mutability" id="mutability">Mutability</a></h3>
+<p>This constraint is concerned with shared access to an object. In other words,
+it cares about how many pointers there are to an object at any time and whether
+they allow mutable or immutable access.</p>
+<p>The short of it is:</p>
+<ul>
+<li>Either only one <code>&amp;mut</code> reference may be held in a scope</li>
+<li>Or many <code>&amp;</code> immutable references may be held in a scope</li>
+</ul>
+<p>The compiler must be able to determine that a <code>&amp;mut</code> reference is the only
+live reference in it's scope that points at an object in order
+for mutable access to that object to be safe of data races.</p>
+<p>In a runtime memory managed language such as the interpreter we are building,
+we will not have compile time knowledge of shared access to objects. We
+won't know at compile time how many pointers to an object we may have at
+any time. This is the normal state of things in languages such as Python,
+Ruby or Javascript.</p>
+<p>This means that we can't allow <code>&amp;mut</code> references in our safe layer at all!</p>
+<p>If we're restricted to <code>&amp;</code> immutable references everywhere, that then means
+we must apply the interior mutability pattern everywhere in our design in
+order to comply with the laws of safe Rust.</p>
+<h3><a class="header" href="#lifetime" id="lifetime">Lifetime</a></h3>
+<p>The second aspect to references is their lifetime. This concerns the
+duration of the reference, from inception until it goes out of scope.</p>
+<p>The key concept to think about now is &quot;scope.&quot;</p>
+<p>In an interpreted language there are two major operations on the objects
+in memory:</p>
+<pre><code class="language-rust ignore">fn run_mutator() {
+    parse_source_code();
+    compile();
+    execute_bytecode();
+}
+</code></pre>
+<p>and</p>
+<pre><code class="language-rust ignore">fn run_garbage_collection() {
+   trace_objects();
+   free_dead_objects();
+}
+</code></pre>
+<p>A few paragraphs earlier we determined that we can't have <code>&amp;mut</code> references
+to objects in our interpreter.</p>
+<p>By extension, we can't safely hold a mutable reference to the entire heap
+as a data structure.</p>
+<p>Except, that is exactly what garbage collection requires. The nature of
+garbage collection is that it views the entire heap as a single data structure
+in it's own right that it needs to traverse and modify. It wants the
+heap to be <code>&amp;mut</code>.</p>
+<p>Consider, especially, that some garbage collectors <em>move</em> objects, so that
+pointers to moved objects, wherever they may be, must be modified by the
+garbage collector without breaking the mutator! The garbage collector must
+be able to reliably discover <em>every single pointer to moved objects</em> to avoid
+leaving invalid pointers scattered around<sup class="footnote-reference"><a href="#1">1</a></sup>.</p>
+<p>Thus we have two mutually exclusive interface requirements, one that must
+only hold <code>&amp;</code> object references and applies <em>interior</em> mutability to the heap
+and the other that wants the whole heap to be <code>&amp;mut</code>.</p>
+<p>For this part of the book, we'll focus on the use of the allocator and save
+garbage collection for a later part.</p>
+<p>This mutual exclusivity constraint on the allocator results in the statements:</p>
+<ul>
+<li>When garbage collection is running, it is not safe to run the mutator<sup class="footnote-reference"><a href="#2">2</a></sup></li>
+<li>When garbage collection is not running, it is safe to run the mutator</li>
+</ul>
+<p>Thus our abstraction must encapsulate a concept of a time when &quot;it is safe to
+run the mutator&quot; and since we're working with safe Rust, this must be a
+compile time concept.</p>
+<p>Scopes and lifetimes are perfect for this abstraction. What we'll need is
+some way to define a lifetime (that is, a scope) within which access to the
+heap by the mutator is safe.</p>
+<h3><a class="header" href="#some-pointer-types" id="some-pointer-types">Some pointer types</a></h3>
+<p>First, let's define a simple pointer type that can wrap an allocated type <code>T</code>
+in a lifetime:</p>
+<pre><code class="language-rust ignore">pub struct ScopedPtr&lt;'guard, T: Sized&gt; {
+    value: &amp;'guard T,
+}
+</code></pre>
+<p>This type will implement <code>Clone</code>, <code>Copy</code> and <code>Deref</code> - it can be passed around
+freely within the scope and safely dereferenced.</p>
+<p>As you can see we have a lifetime <code>'guard</code> that we'll use to restrict the
+scope in which this pointer can be accessed. We need a mechanism to restrict
+this scope.</p>
+<p>The guard pattern is what we'll use, if the hint wasn't strong enough.</p>
+<p>We'll construct some types that ensure that safe pointers such as
+<code>ScopedPtr&lt;T&gt;</code>, and access to the heap at in any way, are mediated by an
+instance of a guard type that can provide access.</p>
+<p>We will end up passing a reference to the guard instance around everywhere. In
+most cases we won't care about the instance type itself so much as the lifetime
+that it carries with it. As such, we'll define a trait for this type to
+implement that so that we can refer to the guard instance by this trait rather
+than having to know the concrete type. This'll also allow other types to
+proxy the main scope-guarding instance.</p>
+<pre><code class="language-rust ignore">pub trait MutatorScope {}
+</code></pre>
+<p>You may have noticed that we've jumped from <code>RawPtr&lt;T&gt;</code> to <code>ScopedPtr&lt;T&gt;</code> with
+seemingly nothing to bridge the gap. How do we <em>get</em> a <code>ScopedPtr&lt;T&gt;</code>?</p>
+<p>We'll create a wrapper around <code>RawPtr&lt;T&gt;</code> that will complete the picture. This
+wrapper type is what will hold pointers at rest inside any data structures.</p>
+<pre><code class="language-rust ignore">#[derive(Clone)]
+pub struct CellPtr&lt;T: Sized&gt; {
+    inner: Cell&lt;RawPtr&lt;T&gt;&gt;,
+}
+</code></pre>
+<p>This is straightforwardly a <code>RawPtr&lt;T&gt;</code> in a <code>Cell</code> to allow for modifying the
+pointer. We won't allow dereferencing from this type either though.</p>
+<p>Remember that dereferencing a heap object pointer is only safe when we are
+in the right scope? We need to create a <code>ScopedPtr&lt;T&gt;</code> <em>from</em> a <code>CellPtr&lt;T&gt;</code>
+to be able to use it.</p>
+<p>First we'll add a helper function to <code>RawPtr&lt;T&gt;</code> in our interpreter crate so
+we can safely dereference a <code>RawPtr&lt;T&gt;</code>. This code says that, given an instance
+of a <code>MutatorScope</code>-implementing type, give me back a reference type with
+the same lifetime as the guard that I can safely use. Since the <code>_guard</code>
+parameter is never used except to define a lifetime, it should be optimized
+out by the compiler!</p>
+<pre><code class="language-rust ignore">pub trait ScopedRef&lt;T&gt; {
+    fn scoped_ref&lt;'scope&gt;(&amp;self, guard: &amp;'scope dyn MutatorScope) -&gt; &amp;'scope T;
+}
+
+impl&lt;T&gt; ScopedRef&lt;T&gt; for RawPtr&lt;T&gt; {
+    fn scoped_ref&lt;'scope&gt;(&amp;self, _guard: &amp;'scope dyn MutatorScope) -&gt; &amp;'scope T {
+        unsafe { &amp;*self.as_ptr() }
+    }
+}
+</code></pre>
+<p>We'll use this in our <code>CellPtr&lt;T&gt;</code> to obtain a <code>ScopedPtr&lt;T&gt;</code>:</p>
+<pre><code class="language-rust ignore">impl&lt;T: Sized&gt; CellPtr&lt;T&gt; {
+    pub fn get&lt;'guard&gt;(&amp;self, guard: &amp;'guard dyn MutatorScope) -&gt; ScopedPtr&lt;'guard, T&gt; {
+        ScopedPtr::new(guard, self.inner.get().scoped_ref(guard))
+    }
+}
+</code></pre>
+<p>Thus, anywhere (structs, enums) that needs to store a pointer to something on
+the heap will use <code>CellPtr&lt;T&gt;</code> and any code that accesses these pointers
+during the scope-guarded mutator code will obtain <code>ScopedPtr&lt;T&gt;</code> instances
+that can be safely dereferenced.</p>
+<h2><a class="header" href="#the-heap-and-the-mutator" id="the-heap-and-the-mutator">The heap and the mutator</a></h2>
+<p>The next question is: where do we get an instance of <code>MutatorScope</code> from?</p>
+<p>The lifetime of an instance of a <code>MutatorScope</code> will define the lifetime
+of any safe object accesses. By following the guard pattern, we will find
+we have:</p>
+<ul>
+<li>a heap struct that contains an instance of the Sticky Immix heap</li>
+<li>a guard struct that proxies the heap struct for the duration of a scope</li>
+<li>a mechanism to enforce the scope limit</li>
+</ul>
+<h3><a class="header" href="#a-heap-struct" id="a-heap-struct">A heap struct</a></h3>
+<p>Let's make a type alias for the Sticky Immix heap so we aren't referring
+to it as such throughout the interpreter:</p>
+<pre><code class="language-rust ignore">pub type HeapStorage = StickyImmixHeap&lt;ObjectHeader&gt;;
+</code></pre>
+<p>The let's put that into a heap struct, along with any other
+interpreter-global storage:</p>
+<pre><code class="language-rust ignore">struct Heap {
+    heap: HeapStorage,
+    syms: SymbolMap,
+}
+</code></pre>
+<p>We'll discuss the <code>SymbolMap</code> type in the next chapter.</p>
+<p>Now, since we've wrapped the Sticky Immix heap in our own <code>Heap</code> struct,
+we'll need to <code>impl</code> an <code>alloc()</code> method to proxy the Sticky Immix
+allocation function.</p>
+<pre><code class="language-rust ignore">impl Heap {
+    fn alloc&lt;T&gt;(&amp;self, object: T) -&gt; Result&lt;RawPtr&lt;T&gt;, RuntimeError&gt;
+    where
+        T: AllocObject&lt;TypeList&gt;,
+    {
+        Ok(self.heap.alloc(object)?)
+    }
+}
+</code></pre>
+<p>A couple things to note about this function:</p>
+<ul>
+<li>It returns <code>RuntimeError</code> in the error case, this type converts <code>From</code> the
+Sticky Immix crate's error type.</li>
+<li>The <code>where</code> constraint is similar to that of <code>AllocRaw::alloc()</code> but in now
+we have a concrete <code>TypeList</code> type to bind to. We'll look at <code>TypeList</code>
+in the next chapter along with <code>SymbolMap</code>.</li>
+</ul>
+<h3><a class="header" href="#a-guard-struct" id="a-guard-struct">A guard struct</a></h3>
+<p>This next struct will be used as a scope-limited proxy for the <code>Heap</code> struct
+with one major difference: function return types will no longer be <code>RawPtr&lt;T&gt;</code>
+but <code>ScopedPtr&lt;T&gt;</code>.</p>
+<pre><code class="language-rust ignore">pub struct MutatorView&lt;'memory&gt; {
+    heap: &amp;'memory Heap,
+}
+</code></pre>
+<p>Here in this struct definition, it becomes clear that all we are doing is
+borrowing the <code>Heap</code> instance for a limited lifetime. Thus, the lifetime of
+the <code>MutatorView</code> instance <em>will be</em> the lifetime that all safe object
+access is constrained to.</p>
+<p>A look at the <code>alloc()</code> function now:</p>
+<pre><code class="language-rust ignore">impl&lt;'memory&gt; MutatorView&lt;'memory&gt; {
+    pub fn alloc&lt;T&gt;(&amp;self, object: T) -&gt; Result&lt;ScopedPtr&lt;'_, T&gt;, RuntimeError&gt;
+    where
+        T: AllocObject&lt;TypeList&gt;,
+    {
+        Ok(ScopedPtr::new(
+            self,
+            self.heap.alloc(object)?.scoped_ref(self),
+        ))
+    }
+}
+</code></pre>
+<p>Very similar to <code>Heap::alloc()</code> but the return type is now a <code>ScopedPtr&lt;T&gt;</code>
+whose lifetime is the same as the <code>MutatorView</code> instance.</p>
+<h3><a class="header" href="#enforcing-a-scope-limit" id="enforcing-a-scope-limit">Enforcing a scope limit</a></h3>
+<p>We now have a <code>Heap</code> and a guard, <code>MutatorView</code>, but we want one more thing:
+to prevent an instance of <code>MutatorView</code> from being returned from anywhere -
+that is, enforcing a scope within which an instance of <code>MutatorView</code> will
+live and die. This will make it easier to separate mutator operations and
+garbage collection operations.</p>
+<p>First we'll apply a constraint on how a mutator <em>gains</em> heap access: through
+a trait.</p>
+<pre><code class="language-rust ignore">pub trait Mutator: Sized {
+    type Input;
+    type Output;
+
+    fn run(&amp;self, mem: &amp;MutatorView, input: Self::Input) -&gt; Result&lt;Self::Output, RuntimeError&gt;;
+}
+</code></pre>
+<p>If a piece of code wants to access the heap, it <em>must</em> implement this trait!</p>
+<p>Secondly, we'll apply another wrapper struct, this time to the <code>Heap</code> type.
+This is so that we can borrow the <code>heap</code> member instance.</p>
+<pre><code class="language-rust ignore">pub struct Memory {
+    heap: Heap,
+}
+</code></pre>
+<p>This <code>Memory</code> struct and the <code>Mutator</code> trait are now tied together with a
+function:</p>
+<pre><code class="language-rust ignore">impl Memory {
+    pub fn mutate&lt;M: Mutator&gt;(&amp;self, m: &amp;M, input: M::Input) -&gt; Result&lt;M::Output, RuntimeError&gt; {
+        let mut guard = MutatorView::new(self);
+        m.run(&amp;mut guard, input)
+    }
+
+}
+</code></pre>
+<p>The key to the scope limitation mechanism is that this <code>mutate</code> function is
+the only way to gain access to the heap. It creates an instance of
+<code>MutatorView</code> that goes out of scope at the end of the function and thus
+can't leak outside of the call stack.</p>
+<h2><a class="header" href="#an-example" id="an-example">An example</a></h2>
+<p>Let's construct a simple example to demonstrate these many parts. This
+will omit defining a <code>TypeId</code> and any other types that we didn't discuss
+above.</p>
+<pre><code class="language-rust ignore">struct Stack {}
+
+impl Stack {
+    fn say_hello(&amp;self) {
+        println!(&quot;I'm the stack!&quot;);
+    }
+}
+
+struct Roots {
+    stack: CellPtr&lt;Stack&gt;
+}
+
+impl Roots {
+    fn new(stack: ScopedPtr&lt;'_, Stack&gt;) -&gt; Roots {
+        Roots {
+            stack: CellPtr::new_with(stack)
+        }
+    }
+}
+
+struct Interpreter {}
+
+impl Mutator for Interpreter {
+    type Input: ();
+    type Output: Roots;
+
+    fn run(&amp;self, mem: &amp;MutatorView, input: Self::Input) -&gt; Result&lt;Self::Output, RuntimeError&gt; {
+        let stack = mem.alloc(Stack {})?;   // returns a ScopedPtr&lt;'_, Stack&gt;
+        stack.say_hello();
+
+        let roots = Roots::new(stack);
+
+        let stack_ptr = roots.stack.get(mem);  // returns a ScopedPtr&lt;'_, Stack&gt;
+        stack_ptr.say_hello();
+
+        Ok(roots)
+    }
+}
+
+fn main() {
+    ...
+    let interp = Interpreter {};
+
+    let result = memory.mutate(&amp;interp, ());
+
+    let roots = result.unwrap();
+
+    // no way to do this - compile error
+    let stack = roots.stack.get();
+    ...
+}
+</code></pre>
+<p>In this simple, contrived example, we instantiated a <code>Stack</code> on the heap.
+An instance of <code>Roots</code> is created on the native stack and given a pointer
+to the <code>Stack</code> instance. The mutator returns the <code>Roots</code> object, which
+continues to hold a pointer to a heap object. However, outside of the <code>run()</code>
+function, the <code>stack</code> member can't be safely accesed.</p>
+<p>Up next: using this framework to implement parsing!</p>
+<hr />
+<div class="footnote-definition" id="1"><sup class="footnote-definition-label">1</sup>
+<p>This is the topic of discussion in Felix Klock's series
+<a href="http://blog.pnkfx.org/blog/categories/gc/">GC and Rust</a> which is recommended
+reading.</p>
+</div>
+<div class="footnote-definition" id="2"><sup class="footnote-definition-label">2</sup>
+<p>while this distinction exists at the interface level, in reality there
+are multiple phases in garbage collection and not all of them require
+exclusive access to the heap. This is an advanced topic that we won't
+bring into consideration yet.</p>
+</div>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="part-interpreter.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="chapter-interp-tagged-symbols.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="part-interpreter.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="chapter-interp-tagged-symbols.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>

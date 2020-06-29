@@ -1,0 +1,430 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Allocating into multiple blocks - Writing Interpreters in Rust: a Guide</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="part-allocators.html"><strong aria-hidden="true">2.</strong> Allocation</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-alignment.html"><strong aria-hidden="true">2.1.</strong> Alignment</a></li><li class="chapter-item expanded "><a href="chapter-blocks.html"><strong aria-hidden="true">2.2.</strong> Obtaining blocks of memory</a></li><li class="chapter-item expanded "><a href="chapter-what-is-alloc.html"><strong aria-hidden="true">2.3.</strong> The type of allocation</a></li></ol></li><li class="chapter-item expanded "><a href="part-stickyimmix.html"><strong aria-hidden="true">3.</strong> An allocator: Sticky Immix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-simple-bump.html"><strong aria-hidden="true">3.1.</strong> Bump allocation</a></li><li class="chapter-item expanded "><a href="chapter-managing-blocks.html" class="active"><strong aria-hidden="true">3.2.</strong> Allocating into multiple blocks</a></li><li class="chapter-item expanded "><a href="chapter-allocation-api.html"><strong aria-hidden="true">3.3.</strong> Defining the allocation API</a></li><li class="chapter-item expanded "><a href="chapter-allocation-impl.html"><strong aria-hidden="true">3.4.</strong> Implementing the API</a></li></ol></li><li class="chapter-item expanded "><a href="part-interpreter.html"><strong aria-hidden="true">4.</strong> An interpreter: Eval-rs</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-interp-alloc.html"><strong aria-hidden="true">4.1.</strong> Allocating safely</a></li><li class="chapter-item expanded "><a href="chapter-interp-tagged-symbols.html"><strong aria-hidden="true">4.2.</strong> Tagged pointers and symbols</a></li><li class="chapter-item expanded "><a href="chapter-interp-parser.html"><strong aria-hidden="true">4.3.</strong> Parsing</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Writing Interpreters in Rust: a Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#allocating-into-multiple-blocks" id="allocating-into-multiple-blocks">Allocating into Multiple Blocks</a></h1>
+<p>Let's now zoom out of the fractal code soup one level and begin arranging multiple
+blocks so we can allocate - in theory - indefinitely.</p>
+<h2><a class="header" href="#lists-of-blocks" id="lists-of-blocks">Lists of blocks</a></h2>
+<p>We'll need a new struct for wrapping multiple blocks:</p>
+<pre><code class="language-rust ignore">struct BlockList {
+    head: Option&lt;BumpBlock&gt;,
+    overflow: Option&lt;BumpBlock&gt;,
+    rest: Vec&lt;BumpBlock&gt;,
+}
+</code></pre>
+<p>Immix maintains several lists of blocks. We won't include them all in the first
+iteration but in short they are:</p>
+<ul>
+<li><code>free</code>: a list of blocks that contain no objects. These blocks are held at the
+ready to allocate into on demand</li>
+<li><code>recycle</code>: a list of blocks that contain some objects but also at least one
+line that can be allocated into</li>
+<li><code>large</code>: not a list of blocks, necessarily, but a list of objects larger than
+the block size, or some other method of accounting for large objects</li>
+<li><code>rest</code>: the rest of the blocks that have been allocated into but are not
+suitable for recycling</li>
+</ul>
+<p>In our first iteration we'll only keep the <code>rest</code> list of blocks and two blocks
+to immediately allocate into. Why two? To understand why, we need to understand
+how Immix thinks about object sizes.</p>
+<h3><a class="header" href="#immix-and-object-sizes" id="immix-and-object-sizes">Immix and object sizes</a></h3>
+<p>We've seen that there are two numbers that define granularity in Immix: the
+block size and the line size.  These numbers give us the ability to categorize
+object sizes:</p>
+<ul>
+<li>small: those that (with object header and alignment overhead) fit inside a
+line</li>
+<li>medium: those that (again with object header and alignment overhead) are
+larger than one line but smaller than a block</li>
+<li>large: those that are larger than a block</li>
+</ul>
+<p>In the previous chapter we described the basic allocation algorithm: when
+an object is being allocated, the current block is scanned for a hole between
+marked lines large enough to allocate into. This does seem like it could
+be inefficient. We could spend a lot of CPU cycles looking for a big enough
+hole, especially for a medium sized object.</p>
+<p>To avoid this, Immix maintains a second block, an overflow block, to allocate
+medium objects into that don't fit the first available hole in the
+main block being allocated into.</p>
+<p>Thus two blocks to immediately allocate into:</p>
+<ul>
+<li><code>head</code>: the current block being allocated into</li>
+<li><code>overflow</code>: a block kept handy for writing medium objects into that don't
+fit the <code>head</code> block's current hole</li>
+</ul>
+<p>We'll be ignoring large objects for now and attending only to allocating small
+and medium objects into blocks.</p>
+<p>Instead of recycling blocks with holes, or maintaining a list of pre-allocated
+free blocks, we'll allocate a new block on demand whenever we need more space.
+We'll get to identifying holes and recyclable blocks in a later chapter.</p>
+<h3><a class="header" href="#managing-the-overflow-block" id="managing-the-overflow-block">Managing the overflow block</a></h3>
+<p>Generally in our code for this book, we will try to default to not allocating
+memory unless it is needed. For example, when an array is instantiated,
+the backing storage will remain unallocated until a value is pushed on to
+it.</p>
+<p>Thus in the definition of <code>BlockList</code>, <code>head</code> and <code>overflow</code> are <code>Option</code>
+types and won't be instantiated except on demand.</p>
+<p>For allocating into the overflow block we'll define a function in the
+<code>BlockList</code> impl:</p>
+<pre><code class="language-rust ignore">impl BlockList {
+    fn overflow_alloc(&amp;mut self, alloc_size: usize) -&gt; Result&lt;*const u8, AllocError&gt; {
+        ...
+    }
+}
+</code></pre>
+<p>The input constraint is that, since overflow is for medium objects, <code>alloc_size</code>
+must be less than the block size.</p>
+<p>The logic inside will divide into three branches:</p>
+<ol>
+<li>We haven't got an overflow block yet - <code>self.overflow</code> is <code>None</code>. In this
+case we have to instantiate a new block (since we're not maintaining
+a list of preinstantiated free blocks yet) and then, since that block
+is empty and we have a medium sized object, we can expect the allocation
+to succeed.
+<pre><code class="language-rust ignore">    match self.overflow {
+        Some ...,
+        None =&gt; {
+             let mut overflow = BumpBlock::new()?;
+
+             // object size &lt; block size means we can't fail this expect
+             let space = overflow
+                 .inner_alloc(alloc_size)
+                 .expect(&quot;We expected this object to fit!&quot;);
+
+             self.overflow = Some(overflow);
+
+             space
+         }
+    }
+</code></pre>
+</li>
+<li>We <em>have</em> an overflow block and the object fits. Easy.
+<pre><code class="language-rust ignore">     match self.overflow {
+         // We already have an overflow block to try to use...
+         Some(ref mut overflow) =&gt; {
+             // This is a medium object that might fit in the current block...
+             match overflow.inner_alloc(alloc_size) {
+                 // the block has a suitable hole
+                 Some(space) =&gt; space,
+                 ...
+             }
+         },
+         None =&gt; ...
+     }
+</code></pre>
+</li>
+<li>We have an overflow block but the object does not fit. Now we simply
+instantiate a <em>new</em> overflow block, adding the old one to the <code>rest</code>
+list (in future it will make a good candidate for recycing!). Again,
+since we're writing a medium object into a block, we can expect allocation
+to succeed.
+<pre><code class="language-rust ignore">     match self.overflow {
+         // We already have an overflow block to try to use...
+         Some(ref mut overflow) =&gt; {
+             // This is a medium object that might fit in the current block...
+             match overflow.inner_alloc(alloc_size) {
+                 Some ...,
+                 // the block does not have a suitable hole
+                 None =&gt; {
+                     let previous = replace(overflow, BumpBlock::new()?);
+
+                     self.rest.push(previous);
+
+                     overflow.inner_alloc(alloc_size).expect(&quot;Unexpected error!&quot;)
+                 }
+             }
+         },
+         None =&gt; ...
+     }
+</code></pre>
+</li>
+</ol>
+<p>In this logic, the only error can come from failing to create a new block.</p>
+<p>On success, at this level of interface we continue to return a <code>*const u8</code>
+pointer to the available space as we're not yet handling the type of the
+object being allocated.</p>
+<p>You may have noticed that the function signature for <code>overflow_alloc</code> takes a
+<code>&amp;mut self</code>.  This isn't compatible with the interior mutability model
+of allocation.  We'll have to wrap the <code>BlockList</code> struct in another struct
+that handles this change of API model.</p>
+<h2><a class="header" href="#the-heap-struct" id="the-heap-struct">The heap struct</a></h2>
+<p>This outer struct will provide the external crate interface and some further
+implementation of block management.</p>
+<p>The crate interface will require us to consider object headers and so in the
+struct definition below there is reference to a generic type <code>H</code> that
+the <em>user</em> of the heap will define as the object header.</p>
+<pre><code class="language-rust ignore">pub struct StickyImmixHeap&lt;H&gt; {
+    blocks: UnsafeCell&lt;BlockList&gt;,
+
+    _header_type: PhantomData&lt;*const H&gt;,
+}
+</code></pre>
+<p>Since object headers are not owned directly by the heap struct, we need a
+<code>PhantomData</code> instance to associate with <code>H</code>.  We'll discuss object headers
+in a later chapter.</p>
+<p>Now let's focus on the use of the <code>BlockList</code>.</p>
+<p>The instance of <code>BlockList</code> in the <code>StickyImmixHeap</code> struct is wrapped in an
+<code>UnsafeCell</code> because we need interior mutability. We need to be able to
+borrow the <code>BlockList</code> mutably while presenting an immutable interface to
+the outside world.  Since we won't be borrowing the <code>BlockList</code> in multiple
+places in the same call tree, we don't need <code>RefCell</code> and we can avoid it's
+runtime borrow checking.</p>
+<h3><a class="header" href="#allocating-into-the-head-block" id="allocating-into-the-head-block">Allocating into the head block</a></h3>
+<p>We've already taken care of the overflow block, now we'll handle allocation
+into the <code>head</code> block. We'll define a new function:</p>
+<pre><code class="language-rust ignore">impl StickyImmixHeap {
+    fn find_space(
+        &amp;self,
+        alloc_size: usize,
+        size_class: SizeClass,
+    ) -&gt; Result&lt;*const u8, AllocError&gt; {
+        let blocks = unsafe { &amp;mut *self.blocks.get() };
+        ...
+    }
+}
+</code></pre>
+<p>This function is going to look almost identical to the <code>alloc_overflow()</code>
+function defined earlier. It has more or less the same cases to walk through:</p>
+<ol>
+<li><code>head</code> block is <code>None</code>, i.e. we haven't allocated a head block yet. Allocate
+one and write the object into it.</li>
+<li>We have <code>Some(ref mut head)</code> in <code>head</code>.  At this point we divert from the
+<code>alloc_overflow()</code> function and query the size of the object - if this is
+is a medium object and the current hole between marked lines in the <code>head</code>
+block is too small, call into <code>alloc_overflow()</code> and return.
+<pre><code class="language-rust ignore">             if size_class == SizeClass::Medium &amp;&amp; alloc_size &gt; head.current_hole_size() {
+                 return blocks.overflow_alloc(alloc_size);
+             }
+</code></pre>
+Otherwise, continue to allocate into <code>head</code> and return.</li>
+<li>We have <code>Some(ref mut head)</code> in <code>head</code> but this block is unable to
+accommodate the object, whether medium or small. We must append the current
+head to the <code>rest</code> list and create a new <code>BumpBlock</code> to allocate into.</li>
+</ol>
+<p>There is one more thing to mention. What about large objects? We'll cover those
+in a later chapter. Right now we'll make it an error to try to allocate a large
+object by putting this at the beginning of the <code>StickyImmixHeap::inner_alloc()</code>
+function:</p>
+<pre><code class="language-rust ignore">        if size_class == SizeClass::Large {
+            return Err(AllocError::BadRequest);
+        }
+
+</code></pre>
+<h2><a class="header" href="#where-to-next" id="where-to-next">Where to next?</a></h2>
+<p>We have a scheme for finding space in blocks for small and medium objects
+and so, in the next chapter we will define the external interface to the crate.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="chapter-simple-bump.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="chapter-allocation-api.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="chapter-simple-bump.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="chapter-allocation-api.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>
