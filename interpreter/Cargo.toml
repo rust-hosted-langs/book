@@ -3,6 +3,7 @@ name = "evalrus"
 version = "0.0.1"
 authors = ["Peter Liniker <peter.liniker+github@gmail.com>"]
 edition = "2018"
+license = "MIT OR Apache-2.0"
 
 [dependencies]
 clap = "2.20.3"
