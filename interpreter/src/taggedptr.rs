@@ -98,6 +98,7 @@ impl<'guard> MutatorScope for Value<'guard> {}
 
 /// An unpacked tagged Fat Pointer that carries the type information in the enum structure.
 /// This should represent every type native to the runtime.
+// ANCHOR: DefFatPtr
 #[derive(Copy, Clone)]
 pub enum FatPtr {
     Nil,
@@ -115,6 +116,7 @@ pub enum FatPtr {
     Partial(RawPtr<Partial>),
     Upvalue(RawPtr<Upvalue>),
 }
+// ANCHOR_END: DefFatPtr
 
 impl FatPtr {
     /// Given a lifetime, convert to a `Value` type. Unsafe because anything can provide a lifetime
