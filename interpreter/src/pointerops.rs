@@ -13,12 +13,14 @@ pub trait AsNonNull {
 }
 
 // Pointer tag values and masks using the lowest 2 bits
+// ANCHOR: TaggedPtrTags
 const TAG_MASK: usize = 0x3;
 pub const TAG_NUMBER: usize = 0x0;
 pub const TAG_SYMBOL: usize = 0x1;
 pub const TAG_PAIR: usize = 0x2;
 pub const TAG_OBJECT: usize = 0x3;
 const PTR_MASK: usize = !0x3;
+// ANCHOR_END: TaggedPtrTags
 
 /// Return the tag from the given word
 pub fn get_tag(tagged_word: usize) -> usize {
