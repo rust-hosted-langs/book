@@ -15,7 +15,14 @@ At a glance, these are:
 The goal of this book is not to cover a full featured language but rather to
 provide a solid foundation on which you can build further features.
 
-We hope you find this book to be informative!
+### Level of difficulty
+
+Bob Nystrom's [Crafting Interpreters](http://craftinginterpreters.com/)
+is recommended _introductory_ reading to this book for beginners to the topic.
+Bob has produced a high quality, accessible work and in many ways _this_ book
+builds on Bob's work with some additional complexity.
+
+**We hope you find this book to be informative!**
 
 
 ## Further reading and other projects to study:
@@ -24,9 +31,9 @@ All the links below are acknowledged as inspiration or prior art.
 
 ### Interpreters
 
-Bob Nystrom's [Crafting Interpreters](http://craftinginterpreters.com/)
-is recommended companion reading to this book for beginners to the topic
-as there are strong parallels.
+* Bob Nystrom's [Crafting Interpreters](http://craftinginterpreters.com/)
+* [The Inko programming language](https://inko-lang.org/)
+* kyren - [luster](https://github.com/kyren/luster) and [gc-arena](https://github.com/kyren/gc-arena)
 
 ### Memory management
 
