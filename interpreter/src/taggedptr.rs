@@ -226,9 +226,11 @@ pub union TaggedPtr {
 
 impl TaggedPtr {
     /// Construct a nil TaggedPtr
+    // ANCHOR: DefTaggedPtrNil
     pub fn nil() -> TaggedPtr {
         TaggedPtr { tag: 0 }
     }
+    // ANCHOR_END: DefTaggedPtrNil
 
     /// Return true if the pointer is nil
     pub fn is_nil(&self) -> bool {
@@ -243,26 +245,32 @@ impl TaggedPtr {
     }
 
     /// Construct a Pair TaggedPtr
+    // ANCHOR: DefTaggedPtrPair
     fn pair(ptr: RawPtr<Pair>) -> TaggedPtr {
         TaggedPtr {
             pair: ptr.tag(TAG_PAIR),
         }
     }
+    // ANCHOR_END: DefTaggedPtrPair
 
     /// Construct a Symbol TaggedPtr
+    // ANCHOR: DefTaggedPtrSymbol
     pub fn symbol(ptr: RawPtr<Symbol>) -> TaggedPtr {
         TaggedPtr {
             symbol: ptr.tag(TAG_SYMBOL),
         }
     }
+    // ANCHOR_END: DefTaggedPtrSymbol
 
     /// Construct an inline integer TaggedPtr
     // TODO deal with big numbers later
+    // ANCHOR: DefTaggedPtrNumber
     pub fn number(value: isize) -> TaggedPtr {
         TaggedPtr {
             number: (((value as usize) << 2) | TAG_NUMBER) as isize,
         }
     }
+    // ANCHOR_END: DefTaggedPtrNumber
 
     /// Construct an inline integer from a literal signed 16bit number
     pub fn literal_integer(value: i16) -> TaggedPtr {

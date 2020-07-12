@@ -20,10 +20,8 @@ multiply("bob", "alice")
 This script will result in a runtime error and not a compile time error.
 As a dynamically typed interpreter, our language will behave similarly.
 
-For this to work, we need an alternative to `ScopedPtr<T>` that does not
-care about compile time types _but_ from which the type can be resolved
-at runtime.
-
+For this to work, we need an alternative to `ScopedPtr<T>` that can represent
+all the runtime-visible types so they can be resolved at runtime.
 We'll spend some time now inventing some new pointer types to support this.
 
 ## Runtime type identification
@@ -77,9 +75,8 @@ need to make a tagged pointer type that will fundamentally be `unsafe` because
 it won't be safe to dereference it. Then we'll need a safe abstraction over
 that type to make it safe to dereference.
 
-In the previous chapter we defined a pointer type that retained compile time
-type knowledge. We will still need to be able to resolve to concrete types at
-runtime. We can use our previously defined pointer type, though:
+A type that can represent one of multiple types at runtime is obviously the
+`enum`. We can wrap `ScopedPtr<T>` possibilities in an `enum`:
 
 ```rust,ignore
 #[derive(Copy, Clone)]
@@ -90,13 +87,12 @@ pub enum Value<'guard> {
 }
 ```
 
-Here we wrapped possible variants of `ScopedPtr<T>` in an enum, and we've
-started by defining two more new types, `Pair` and `Symbol`, that we'll go
-on to explain shortly.
+We've also referenced two new types, `Pair` and `Symbol`, that we'll go on to
+explain shortly.
 
 You probably noticed that `Value` is essentially a fat pointer. It is composed
-of a set of `ScopedPtr<T>` values, each of which should only require a single
-word, and an enum discriminant value, which will also, due to alignment,
+of a set of `ScopedPtr<T>`s, each of which should only require a single
+word, and an enum discriminant integer, which will also, due to alignment,
 require a word. We'll end up with a lot more discriminants so at this point,
 we can't do tagged pointer trickery, the discriminant value will not fit into
 2 bits.
@@ -104,7 +100,7 @@ we can't do tagged pointer trickery, the discriminant value will not fit into
 This enum, however, since it wraps `ScopedPtr<T>` and has the same requirement
 for an explicit lifetime, is Safe To Dereference.
 
-Since this type occupies the same space as a fat pointer, it isn't the type
+But, since this type occupies the same space as a fat pointer, it isn't the type
 we want for storing pointers at rest. Let's look at the compact tagged pointer
 type now:
 
@@ -132,14 +128,16 @@ means any integer arithmetic that fits within the available bits will not
 require memory lookups into the heap to retrieve operands. In our case we've
 defined the numeric type as an `isize`. Since the 2 least significant bits
 are used for the tag, we will have to right-shift the value by 2 to extract
-the correct integer value.
+the correct integer value. We'll go into this implementation in more depth
+in a later chapter.
 
 Thus you can see from the choice of embedded tag values, we've optimized for
 identifying `Pair`s and `Symbol`s and integer math.
 
 Translating between `Value` and `TaggedPtr` will be made easier by creating
 an intermediate type that represents all types as an enum but doesn't require
-a valid lifetime.
+a valid lifetime. We can even write a method on our object header to
+return this type as the header knows about all runtime types.
 
 ```rust.ignore
 #[derive(Copy, Clone)]
@@ -151,9 +149,75 @@ pub enum FatPtr {
 ```
 
 In this representation we encapsulate the `RawPtr<T>` type that the allocator
-API gives us. We will also implement `From<FatPtr>` for `TaggedPtr` and `Value`
-to convert to the final two possible pointer representations.
+API gives us.
 
+### Tagged pointer conversion
+
+#### FatPtr to Value
+
+We can implement `From<FatPtr>` for `TaggedPtr` and `Value`
+to convert to the final two possible pointer representations.
+Well, not exactly - the function signature
+`From<FatPtr>::from(ptr: FatPtr) -> Value<'guard>` can't provide the `'guard`
+lifetime so we have to implement a similar method that can:
+
+```rust,ignore
+impl FatPtr {
+    pub fn as_value<'guard>(&self, guard: &'guard dyn MutatorScope) -> Value<'guard> {
+        match self {
+            FatPtr::Nil => Value::Nil,
+
+            FatPtr::Pair(raw_ptr) => Value::Pair(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard))),
+
+            FatPtr::Symbol(raw_ptr) => {
+                Value::Symbol(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard)))
+            }
+        }
+    }
+}
+```
+
+#### FatPtr to TaggedPtr
+
+We will introduce a helper trait and methods to work with tag values and
+`RawPtr<T>` types from the allocator:
+
+```rust,ignore
+{{#include ../interpreter/src/pointerops.rs:DefTagged}}
+```
+
+This will help convert from `RawPtr<T>` values in `FatPtr` to the `NonNull<T>`
+based `TaggedPtr` discriminants. Because `TaggedPtr` is a `union` type and
+because it has to apply the appropriate tag value inside the pointer itself, we
+can't work with it as ergnomically as an `enum`. We'll create some more helper
+functions for instantiating `TaggedPtr`s appropriately:
+
+```rust,ignore
+impl TaggedPtr {
+{{#include ../interpreter/src/taggedptr.rs:DefTaggedPtrNil}}
+
+{{#include ../interpreter/src/taggedptr.rs:DefTaggedPtrNumber}}
+
+{{#include ../interpreter/src/taggedptr.rs:DefTaggedPtrSymbol}}
+
+{{#include ../interpreter/src/taggedptr.rs:DefTaggedPtrPair}}
+}
+```
+
+Finally, we can use the above methods to implement `From<FatPtr` for `TaggedPtr`:
+
+```rust,ignore
+impl From<FatPtr> for TaggedPtr {
+    fn from(ptr: FatPtr) -> TaggedPtr {
+        match ptr {
+            FatPtr::Nil => TaggedPtr::nil(),
+            FatPtr::Number(value) => TaggedPtr::number(value),
+            FatPtr::Symbol(raw) => TaggedPtr::symbol(raw),
+            FatPtr::Pair(raw) => TaggedPtr::pair(raw),
+        }
+    }
+}
+```
 
 ----
 
