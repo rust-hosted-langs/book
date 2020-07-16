@@ -59,6 +59,7 @@ pub struct ObjectHeader {
 
 impl ObjectHeader {
     /// Convert the ObjectHeader address to a FatPtr pointing at the object itself
+    // ANCHOR: DefObjectHeaderGetObjectFatPtr
     pub fn get_object_fatptr(&self) -> FatPtr {
         let ptr_to_self = self.non_null_ptr();
         let object_addr = HeapStorage::get_object(ptr_to_self);
@@ -84,6 +85,7 @@ impl ObjectHeader {
             _ => panic!("Invalid ObjectHeader type tag {:?}!", self.type_id),
         }
     }
+    // ANCHOR_END: DefObjectHeaderGetObjectFatPtr
 }
 
 impl AsNonNull for ObjectHeader {}

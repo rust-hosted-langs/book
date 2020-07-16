@@ -1,35 +1,30 @@
-# Tagged pointers and symbols
+# Tagged pointers
+
+Since our virtual machine will support a dynamic language where the compiler
+does no type checking, all the type information will be managed at runtime.
 
 In the previous chapter, we introduced a pointer type `ScopedPtr<T>`. This
 pointer type has compile time knowledge of the type it is pointing at.
 
-In our interpreter we won't always have that. As a dynamic language
-interpreter, our compiler won't do type checking. We'll depend on runtime
-type identification in our virtual machine.
+We need an alternative to `ScopedPtr<T>` that can represent all the
+runtime-visible types so they can be resolved at runtime.
 
-In Python, for example, the following code does not have compile time
-protection against passing in strings:
+As we'll see, carrying around type information or looking it up in the
+header on every access will be inefficient space and performance-wise.
 
-```python
-def multiply(a, b):
-    return a * b
+We'll implement a common optimization: tagged pointers.
 
-multiply("bob", "alice")
-```
-
-This script will result in a runtime error and not a compile time error.
-As a dynamically typed interpreter, our language will behave similarly.
-
-For this to work, we need an alternative to `ScopedPtr<T>` that can represent
-all the runtime-visible types so they can be resolved at runtime.
-We'll spend some time now inventing some new pointer types to support this.
 
 ## Runtime type identification
 
 The object header can always give us the type id for an object, given a pointer
-to the object. However, it requires us to dereference the pointer, do some
-arithmetic on the pointer to get the header, then further arithmetic to get
-the type id in the header.
+to the object. However, it requires us to do some arithmetic on the pointer
+to get the location of the type identifier, then dereference the pointer to get
+the type id value. This dereference can be expensive if the object being
+pointed at is not in the CPU cache. Since getting an object type is a very
+common operation in a dynamic language, these lookups can add up to a lot of
+wasted time. We want to reduce occurrences of this dereference whenever
+possible.
 
 Rust itself doesn't have runtime type _identification_ but does have runtime
 dispatch through trait objects. In this scheme a pointer consists of two words:
@@ -42,8 +37,13 @@ in our interpreter. Each pointer could carry with it an additional word with
 the type id in it, or we could even just use trait objects directly!
 
 A dynamically typed language will manage many pointers that must be type
-identified at runtime. Carrying around an extra word per pointer is expensive!
-A common optimization in many runtimes is to use [tagged pointers](1).
+identified at runtime. Carrying around an extra word per pointer is expensive.
+
+
+## Type identifiers in pointers
+
+Many runtimes implement [tagged pointers](1) to avoid the space overhead, while
+partially improving the time overhead of the header type-id lookup.
 
 In a pointer to any object on the heap, the least most significant bits turn out
 to always be zero due to word or double-word alignment.
@@ -68,6 +68,7 @@ Given we'll only have 4 possible types we can id directly from a pointer,
 we'll still need to fall back on the object header for types that don't fit
 into this range.
 
+
 ### Tagged pointer types
 
 Flipping bits on a pointer directly definitely constitutes a big Unsafe. We'll
@@ -75,8 +76,9 @@ need to make a tagged pointer type that will fundamentally be `unsafe` because
 it won't be safe to dereference it. Then we'll need a safe abstraction over
 that type to make it safe to dereference.
 
-A type that can represent one of multiple types at runtime is obviously the
-`enum`. We can wrap `ScopedPtr<T>` possibilities in an `enum`:
+Starting with the safe abstraction, a type that can represent one of multiple
+types at runtime is obviously the `enum`.
+We can wrap possible `ScopedPtr<T>` types in an `enum`:
 
 ```rust,ignore
 #[derive(Copy, Clone)]
@@ -88,21 +90,23 @@ pub enum Value<'guard> {
 ```
 
 We've also referenced two new types, `Pair` and `Symbol`, that we'll go on to
-explain shortly.
+explain in the next chapter.
 
-You probably noticed that `Value` is essentially a fat pointer. It is composed
-of a set of `ScopedPtr<T>`s, each of which should only require a single
-word, and an enum discriminant integer, which will also, due to alignment,
-require a word. We'll end up with a lot more discriminants so at this point,
-we can't do tagged pointer trickery, the discriminant value will not fit into
-2 bits.
+You probably noticed that `Value` _is_ the fat pointer we discussed earlier.
+It is composed of a set of `ScopedPtr<T>`s, each of which should only require
+a single word, and an enum discriminant integer, which will also, due to
+alignment, require a word.
+
+We'll end up with a lot more discriminants so at this point, we can't do
+tagged pointer trickery, the discriminant value will not fit into 2 bits.
 
 This enum, however, since it wraps `ScopedPtr<T>` and has the same requirement
 for an explicit lifetime, is Safe To Dereference.
 
-But, since this type occupies the same space as a fat pointer, it isn't the type
-we want for storing pointers at rest. Let's look at the compact tagged pointer
-type now:
+As this type occupies the same space as a fat pointer, it isn't the type
+we want for storing pointers at rest.
+
+For that type, let's look at the compact tagged pointer type now:
 
 ```rust,ignore
 {{#include ../interpreter/src/taggedptr.rs:DefTaggedPtr}}
@@ -113,26 +117,19 @@ The `tag` value will be constrained to the values 0, 1, 2 or 3, which will
 determine which of the next four possible members should be accessed. Members
 will have to be bit-masked to access their correct values.
 
-These tags and masks are defined as:
+As you can see, we've allocated a tag for a `Symbol` type, a `Pair` type and
+one for a numeric[^2] type. The fourth member indicates an object whose type
+must be determined from the type id in the object header.
+
+The tags and masks are defined as:
 
 ```rust,ignore
 {{#include ../interpreter/src/pointerops.rs:TaggedPtrTags}}
 ```
 
-As you can see, we've allocated a tag for a `Symbol` type, a `Pair` type and
-one for a numeric type. The fourth member indicates an object whose type
-must be determined from the type id in the object header.
-
-Making space for an inline integer type is a not-uncommon use of a tag. It
-means any integer arithmetic that fits within the available bits will not
-require memory lookups into the heap to retrieve operands. In our case we've
-defined the numeric type as an `isize`. Since the 2 least significant bits
-are used for the tag, we will have to right-shift the value by 2 to extract
-the correct integer value. We'll go into this implementation in more depth
-in a later chapter.
-
 Thus you can see from the choice of embedded tag values, we've optimized for
-identifying `Pair`s and `Symbol`s and integer math.
+fast identification of `Pair`s and `Symbol`s and integer math. If we decide to,
+it will be easy to switch to other types to represent in the 2 tag bits.
 
 Translating between `Value` and `TaggedPtr` will be made easier by creating
 an intermediate type that represents all types as an enum but doesn't require
@@ -158,8 +155,15 @@ API gives us.
 We can implement `From<FatPtr>` for `TaggedPtr` and `Value`
 to convert to the final two possible pointer representations.
 Well, not exactly - the function signature
-`From<FatPtr>::from(ptr: FatPtr) -> Value<'guard>` can't provide the `'guard`
-lifetime so we have to implement a similar method that can:
+
+```rust,ignore
+impl From<FatPtr> for Value<'guard> {
+    fn from(ptr: FatPtr) -> Value<'guard> { ... }
+}
+```
+
+is not able to define the `'guard` lifetime, so we have to implement a
+similar method that can:
 
 ```rust,ignore
 impl FatPtr {
@@ -179,18 +183,24 @@ impl FatPtr {
 
 #### FatPtr to TaggedPtr
 
-We will introduce a helper trait and methods to work with tag values and
-`RawPtr<T>` types from the allocator:
+For converting down to a single-word `TaggedPtr` type we will introduce a helper
+trait and methods to work with tag values and `RawPtr<T>` types from the
+allocator:
 
 ```rust,ignore
 {{#include ../interpreter/src/pointerops.rs:DefTagged}}
 ```
 
 This will help convert from `RawPtr<T>` values in `FatPtr` to the `NonNull<T>`
-based `TaggedPtr` discriminants. Because `TaggedPtr` is a `union` type and
-because it has to apply the appropriate tag value inside the pointer itself, we
-can't work with it as ergnomically as an `enum`. We'll create some more helper
-functions for instantiating `TaggedPtr`s appropriately:
+based `TaggedPtr` discriminants.
+
+Because `TaggedPtr` is a `union` type and because it has to apply the
+appropriate tag value inside the pointer itself, we can't work with it as
+ergnomically as an `enum`. We'll create some more helper functions for
+instantiating `TaggedPtr`s appropriately.
+
+Remember that for storing an integer in the pointer we have to left-shift it 2
+bits to allow for the tag. We'll apply proper range checking in a later chapter.
 
 ```rust,ignore
 impl TaggedPtr {
@@ -219,6 +229,12 @@ impl From<FatPtr> for TaggedPtr {
 }
 ```
 
+#### TaggedPtr to FatPtr
+
+To convert from a `TaggedPtr` to the intermediate type, we need to access the
+object header. The header object itself will own the method for returning a
+`FatPtr`.
+
 ----
 
 [^1]: There are other pointer tagging schemes, notably the use of "spare" NaN
@@ -227,5 +243,13 @@ best represented by the tag bits is highly language dependent. Some languages
 use them for garbage collection information while others may use them for
 still other types hidden from the language user. In the interest of clarity,
 we'll stick to a simple scheme.
+
+[^2]: Making space for an inline integer is a common use of a tag. It
+means any integer arithmetic that fits within the available bits will not
+require memory lookups into the heap to retrieve operands. In our case we've
+defined the numeric type as an `isize`. Since the 2 least significant bits
+are used for the tag, we will have to right-shift the value by 2 to extract
+the correct integer value. We'll go into this implementation in more depth
+in a later chapter.
 
 [1]: https://en.wikipedia.org/wiki/Tagged_pointer
