@@ -1,4 +1,4 @@
-# Allocating and accessing the heap safely
+# Allocating objects and dereferencing safely
 
 In this chapter we'll build some safe Rust abstractions over the allocation API
 defined in the Sticky Immix crate.

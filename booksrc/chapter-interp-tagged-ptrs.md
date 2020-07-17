@@ -1,4 +1,4 @@
-# Tagged pointers
+# Tagged pointers and object headers
 
 Since our virtual machine will support a dynamic language where the compiler
 does no type checking, all the type information will be managed at runtime.
@@ -7,7 +7,7 @@ In the previous chapter, we introduced a pointer type `ScopedPtr<T>`. This
 pointer type has compile time knowledge of the type it is pointing at.
 
 We need an alternative to `ScopedPtr<T>` that can represent all the
-runtime-visible types so they can be resolved at runtime.
+runtime-visible types so they can be resolved _at_ runtime.
 
 As we'll see, carrying around type information or looking it up in the
 header on every access will be inefficient space and performance-wise.
@@ -22,9 +22,8 @@ to the object. However, it requires us to do some arithmetic on the pointer
 to get the location of the type identifier, then dereference the pointer to get
 the type id value. This dereference can be expensive if the object being
 pointed at is not in the CPU cache. Since getting an object type is a very
-common operation in a dynamic language, these lookups can add up to a lot of
-wasted time. We want to reduce occurrences of this dereference whenever
-possible.
+common operation in a dynamic language, these lookups become expensive,
+time-wise.
 
 Rust itself doesn't have runtime type _identification_ but does have runtime
 dispatch through trait objects. In this scheme a pointer consists of two words:
@@ -37,10 +36,11 @@ in our interpreter. Each pointer could carry with it an additional word with
 the type id in it, or we could even just use trait objects directly!
 
 A dynamically typed language will manage many pointers that must be type
-identified at runtime. Carrying around an extra word per pointer is expensive.
+identified at runtime. Carrying around an extra word per pointer is expensive,
+space-wise.
 
 
-## Type identifiers in pointers
+## Tagged pointers
 
 Many runtimes implement [tagged pointers](1) to avoid the space overhead, while
 partially improving the time overhead of the header type-id lookup.
@@ -69,12 +69,45 @@ we'll still need to fall back on the object header for types that don't fit
 into this range.
 
 
-### Tagged pointer types
+## Encoding this in Rust
 
 Flipping bits on a pointer directly definitely constitutes a big Unsafe. We'll
 need to make a tagged pointer type that will fundamentally be `unsafe` because
 it won't be safe to dereference it. Then we'll need a safe abstraction over
 that type to make it safe to dereference.
+
+But first we need to understand the object header.
+
+
+### The allocation object header
+
+We introduced the object header traits in the earlier chapter
+[Defining the allocation API](./chapter-allocation-api.md). The chapter
+explained how the object header is the responsibility of the interpreter to
+implement. We need to know what this should be, now, and we'll focus on the
+type identification parts in this chapter. Other aspects of the header will
+be covered in the garbage collection part of the book.
+
+The allocator API does not prescribe how to implement type identification,
+it merely requires that the type identifier type must implement the
+`AllocTypeId` trait.
+
+We'll use an `enum` for all our runtime types:
+
+```rust,ignore
+{{#include ../interpreter/src/headers.rs:DefTypeList}}
+```
+
+As you can see we have a number of types that our runtime will use.
+
+This type identifier `enum` is a member of the `ObjectHeader` struct along
+with a few other members that our Immix implementation requires.
+
+```rust,ignore
+{{#include ../interpreter/src/headers.rs:DefObjectHeader}}
+```
+
+### The safe abstraction
 
 Starting with the safe abstraction, a type that can represent one of multiple
 types at runtime is obviously the `enum`.
@@ -106,16 +139,19 @@ for an explicit lifetime, is Safe To Dereference.
 As this type occupies the same space as a fat pointer, it isn't the type
 we want for storing pointers at rest.
 
-For that type, let's look at the compact tagged pointer type now:
+For that type, let's look at the compact tagged pointer type now.
+
+
+### What lies beneath
+
+Below we have a `union` type, making this an unsafe representation of a pointer.
+The `tag` value will be constrained to the values 0, 1, 2 or 3, which will
+determine which of the next four possible members should be accessed. Members
+will have to be bit-masked to access their correct values.
 
 ```rust,ignore
 {{#include ../interpreter/src/taggedptr.rs:DefTaggedPtr}}
 ```
-
-Here we have a `union` type, making this an unsafe representation of a pointer.
-The `tag` value will be constrained to the values 0, 1, 2 or 3, which will
-determine which of the next four possible members should be accessed. Members
-will have to be bit-masked to access their correct values.
 
 As you can see, we've allocated a tag for a `Symbol` type, a `Pair` type and
 one for a numeric[^2] type. The fourth member indicates an object whose type
@@ -133,8 +169,8 @@ it will be easy to switch to other types to represent in the 2 tag bits.
 
 Translating between `Value` and `TaggedPtr` will be made easier by creating
 an intermediate type that represents all types as an enum but doesn't require
-a valid lifetime. We can even write a method on our object header to
-return this type as the header knows about all runtime types.
+a valid lifetime. This type will be useful because it is most closely
+ergonomic with the allocator API and the object header type information.
 
 ```rust.ignore
 #[derive(Copy, Clone)]
@@ -145,12 +181,12 @@ pub enum FatPtr {
 }
 ```
 
-In this representation we encapsulate the `RawPtr<T>` type that the allocator
-API gives us.
+Next we'll look at how to convert between `FatPtr`, `TaggedPtr` and `Value`.
 
-### Tagged pointer conversion
 
-#### FatPtr to Value
+## Type conversions
+
+### FatPtr to Value
 
 We can implement `From<FatPtr>` for `TaggedPtr` and `Value`
 to convert to the final two possible pointer representations.
@@ -181,7 +217,8 @@ impl FatPtr {
 }
 ```
 
-#### FatPtr to TaggedPtr
+
+### FatPtr to TaggedPtr
 
 For converting down to a single-word `TaggedPtr` type we will introduce a helper
 trait and methods to work with tag values and `RawPtr<T>` types from the
@@ -229,11 +266,29 @@ impl From<FatPtr> for TaggedPtr {
 }
 ```
 
-#### TaggedPtr to FatPtr
+
+### TaggedPtr to FatPtr
 
 To convert from a `TaggedPtr` to the intermediate type, we need to access the
 object header. The header object itself will own the method for returning a
 `FatPtr`.
+
+```rust,ignore
+impl ObjectHeader {
+    /// Convert the ObjectHeader address to a FatPtr pointing at the object itself
+    pub fn get_object_fatptr(&self) -> FatPtr {
+        let ptr_to_self = self.non_null_ptr();
+        let object_addr = HeapStorage::get_object(ptr_to_self);
+
+        match self.type_id {
+            TypeList::Symbol => { FatPtr::Pair(RawPtr::untag(object_addr.cast::<Symbol>())) },
+            TypeList::Pair => { FatPtr::Pair(RawPtr::untag(object_addr.cast::<Pair>())) },
+
+            _ => panic!("Invalid ObjectHeader type tag {:?}!", self.type_id),
+        }
+    }
+}
+```
 
 ----
 

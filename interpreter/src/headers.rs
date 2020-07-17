@@ -50,12 +50,14 @@ impl AllocTypeId for TypeList {}
 // ANCHOR_END: DefTypeList
 
 /// A heap-allocated object header
+// ANCHOR: DefObjectHeader
 pub struct ObjectHeader {
     mark: Mark,
     size_class: SizeClass,
     type_id: TypeList,
     size_bytes: u32,
 }
+// ANCHOR_END: DefObjectHeader
 
 impl ObjectHeader {
     /// Convert the ObjectHeader address to a FatPtr pointing at the object itself
