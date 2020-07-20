@@ -84,60 +84,63 @@ But first we need to understand the object header.
 We introduced the object header traits in the earlier chapter
 [Defining the allocation API](./chapter-allocation-api.md). The chapter
 explained how the object header is the responsibility of the interpreter to
-implement. We need to know what this should be, now, and we'll focus on the
-type identification parts in this chapter. Other aspects of the header will
-be covered in the garbage collection part of the book.
+implement.
 
-The allocator API does not prescribe how to implement type identification,
-it merely requires that the type identifier type must implement the
-`AllocTypeId` trait.
+Now that we need to implement type identification, we need the object header
+implementation first.
 
-We'll use an `enum` for all our runtime types:
+The allocator API requires that the type identifier implement the
+`AllocTypeId` trait. We'll use an `enum` to identify for all our runtime types:
 
 ```rust,ignore
 {{#include ../interpreter/src/headers.rs:DefTypeList}}
 ```
 
-As you can see we have a number of types that our runtime will use.
+Given that the allocator API requires every object that can be allocated to
+have an associated type id `const`, this enum represents every type that
+can be allocated and that we will go on to describe in this book.
 
 This type identifier `enum` is a member of the `ObjectHeader` struct along
-with a few other members that our Immix implementation requires.
+with a few other members that our Immix implementation requires:
 
 ```rust,ignore
 {{#include ../interpreter/src/headers.rs:DefObjectHeader}}
 ```
 
-### The safe abstraction
+The rest of the header members will be the topic of the later garbage
+collection part of the book.
+
+> ***Note:*** While we are using an `enum` for clarity, we could choose other
+> means of type identification that would be more flexible. For example,
+> we could generate a lookup table of compile-time generated ids to
+> trait objects.
+
+
+### A safe pointer abstraction
 
 Starting with the safe abstraction, a type that can represent one of multiple
 types at runtime is obviously the `enum`.
 We can wrap possible `ScopedPtr<T>` types in an `enum`:
 
 ```rust,ignore
-#[derive(Copy, Clone)]
-pub enum Value<'guard> {
-    Nil,
-    Pair(ScopedPtr<'guard, Pair>),
-    Symbol(ScopedPtr<'guard, Symbol>),
-}
+{{#include ../interpreter/src/taggedptr.rs:DefValue}}
 ```
 
-We've also referenced two new types, `Pair` and `Symbol`, that we'll go on to
-explain in the next chapter.
+Notice that this `enum` does _not_ include all the same types that were
+listed above in `TypeList`. Only the types that can be passed dynamically at
+runtime need to be represented here. Other types not listed here are known
+at runtime.
 
-You probably noticed that `Value` _is_ the fat pointer we discussed earlier.
-It is composed of a set of `ScopedPtr<T>`s, each of which should only require
-a single word, and an enum discriminant integer, which will also, due to
-alignment, require a word.
+You probably also noticed that `Value` _is_ the fat pointer we discussed
+earlier. It is composed of a set of `ScopedPtr<T>`s, each of which should
+only require a single word, and an enum discriminant integer, which will
+also, due to alignment, require a word.
 
-We'll end up with a lot more discriminants so at this point, we can't do
-tagged pointer trickery, the discriminant value will not fit into 2 bits.
-
-This enum, however, since it wraps `ScopedPtr<T>` and has the same requirement
+This enum, since it wraps `ScopedPtr<T>` and has the same requirement
 for an explicit lifetime, is Safe To Dereference.
 
 As this type occupies the same space as a fat pointer, it isn't the type
-we want for storing pointers at rest.
+we want for storing pointers at rest, though.
 
 For that type, let's look at the compact tagged pointer type now.
 
@@ -154,8 +157,16 @@ will have to be bit-masked to access their correct values.
 ```
 
 As you can see, we've allocated a tag for a `Symbol` type, a `Pair` type and
-one for a numeric[^2] type. The fourth member indicates an object whose type
+one for a numeric type. The fourth member indicates an object whose type
 must be determined from the type id in the object header.
+
+> ***Note:*** Making space for an inline integer is a common use of a tag. It
+> means any integer arithmetic that fits within the available bits will not
+> require memory lookups into the heap to retrieve operands. In our case we've
+> defined the numeric type as an `isize`. Since the 2 least significant bits
+> are used for the tag, we will have to right-shift the value by 2 to extract
+> the correct integer value. We'll go into this implementation in more depth
+> in a later chapter.
 
 The tags and masks are defined as:
 
@@ -173,12 +184,7 @@ a valid lifetime. This type will be useful because it is most closely
 ergonomic with the allocator API and the object header type information.
 
 ```rust.ignore
-#[derive(Copy, Clone)]
-pub enum FatPtr {
-    Nil,
-    Pair(RawPtr<Pair>),
-    Symbol(RawPtr<Symbol>),
-}
+{{#include ../interpreter/src/taggedptr.rs:DefFatPtr}}
 ```
 
 Next we'll look at how to convert between `FatPtr`, `TaggedPtr` and `Value`.
@@ -203,17 +209,7 @@ similar method that can:
 
 ```rust,ignore
 impl FatPtr {
-    pub fn as_value<'guard>(&self, guard: &'guard dyn MutatorScope) -> Value<'guard> {
-        match self {
-            FatPtr::Nil => Value::Nil,
-
-            FatPtr::Pair(raw_ptr) => Value::Pair(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard))),
-
-            FatPtr::Symbol(raw_ptr) => {
-                Value::Symbol(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard)))
-            }
-        }
-    }
+{{#include ../interpreter/src/taggedptr.rs:DefFatPtrAsValue}}
 }
 ```
 
@@ -254,16 +250,7 @@ impl TaggedPtr {
 Finally, we can use the above methods to implement `From<FatPtr` for `TaggedPtr`:
 
 ```rust,ignore
-impl From<FatPtr> for TaggedPtr {
-    fn from(ptr: FatPtr) -> TaggedPtr {
-        match ptr {
-            FatPtr::Nil => TaggedPtr::nil(),
-            FatPtr::Number(value) => TaggedPtr::number(value),
-            FatPtr::Symbol(raw) => TaggedPtr::symbol(raw),
-            FatPtr::Pair(raw) => TaggedPtr::pair(raw),
-        }
-    }
-}
+{{#include ../interpreter/src/taggedptr.rs:DefFromFatPtrForTaggedPtr}}
 ```
 
 
@@ -275,20 +262,13 @@ object header. The header object itself will own the method for returning a
 
 ```rust,ignore
 impl ObjectHeader {
-    /// Convert the ObjectHeader address to a FatPtr pointing at the object itself
-    pub fn get_object_fatptr(&self) -> FatPtr {
-        let ptr_to_self = self.non_null_ptr();
-        let object_addr = HeapStorage::get_object(ptr_to_self);
-
-        match self.type_id {
-            TypeList::Symbol => { FatPtr::Pair(RawPtr::untag(object_addr.cast::<Symbol>())) },
-            TypeList::Pair => { FatPtr::Pair(RawPtr::untag(object_addr.cast::<Pair>())) },
-
-            _ => panic!("Invalid ObjectHeader type tag {:?}!", self.type_id),
-        }
-    }
+{{#include ../interpreter/src/headers.rs:DefObjectHeaderGetObjectFatPtr}}
 }
 ```
+
+## Tagged pointers in data structures
+
+TODO: TaggedCellPtr, TaggedScopedPtr
 
 ----
 
@@ -299,12 +279,5 @@ use them for garbage collection information while others may use them for
 still other types hidden from the language user. In the interest of clarity,
 we'll stick to a simple scheme.
 
-[^2]: Making space for an inline integer is a common use of a tag. It
-means any integer arithmetic that fits within the available bits will not
-require memory lookups into the heap to retrieve operands. In our case we've
-defined the numeric type as an `isize`. Since the 2 least significant bits
-are used for the tag, we will have to right-shift the value by 2 to extract
-the correct integer value. We'll go into this implementation in more depth
-in a later chapter.
 
 [1]: https://en.wikipedia.org/wiki/Tagged_pointer

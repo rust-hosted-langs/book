@@ -33,23 +33,25 @@ use crate::vm::Upvalue;
 /// A safe interface to GC-heap managed objects. The `'guard` lifetime must be a safe lifetime for
 /// the GC not to move or collect the referenced object.
 /// This should represent every type native to the runtime.
+// ANCHOR: DefValue
 #[derive(Copy, Clone)]
 pub enum Value<'guard> {
-    Nil,
-    Pair(ScopedPtr<'guard, Pair>),
-    Symbol(ScopedPtr<'guard, Symbol>),
-    Number(isize),
-    NumberObject(ScopedPtr<'guard, NumberObject>),
-    Text(ScopedPtr<'guard, Text>),
-    List(ScopedPtr<'guard, List>),
     ArrayU8(ScopedPtr<'guard, ArrayU8>),
     ArrayU16(ScopedPtr<'guard, ArrayU16>),
     ArrayU32(ScopedPtr<'guard, ArrayU32>),
     Dict(ScopedPtr<'guard, Dict>),
     Function(ScopedPtr<'guard, Function>),
+    List(ScopedPtr<'guard, List>),
+    Nil,
+    Number(isize),
+    NumberObject(ScopedPtr<'guard, NumberObject>),
+    Pair(ScopedPtr<'guard, Pair>),
     Partial(ScopedPtr<'guard, Partial>),
+    Symbol(ScopedPtr<'guard, Symbol>),
+    Text(ScopedPtr<'guard, Text>),
     Upvalue(ScopedPtr<'guard, Upvalue>),
 }
+// ANCHOR_END: DefValue
 
 /// `Value` can have a safe `Display` implementation
 impl<'guard> fmt::Display for Value<'guard> {
@@ -76,18 +78,18 @@ impl<'guard> fmt::Display for Value<'guard> {
 impl<'guard> fmt::Debug for Value<'guard> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Value::Nil => write!(f, "nil"),
-            Value::Pair(p) => p.debug(self, f),
-            Value::Symbol(s) => s.debug(self, f),
-            Value::Number(n) => write!(f, "{}", *n),
-            Value::Text(t) => t.debug(self, f),
-            Value::List(a) => a.debug(self, f),
             Value::ArrayU8(a) => a.debug(self, f),
             Value::ArrayU16(a) => a.debug(self, f),
             Value::ArrayU32(a) => a.debug(self, f),
             Value::Dict(d) => d.debug(self, f),
             Value::Function(n) => n.debug(self, f),
+            Value::List(a) => a.debug(self, f),
+            Value::Nil => write!(f, "nil"),
+            Value::Number(n) => write!(f, "{}", *n),
+            Value::Pair(p) => p.debug(self, f),
             Value::Partial(p) => p.debug(self, f),
+            Value::Symbol(s) => s.debug(self, f),
+            Value::Text(t) => t.debug(self, f),
             Value::Upvalue(_) => write!(f, "Upvalue"),
             _ => write!(f, "<unidentified-object-type>"),
         }
@@ -101,19 +103,19 @@ impl<'guard> MutatorScope for Value<'guard> {}
 // ANCHOR: DefFatPtr
 #[derive(Copy, Clone)]
 pub enum FatPtr {
-    Nil,
-    Pair(RawPtr<Pair>),
-    Symbol(RawPtr<Symbol>),
-    Number(isize),
-    NumberObject(RawPtr<NumberObject>),
-    Text(RawPtr<Text>),
-    List(RawPtr<List>),
     ArrayU8(RawPtr<ArrayU8>),
     ArrayU16(RawPtr<ArrayU16>),
     ArrayU32(RawPtr<ArrayU32>),
     Dict(RawPtr<Dict>),
     Function(RawPtr<Function>),
+    List(RawPtr<List>),
+    Nil,
+    Number(isize),
+    NumberObject(RawPtr<NumberObject>),
+    Pair(RawPtr<Pair>),
     Partial(RawPtr<Partial>),
+    Symbol(RawPtr<Symbol>),
+    Text(RawPtr<Text>),
     Upvalue(RawPtr<Upvalue>),
 }
 // ANCHOR_END: DefFatPtr
@@ -121,19 +123,9 @@ pub enum FatPtr {
 impl FatPtr {
     /// Given a lifetime, convert to a `Value` type. Unsafe because anything can provide a lifetime
     /// without any safety guarantee that it's valid.
+    // ANCHOR: DefFatPtrAsValue
     pub fn as_value<'guard>(&self, guard: &'guard dyn MutatorScope) -> Value<'guard> {
         match self {
-            FatPtr::Nil => Value::Nil,
-            FatPtr::Pair(raw_ptr) => Value::Pair(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard))),
-            FatPtr::Symbol(raw_ptr) => {
-                Value::Symbol(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard)))
-            }
-            FatPtr::Number(num) => Value::Number(*num),
-            FatPtr::NumberObject(raw_ptr) => {
-                Value::NumberObject(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard)))
-            }
-            FatPtr::Text(raw_ptr) => Value::Text(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard))),
-            FatPtr::List(raw_ptr) => Value::List(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard))),
             FatPtr::ArrayU8(raw_ptr) => {
                 Value::ArrayU8(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard)))
             }
@@ -147,14 +139,26 @@ impl FatPtr {
             FatPtr::Function(raw_ptr) => {
                 Value::Function(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard)))
             }
+            FatPtr::List(raw_ptr) => Value::List(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard))),
+            FatPtr::Nil => Value::Nil,
+            FatPtr::Number(num) => Value::Number(*num),
+            FatPtr::NumberObject(raw_ptr) => {
+                Value::NumberObject(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard)))
+            }
+            FatPtr::Pair(raw_ptr) => Value::Pair(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard))),
             FatPtr::Partial(raw_ptr) => {
                 Value::Partial(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard)))
             }
+            FatPtr::Symbol(raw_ptr) => {
+                Value::Symbol(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard)))
+            }
+            FatPtr::Text(raw_ptr) => Value::Text(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard))),
             FatPtr::Upvalue(raw_ptr) => {
                 Value::Upvalue(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard)))
             }
         }
     }
+    // ANCHOR_END: DefFatPtrAsValue
 }
 
 /// Implement `From<RawPtr<T>> for FatPtr` for the given FatPtr discriminant and the given `T`
@@ -168,17 +172,17 @@ macro_rules! fatptr_from_rawptr {
     };
 }
 
-fatptr_from_rawptr!(Pair, Pair);
-fatptr_from_rawptr!(Symbol, Symbol);
-fatptr_from_rawptr!(NumberObject, NumberObject);
-fatptr_from_rawptr!(Text, Text);
-fatptr_from_rawptr!(List, List);
 fatptr_from_rawptr!(ArrayU8, ArrayU8);
 fatptr_from_rawptr!(ArrayU16, ArrayU16);
 fatptr_from_rawptr!(ArrayU32, ArrayU32);
 fatptr_from_rawptr!(Dict, Dict);
 fatptr_from_rawptr!(Function, Function);
+fatptr_from_rawptr!(List, List);
+fatptr_from_rawptr!(NumberObject, NumberObject);
+fatptr_from_rawptr!(Pair, Pair);
 fatptr_from_rawptr!(Partial, Partial);
+fatptr_from_rawptr!(Symbol, Symbol);
+fatptr_from_rawptr!(Text, Text);
 fatptr_from_rawptr!(Upvalue, Upvalue);
 
 /// Conversion from an integer type
@@ -303,26 +307,28 @@ impl TaggedPtr {
     }
 }
 
+// ANCHOR: DefFromFatPtrForTaggedPtr
 impl From<FatPtr> for TaggedPtr {
     fn from(ptr: FatPtr) -> TaggedPtr {
         match ptr {
-            FatPtr::Nil => TaggedPtr::nil(),
-            FatPtr::Number(value) => TaggedPtr::number(value),
-            FatPtr::Symbol(raw) => TaggedPtr::symbol(raw),
-            FatPtr::Pair(raw) => TaggedPtr::pair(raw),
-            FatPtr::NumberObject(raw) => TaggedPtr::object(raw),
-            FatPtr::Text(raw) => TaggedPtr::object(raw),
-            FatPtr::List(raw) => TaggedPtr::object(raw),
             FatPtr::ArrayU8(raw) => TaggedPtr::object(raw),
             FatPtr::ArrayU16(raw) => TaggedPtr::object(raw),
             FatPtr::ArrayU32(raw) => TaggedPtr::object(raw),
             FatPtr::Dict(raw) => TaggedPtr::object(raw),
             FatPtr::Function(raw) => TaggedPtr::object(raw),
+            FatPtr::List(raw) => TaggedPtr::object(raw),
+            FatPtr::Nil => TaggedPtr::nil(),
+            FatPtr::Number(value) => TaggedPtr::number(value),
+            FatPtr::NumberObject(raw) => TaggedPtr::object(raw),
+            FatPtr::Pair(raw) => TaggedPtr::pair(raw),
             FatPtr::Partial(raw) => TaggedPtr::object(raw),
+            FatPtr::Text(raw) => TaggedPtr::object(raw),
+            FatPtr::Symbol(raw) => TaggedPtr::symbol(raw),
             FatPtr::Upvalue(raw) => TaggedPtr::object(raw),
         }
     }
 }
+// ANCHOR_END: DefFromFatPtrForTaggedPtr
 
 /// Simple identity equality
 impl PartialEq for TaggedPtr {
