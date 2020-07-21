@@ -132,11 +132,13 @@ impl<T: Sized> From<ScopedPtr<'_, T>> for CellPtr<T> {
 
 /// A _tagged_ runtime typed pointer type with scope limited by `MutatorScope` such that a `Value`
 /// instance can safely be derived and accessed. This type is neccessary to derive `Value`s from.
+// ANCHOR: DefTaggedScopedPtr
 #[derive(Copy, Clone)]
 pub struct TaggedScopedPtr<'guard> {
     ptr: TaggedPtr,
     value: Value<'guard>,
 }
+// ANCHOR_END: DefTaggedScopedPtr
 
 impl<'guard> TaggedScopedPtr<'guard> {
     pub fn new(guard: &'guard dyn MutatorScope, ptr: TaggedPtr) -> TaggedScopedPtr<'guard> {

@@ -110,11 +110,6 @@ with a few other members that our Immix implementation requires:
 The rest of the header members will be the topic of the later garbage
 collection part of the book.
 
-> ***Note:*** While we are using an `enum` for clarity, we could choose other
-> means of type identification that would be more flexible. For example,
-> we could generate a lookup table of compile-time generated ids to
-> trait objects.
-
 
 ### A safe pointer abstraction
 
@@ -192,6 +187,11 @@ Next we'll look at how to convert between `FatPtr`, `TaggedPtr` and `Value`.
 
 ## Type conversions
 
+We have three pointer types: `Value`, `FatPtr` and `TaggedPtr`, each which
+has a distinct flavor. We need to be able to convert from one to the other:
+
+    TaggedPtr <-> FatPtr -> Value
+
 ### FatPtr to Value
 
 We can implement `From<FatPtr>` for `TaggedPtr` and `Value`
@@ -268,7 +268,41 @@ impl ObjectHeader {
 
 ## Tagged pointers in data structures
 
-TODO: TaggedCellPtr, TaggedScopedPtr
+In the previous chapter, we defined a `CellPtr` type that wrapped a `RawPtr<T>`
+in a `Cell<T>` so that data structures can contain mutable pointers to other
+objects. Similarly, we'll want something to wrap tagged pointers.
+
+```rust,ignore
+{{#include ../interpreter/src/safeptr.rs:DefTaggedCellPtr}}
+```
+
+We'll also wrap `Value` in a type `TaggedScopedPtr` that we'll use similarly
+to `ScopedPtr<T>`.
+
+```rust,ignore
+{{#include ../interpreter/src/safeptr.rs:DefTaggedScopedPtr}}
+```
+
+This `TaggedScopedPtr` carries an instance of `TaggedPtr` _and_ a `Value`.
+This makes it three words that need to be hefted around to represent a
+pointer. It's suitable for handling pointers that are actively in use in
+the virtual machine instruction interpreter but nowhere else!
+
+> ***Note:*** Redundancy: TaggedScopedPtr and Value are almost
+> identical in requirement and functionality. TODO: merge into one type.
+> See issue <https://github.com/rust-hosted-langs/book/issues/30>
+
+
+## Recap
+
+In summary, what we created here was a set of pointer types:
+
+* types suitable for storing a pointer at rest - `TaggedPtr` and `TaggedCellPtr`
+* types suitable for dereferencing a pointer - `Value` and `TaggedScopedPtr`
+* a type suitable for intermediating between the two - `FatPtr`
+
+Next, we'll put these to use in defining the first and simplest data structures
+of our interpreter.
 
 ----
 
