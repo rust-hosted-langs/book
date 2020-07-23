@@ -1,0 +1,684 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Tagged pointers and object headers - Writing Interpreters in Rust: a Guide</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="part-allocators.html"><strong aria-hidden="true">2.</strong> Allocation</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-alignment.html"><strong aria-hidden="true">2.1.</strong> Alignment</a></li><li class="chapter-item expanded "><a href="chapter-blocks.html"><strong aria-hidden="true">2.2.</strong> Obtaining blocks of memory</a></li><li class="chapter-item expanded "><a href="chapter-what-is-alloc.html"><strong aria-hidden="true">2.3.</strong> The type of allocation</a></li></ol></li><li class="chapter-item expanded "><a href="part-stickyimmix.html"><strong aria-hidden="true">3.</strong> An allocator: Sticky Immix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-simple-bump.html"><strong aria-hidden="true">3.1.</strong> Bump allocation</a></li><li class="chapter-item expanded "><a href="chapter-managing-blocks.html"><strong aria-hidden="true">3.2.</strong> Allocating into multiple blocks</a></li><li class="chapter-item expanded "><a href="chapter-allocation-api.html"><strong aria-hidden="true">3.3.</strong> Defining the allocation API</a></li><li class="chapter-item expanded "><a href="chapter-allocation-impl.html"><strong aria-hidden="true">3.4.</strong> Implementing the API</a></li></ol></li><li class="chapter-item expanded "><a href="part-interpreter.html"><strong aria-hidden="true">4.</strong> An interpreter: Eval-rs</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-interp-alloc.html"><strong aria-hidden="true">4.1.</strong> Allocating objects and dereferencing safely</a></li><li class="chapter-item expanded "><a href="chapter-interp-tagged-ptrs.html" class="active"><strong aria-hidden="true">4.2.</strong> Tagged pointers and object headers</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">4.3.</strong> TODO - Symbols and Pairs</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">4.4.</strong> TODO - Parsing</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">4.5.</strong> TODO - Arrays</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">4.6.</strong> TODO - Bytecode</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">4.7.</strong> TODO - Basic expressions</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">4.8.</strong> TODO - Numbers</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">4.9.</strong> TODO - Dicts</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">4.10.</strong> TODO - Functions</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">4.11.</strong> TODO - Closures</a></li></ol></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">5.</strong> Garbage collection</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">5.1.</strong> TODO - Tracing</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">5.2.</strong> TODO - Sweeping</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">5.3.</strong> TODO - Recycling blocks</a></li></ol></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">6.</strong> Advanced garbage collection</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">6.1.</strong> TODO - Incremental tracing</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">6.2.</strong> TODO - Parallel sweeping</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">6.3.</strong> TODO - Multi-threaded mutators</a></li></ol></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">7.</strong> Full Immix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">7.1.</strong> TODO - Evacuating blocks</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Writing Interpreters in Rust: a Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#tagged-pointers-and-object-headers" id="tagged-pointers-and-object-headers">Tagged pointers and object headers</a></h1>
+<p>Since our virtual machine will support a dynamic language where the compiler
+does no type checking, all the type information will be managed at runtime.</p>
+<p>In the previous chapter, we introduced a pointer type <code>ScopedPtr&lt;T&gt;</code>. This
+pointer type has compile time knowledge of the type it is pointing at.</p>
+<p>We need an alternative to <code>ScopedPtr&lt;T&gt;</code> that can represent all the
+runtime-visible types so they can be resolved <em>at</em> runtime.</p>
+<p>As we'll see, carrying around type information or looking it up in the
+header on every access will be inefficient space and performance-wise.</p>
+<p>We'll implement a common optimization: tagged pointers.</p>
+<h2><a class="header" href="#runtime-type-identification" id="runtime-type-identification">Runtime type identification</a></h2>
+<p>The object header can always give us the type id for an object, given a pointer
+to the object. However, it requires us to do some arithmetic on the pointer
+to get the location of the type identifier, then dereference the pointer to get
+the type id value. This dereference can be expensive if the object being
+pointed at is not in the CPU cache. Since getting an object type is a very
+common operation in a dynamic language, these lookups become expensive,
+time-wise.</p>
+<p>Rust itself doesn't have runtime type <em>identification</em> but does have runtime
+dispatch through trait objects. In this scheme a pointer consists of two words:
+the pointer to the object itself and a second pointer to the vtable where the
+concrete object type's methods can be looked up. The generic name for this form
+of pointer is a <em>fat</em> pointer.</p>
+<p>We could easily use a fat pointer type for runtime type identification
+in our interpreter. Each pointer could carry with it an additional word with
+the type id in it, or we could even just use trait objects!</p>
+<p>A dynamically typed language will manage many pointers that must be type
+identified at runtime. Carrying around an extra word per pointer is expensive,
+space-wise, however.</p>
+<h2><a class="header" href="#tagged-pointers" id="tagged-pointers">Tagged pointers</a></h2>
+<p>Many runtimes implement <a href="1">tagged pointers</a> to avoid the space overhead, while
+partially improving the time overhead of the header type-id lookup.</p>
+<p>In a pointer to any object on the heap, the least most significant bits turn out
+to always be zero due to word or double-word alignment.</p>
+<p>On a 64 bit platform, a pointer is a 64 bit word. Since objects are
+at least word-aligned, a pointer is always be a multiple of 8 and
+the 3 least significant bits are always 0. On 32 bit platforms, the 2 least
+significant bits are always 0.</p>
+<pre><code>  64..............48..............32..............16...........xxx
+0b1111111111111111111111111111111111111111111111111111111111111000
+                                                               / |
+                                                              /  |
+                                                            unused
+</code></pre>
+<p>When dereferencing a pointer, these bits must always be zero. But we <em>can</em> use
+them in pointers at rest to store a limited type identifier! We'll limit
+ourselves to 2 bits of type identifier so as to not complicate our code in
+distinguishing between 32 and 64 bit platforms<sup class="footnote-reference"><a href="#1">1</a></sup>.</p>
+<p>Given we'll only have 4 possible types we can id directly from a pointer,
+we'll still need to fall back on the object header for types that don't fit
+into this range.</p>
+<h2><a class="header" href="#encoding-this-in-rust" id="encoding-this-in-rust">Encoding this in Rust</a></h2>
+<p>Flipping bits on a pointer directly definitely constitutes a big Unsafe. We'll
+need to make a tagged pointer type that will fundamentally be <code>unsafe</code> because
+it won't be safe to dereference it. Then we'll need a safe abstraction over
+that type to make it safe to dereference.</p>
+<p>But first we need to understand the object header and how we get an object's
+type from it.</p>
+<h3><a class="header" href="#the-object-header" id="the-object-header">The object header</a></h3>
+<p>We introduced the object header traits in the earlier chapter
+<a href="./chapter-allocation-api.html">Defining the allocation API</a>. The chapter
+explained how the object header is the responsibility of the interpreter to
+implement.</p>
+<p>Now that we need to implement type identification, we need the object header.</p>
+<p>The allocator API requires that the type identifier implement the
+<code>AllocTypeId</code> trait. We'll use an <code>enum</code> to identify for all our runtime types:</p>
+<pre><code class="language-rust ignore">#[repr(u16)]
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum TypeList {
+    ArrayBackingBytes,
+    ArrayOpcode,
+    ArrayU8,
+    ArrayU16,
+    ArrayU32,
+    ByteCode,
+    CallFrameList,
+    Dict,
+    Function,
+    InstructionStream,
+    List,
+    NumberObject,
+    Pair,
+    Partial,
+    Symbol,
+    Text,
+    Thread,
+    Upvalue,
+}
+
+// Mark this as a Stickyimmix type-identifier type
+impl AllocTypeId for TypeList {}
+</code></pre>
+<p>Given that the allocator API requires every object that can be allocated to
+have an associated type id <code>const</code>, this <code>enum</code> represents every type that
+can be allocated and that we will go on to describe in this book.</p>
+<p>It is a member of the <code>ObjectHeader</code> struct along with a few other members
+that our Immix implementation requires:</p>
+<pre><code class="language-rust ignore">pub struct ObjectHeader {
+    mark: Mark,
+    size_class: SizeClass,
+    type_id: TypeList,
+    size_bytes: u32,
+}
+</code></pre>
+<p>The rest of the header members will be the topic of the later garbage
+collection part of the book.</p>
+<h3><a class="header" href="#a-safe-pointer-abstraction" id="a-safe-pointer-abstraction">A safe pointer abstraction</a></h3>
+<p>A type that can represent one of multiple types at runtime is obviously the
+<code>enum</code>. We can wrap possible <code>ScopedPtr&lt;T&gt;</code> types like so:</p>
+<pre><code class="language-rust ignore">#[derive(Copy, Clone)]
+pub enum Value&lt;'guard&gt; {
+    ArrayU8(ScopedPtr&lt;'guard, ArrayU8&gt;),
+    ArrayU16(ScopedPtr&lt;'guard, ArrayU16&gt;),
+    ArrayU32(ScopedPtr&lt;'guard, ArrayU32&gt;),
+    Dict(ScopedPtr&lt;'guard, Dict&gt;),
+    Function(ScopedPtr&lt;'guard, Function&gt;),
+    List(ScopedPtr&lt;'guard, List&gt;),
+    Nil,
+    Number(isize),
+    NumberObject(ScopedPtr&lt;'guard, NumberObject&gt;),
+    Pair(ScopedPtr&lt;'guard, Pair&gt;),
+    Partial(ScopedPtr&lt;'guard, Partial&gt;),
+    Symbol(ScopedPtr&lt;'guard, Symbol&gt;),
+    Text(ScopedPtr&lt;'guard, Text&gt;),
+    Upvalue(ScopedPtr&lt;'guard, Upvalue&gt;),
+}
+</code></pre>
+<p>Note that this definition does <em>not</em> include all the same types that were
+listed above in <code>TypeList</code>. Only the types that can be passed dynamically at
+runtime need to be represented here. The types not included here are always
+referenced directly by <code>ScopedPtr&lt;T&gt;</code> and are therefore known types at
+compile and run time.</p>
+<p>You probably also noticed that <code>Value</code> <em>is</em> the fat pointer we discussed
+earlier. It is composed of a set of <code>ScopedPtr&lt;T&gt;</code>s, each of which should
+only require a single word, and an <code>enum</code> discriminant integer, which will
+also, due to alignment, require a word.</p>
+<p>This <code>enum</code>, since it wraps <code>ScopedPtr&lt;T&gt;</code> and has the same requirement
+for an explicit lifetime, is Safe To Dereference.</p>
+<p>As this type occupies the same space as a fat pointer, it isn't the type
+we want for storing pointers at rest, though. For that type, let's look at
+the compact tagged pointer type now.</p>
+<h3><a class="header" href="#what-lies-beneath" id="what-lies-beneath">What lies beneath</a></h3>
+<p>Below we have a <code>union</code> type, making this an unsafe representation of a pointer.
+The <code>tag</code> value will be constrained to the values 0, 1, 2 or 3, which will
+determine which of the next four possible members should be accessed. Members
+will have to be bit-masked to access their correct values.</p>
+<pre><code class="language-rust ignore">#[derive(Copy, Clone)]
+pub union TaggedPtr {
+    tag: usize,
+    number: isize,
+    symbol: NonNull&lt;Symbol&gt;,
+    pair: NonNull&lt;Pair&gt;,
+    object: NonNull&lt;()&gt;,
+}
+</code></pre>
+<p>As you can see, we've allocated a tag for a <code>Symbol</code> type, a <code>Pair</code> type and
+one for a numeric type. The fourth member indicates an object whose type
+must be determined from the type id in the object header.</p>
+<blockquote>
+<p><em><strong>Note:</strong></em> Making space for an inline integer is a common use of a tag. It
+means any integer arithmetic that fits within the available bits will not
+require memory lookups into the heap to retrieve operands. In our case we've
+defined the numeric type as an <code>isize</code>. Since the 2 least significant bits
+are used for the tag, we will have to right-shift the value by 2 to extract
+the correct integer value. We'll go into this implementation in more depth
+in a later chapter.</p>
+</blockquote>
+<p>The tags and masks are defined as:</p>
+<pre><code class="language-rust ignore">const TAG_MASK: usize = 0x3;
+pub const TAG_NUMBER: usize = 0x0;
+pub const TAG_SYMBOL: usize = 0x1;
+pub const TAG_PAIR: usize = 0x2;
+pub const TAG_OBJECT: usize = 0x3;
+const PTR_MASK: usize = !0x3;
+</code></pre>
+<p>Thus you can see from the choice of embedded tag values, we've optimized for
+fast identification of <code>Pair</code>s and <code>Symbol</code>s and integer math. If we decide to,
+it will be easy to switch to other types to represent in the 2 tag bits.</p>
+<h3><a class="header" href="#connecting-into-the-allocation-api" id="connecting-into-the-allocation-api">Connecting into the allocation API</a></h3>
+<p>Translating between <code>Value</code> and <code>TaggedPtr</code> will be made easier by creating
+an intermediate type that represents all types as an <code>enum</code> but doesn't require
+a valid lifetime. This type will be useful because it is most closely
+ergonomic with the allocator API and the object header type information.</p>
+<pre><code class="language-rust.ignore">#[derive(Copy, Clone)]
+pub enum FatPtr {
+    ArrayU8(RawPtr&lt;ArrayU8&gt;),
+    ArrayU16(RawPtr&lt;ArrayU16&gt;),
+    ArrayU32(RawPtr&lt;ArrayU32&gt;),
+    Dict(RawPtr&lt;Dict&gt;),
+    Function(RawPtr&lt;Function&gt;),
+    List(RawPtr&lt;List&gt;),
+    Nil,
+    Number(isize),
+    NumberObject(RawPtr&lt;NumberObject&gt;),
+    Pair(RawPtr&lt;Pair&gt;),
+    Partial(RawPtr&lt;Partial&gt;),
+    Symbol(RawPtr&lt;Symbol&gt;),
+    Text(RawPtr&lt;Text&gt;),
+    Upvalue(RawPtr&lt;Upvalue&gt;),
+}
+</code></pre>
+<p>We'll extend <code>Heap</code> (see previous chapter) with a method to return a tagged
+pointer on request:</p>
+<pre><code class="language-rust ignore">impl Heap {
+    fn alloc_tagged&lt;T&gt;(&amp;self, object: T) -&gt; Result&lt;TaggedPtr, RuntimeError&gt;
+    where
+        FatPtr: From&lt;RawPtr&lt;T&gt;&gt;,
+        T: AllocObject&lt;TypeList&gt;,
+    {
+        Ok(TaggedPtr::from(FatPtr::from(self.heap.alloc(object)?)))
+    }
+}
+</code></pre>
+<p>In this method it's clear that we implemented <code>From&lt;T&gt;</code> to convert
+between pointer types. Next we'll look at how these conversions are
+implemented.</p>
+<h2><a class="header" href="#type-conversions" id="type-conversions">Type conversions</a></h2>
+<p>We have three pointer types: <code>Value</code>, <code>FatPtr</code> and <code>TaggedPtr</code>, each which
+has a distinct flavor. We need to be able to convert from one to the other:</p>
+<pre><code>TaggedPtr &lt;-&gt; FatPtr -&gt; Value
+</code></pre>
+<h3><a class="header" href="#fatptr-to-value" id="fatptr-to-value">FatPtr to Value</a></h3>
+<p>We can implement <code>From&lt;FatPtr&gt;</code> for <code>TaggedPtr</code> and <code>Value</code>
+to convert to the final two possible pointer representations.
+Well, not exactly - the function signature</p>
+<pre><code class="language-rust ignore">impl From&lt;FatPtr&gt; for Value&lt;'guard&gt; {
+    fn from(ptr: FatPtr) -&gt; Value&lt;'guard&gt; { ... }
+}
+</code></pre>
+<p>is not able to define the <code>'guard</code> lifetime, so we have to implement a
+similar method that can:</p>
+<pre><code class="language-rust ignore">impl FatPtr {
+    pub fn as_value&lt;'guard&gt;(&amp;self, guard: &amp;'guard dyn MutatorScope) -&gt; Value&lt;'guard&gt; {
+        match self {
+            FatPtr::ArrayU8(raw_ptr) =&gt; {
+                Value::ArrayU8(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard)))
+            }
+            FatPtr::ArrayU16(raw_ptr) =&gt; {
+                Value::ArrayU16(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard)))
+            }
+            FatPtr::ArrayU32(raw_ptr) =&gt; {
+                Value::ArrayU32(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard)))
+            }
+            FatPtr::Dict(raw_ptr) =&gt; Value::Dict(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard))),
+            FatPtr::Function(raw_ptr) =&gt; {
+                Value::Function(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard)))
+            }
+            FatPtr::List(raw_ptr) =&gt; Value::List(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard))),
+            FatPtr::Nil =&gt; Value::Nil,
+            FatPtr::Number(num) =&gt; Value::Number(*num),
+            FatPtr::NumberObject(raw_ptr) =&gt; {
+                Value::NumberObject(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard)))
+            }
+            FatPtr::Pair(raw_ptr) =&gt; Value::Pair(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard))),
+            FatPtr::Partial(raw_ptr) =&gt; {
+                Value::Partial(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard)))
+            }
+            FatPtr::Symbol(raw_ptr) =&gt; {
+                Value::Symbol(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard)))
+            }
+            FatPtr::Text(raw_ptr) =&gt; Value::Text(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard))),
+            FatPtr::Upvalue(raw_ptr) =&gt; {
+                Value::Upvalue(ScopedPtr::new(guard, raw_ptr.scoped_ref(guard)))
+            }
+        }
+    }
+}
+</code></pre>
+<h3><a class="header" href="#fatptr-to-taggedptr" id="fatptr-to-taggedptr">FatPtr to TaggedPtr</a></h3>
+<p>For converting down to a single-word <code>TaggedPtr</code> type we will introduce a helper
+trait and methods to work with tag values and <code>RawPtr&lt;T&gt;</code> types from the
+allocator:</p>
+<pre><code class="language-rust ignore">pub trait Tagged&lt;T&gt; {
+    fn tag(self, tag: usize) -&gt; NonNull&lt;T&gt;;
+    fn untag(from: NonNull&lt;T&gt;) -&gt; RawPtr&lt;T&gt;;
+}
+
+impl&lt;T&gt; Tagged&lt;T&gt; for RawPtr&lt;T&gt; {
+    fn tag(self, tag: usize) -&gt; NonNull&lt;T&gt; {
+        unsafe { NonNull::new_unchecked((self.as_word() | tag) as *mut T) }
+    }
+
+    fn untag(from: NonNull&lt;T&gt;) -&gt; RawPtr&lt;T&gt; {
+        RawPtr::new((from.as_ptr() as usize &amp; PTR_MASK) as *const T)
+    }
+}
+</code></pre>
+<p>This will help convert from <code>RawPtr&lt;T&gt;</code> values in <code>FatPtr</code> to the <code>NonNull&lt;T&gt;</code>
+based <code>TaggedPtr</code> discriminants.</p>
+<p>Because <code>TaggedPtr</code> is a <code>union</code> type and because it has to apply the
+appropriate tag value inside the pointer itself, we can't work with it as
+ergnomically as an <code>enum</code>. We'll create some more helper functions for
+instantiating <code>TaggedPtr</code>s appropriately.</p>
+<p>Remember that for storing an integer in the pointer we have to left-shift it 2
+bits to allow for the tag. We'll apply proper range checking in a later chapter.</p>
+<pre><code class="language-rust ignore">impl TaggedPtr {
+    pub fn nil() -&gt; TaggedPtr {
+        TaggedPtr { tag: 0 }
+    }
+
+    pub fn number(value: isize) -&gt; TaggedPtr {
+        TaggedPtr {
+            number: (((value as usize) &lt;&lt; 2) | TAG_NUMBER) as isize,
+        }
+    }
+
+    pub fn symbol(ptr: RawPtr&lt;Symbol&gt;) -&gt; TaggedPtr {
+        TaggedPtr {
+            symbol: ptr.tag(TAG_SYMBOL),
+        }
+    }
+
+    fn pair(ptr: RawPtr&lt;Pair&gt;) -&gt; TaggedPtr {
+        TaggedPtr {
+            pair: ptr.tag(TAG_PAIR),
+        }
+    }
+}
+</code></pre>
+<p>Finally, we can use the above methods to implement <code>From&lt;FatPtr</code> for <code>TaggedPtr</code>:</p>
+<pre><code class="language-rust ignore">impl From&lt;FatPtr&gt; for TaggedPtr {
+    fn from(ptr: FatPtr) -&gt; TaggedPtr {
+        match ptr {
+            FatPtr::ArrayU8(raw) =&gt; TaggedPtr::object(raw),
+            FatPtr::ArrayU16(raw) =&gt; TaggedPtr::object(raw),
+            FatPtr::ArrayU32(raw) =&gt; TaggedPtr::object(raw),
+            FatPtr::Dict(raw) =&gt; TaggedPtr::object(raw),
+            FatPtr::Function(raw) =&gt; TaggedPtr::object(raw),
+            FatPtr::List(raw) =&gt; TaggedPtr::object(raw),
+            FatPtr::Nil =&gt; TaggedPtr::nil(),
+            FatPtr::Number(value) =&gt; TaggedPtr::number(value),
+            FatPtr::NumberObject(raw) =&gt; TaggedPtr::object(raw),
+            FatPtr::Pair(raw) =&gt; TaggedPtr::pair(raw),
+            FatPtr::Partial(raw) =&gt; TaggedPtr::object(raw),
+            FatPtr::Text(raw) =&gt; TaggedPtr::object(raw),
+            FatPtr::Symbol(raw) =&gt; TaggedPtr::symbol(raw),
+            FatPtr::Upvalue(raw) =&gt; TaggedPtr::object(raw),
+        }
+    }
+}
+</code></pre>
+<h3><a class="header" href="#taggedptr-to-fatptr" id="taggedptr-to-fatptr">TaggedPtr to FatPtr</a></h3>
+<p>To convert from a <code>TaggedPtr</code> to the intermediate type is implemented in two
+parts: identifying object types from the tag; identifying object types from the
+header where the tag is insufficient.</p>
+<p>Part the first, which requires <code>unsafe</code> due to accessing a <code>union</code> type and
+dereferencing the object header for the <code>TAG_OBJECT</code> discriminant:</p>
+<pre><code class="language-rust ignore">impl From&lt;TaggedPtr&gt; for FatPtr {
+    fn from(ptr: TaggedPtr) -&gt; FatPtr {
+        ptr.into_fat_ptr()
+    }
+}
+
+impl TaggedPtr {
+    fn into_fat_ptr(&amp;self) -&gt; FatPtr {
+        unsafe {
+            if self.tag == 0 {
+                FatPtr::Nil
+            } else {
+                match get_tag(self.tag) {
+                    TAG_NUMBER =&gt; FatPtr::Number(self.number &gt;&gt; 2),
+                    TAG_SYMBOL =&gt; FatPtr::Symbol(RawPtr::untag(self.symbol)),
+                    TAG_PAIR =&gt; FatPtr::Pair(RawPtr::untag(self.pair)),
+
+                    TAG_OBJECT =&gt; {
+                        let untyped_object_ptr = RawPtr::untag(self.object).as_untyped();
+                        let header_ptr = HeapStorage::get_header(untyped_object_ptr);
+
+                        header_ptr.as_ref().get_object_fatptr()
+                    }
+
+                    _ =&gt; panic!(&quot;Invalid TaggedPtr type tag!&quot;),
+                }
+            }
+        }
+    }
+}
+</code></pre>
+<p>And part two, the object header method <code>get_object_fatptr()</code> as seen in the
+code above:</p>
+<pre><code class="language-rust ignore">impl ObjectHeader {
+    pub unsafe fn get_object_fatptr(&amp;self) -&gt; FatPtr {
+        let ptr_to_self = self.non_null_ptr();
+        let object_addr = HeapStorage::get_object(ptr_to_self);
+
+        match self.type_id {
+            TypeList::ArrayU8 =&gt; FatPtr::ArrayU8(RawPtr::untag(object_addr.cast::&lt;ArrayU8&gt;())),
+            TypeList::ArrayU16 =&gt; FatPtr::ArrayU16(RawPtr::untag(object_addr.cast::&lt;ArrayU16&gt;())),
+            TypeList::ArrayU32 =&gt; FatPtr::ArrayU32(RawPtr::untag(object_addr.cast::&lt;ArrayU32&gt;())),
+            TypeList::Dict =&gt; FatPtr::Dict(RawPtr::untag(object_addr.cast::&lt;Dict&gt;())),
+            TypeList::Function =&gt; FatPtr::Function(RawPtr::untag(object_addr.cast::&lt;Function&gt;())),
+            TypeList::List =&gt; FatPtr::List(RawPtr::untag(object_addr.cast::&lt;List&gt;())),
+            TypeList::NumberObject =&gt; {
+                FatPtr::NumberObject(RawPtr::untag(object_addr.cast::&lt;NumberObject&gt;()))
+            }
+            TypeList::Pair =&gt; FatPtr::Pair(RawPtr::untag(object_addr.cast::&lt;Pair&gt;())),
+            TypeList::Partial =&gt; FatPtr::Partial(RawPtr::untag(object_addr.cast::&lt;Partial&gt;())),
+            TypeList::Symbol =&gt; FatPtr::Symbol(RawPtr::untag(object_addr.cast::&lt;Symbol&gt;())),
+            TypeList::Text =&gt; FatPtr::Text(RawPtr::untag(object_addr.cast::&lt;Text&gt;())),
+            TypeList::Upvalue =&gt; FatPtr::Upvalue(RawPtr::untag(object_addr.cast::&lt;Upvalue&gt;())),
+
+            // Other types not represented by FatPtr are an error to id here
+            _ =&gt; panic!(&quot;Invalid ObjectHeader type tag {:?}!&quot;, self.type_id),
+        }
+    }
+}
+</code></pre>
+<p>This method contains no unsafe code and yet we've declared it unsafe!</p>
+<p>Manipulating pointer types is not unsafe in of itself, only dereferencing them
+is unsafe and we are not dereferencing them here.</p>
+<p>While we have the safety rails of the <code>enum</code> types to prevent
+<em>invalid</em> types from being returned, we could easily mismatch a <code>TypeList</code> value
+with an incorrect <code>FatPtr</code> value and return an <em>incorrect</em> type. Additionally
+we could forget to untag a pointer, leaving it as an invalid pointer value.</p>
+<p>These possible mistakes could cause undefined behavior and quite likely crash
+the interpreter.</p>
+<p>The compiler will not catch these cases and so this is an area for critical
+scrutiny of correctness! Hence the method is marked unsafe to draw attention.</p>
+<h2><a class="header" href="#using-tagged-pointers-in-data-structures" id="using-tagged-pointers-in-data-structures">Using tagged pointers in data structures</a></h2>
+<p>Finally, we need to see how to use these types in data structures that we'll
+create.</p>
+<p>In the previous chapter, we defined a <code>CellPtr</code> type that wrapped a <code>RawPtr&lt;T&gt;</code>
+in a <code>Cell&lt;T&gt;</code> so that data structures can contain mutable pointers to other
+objects. Similarly, we'll want something to wrap tagged pointers:</p>
+<pre><code class="language-rust ignore">#[derive(Clone)]
+pub struct TaggedCellPtr {
+    inner: Cell&lt;TaggedPtr&gt;,
+}
+</code></pre>
+<p>We'll also wrap <code>Value</code> in a type <code>TaggedScopedPtr</code> that we'll use similarly
+to <code>ScopedPtr&lt;T&gt;</code>.</p>
+<pre><code class="language-rust ignore">#[derive(Copy, Clone)]
+pub struct TaggedScopedPtr&lt;'guard&gt; {
+    ptr: TaggedPtr,
+    value: Value&lt;'guard&gt;,
+}
+</code></pre>
+<p>This <code>TaggedScopedPtr</code> carries an instance of <code>TaggedPtr</code> <em>and</em> a <code>Value</code>.
+This tradeoff means that while this type has three words to heft around,
+the <code>TaggedPtr</code> member can be quickly accessed for copying into a
+<code>TaggedCellPtr</code> without needing to down-convert from <code>Value</code>.</p>
+<p>The type is only suitable for handling pointers that actively need to be
+dereferenced due to it's size.</p>
+<blockquote>
+<p><em><strong>Note:</strong></em> Redundancy: TaggedScopedPtr and Value are almost
+identical in requirement and functionality. TODO: merge into one type.
+See issue <a href="https://github.com/rust-hosted-langs/book/issues/30">https://github.com/rust-hosted-langs/book/issues/30</a></p>
+</blockquote>
+<h2><a class="header" href="#quick-recap" id="quick-recap">Quick recap</a></h2>
+<p>In summary, what we created here was a set of pointer types:</p>
+<ul>
+<li>types suitable for storing a pointer at rest - <code>TaggedPtr</code> and <code>TaggedCellPtr</code></li>
+<li>types suitable for dereferencing a pointer - <code>Value</code> and <code>TaggedScopedPtr</code></li>
+<li>a type suitable for intermediating between the two - <code>FatPtr</code></li>
+</ul>
+<p>Next, we'll put these to use in defining the first and simplest data structures
+of our interpreter.</p>
+<hr />
+<div class="footnote-definition" id="1"><sup class="footnote-definition-label">1</sup>
+<p>There are other pointer tagging schemes, notably the use of &quot;spare&quot; NaN
+bit patterns in 64 bit floating point values. Further, <em>which</em> types are
+best represented by the tag bits is highly language dependent. Some languages
+use them for garbage collection information while others may use them for
+still other types hidden from the language user. In the interest of clarity,
+we'll stick to a simple scheme.</p>
+</div>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="chapter-interp-alloc.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="404.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="chapter-interp-alloc.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="404.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>
