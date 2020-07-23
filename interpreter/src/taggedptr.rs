@@ -194,11 +194,13 @@ impl From<isize> for FatPtr {
 }
 
 /// Conversion from a TaggedPtr type
+// ANCHOR: FromTaggedPtrForFatPtr
 impl From<TaggedPtr> for FatPtr {
     fn from(ptr: TaggedPtr) -> FatPtr {
         ptr.into_fat_ptr()
     }
 }
+// ANCHOR_END: FromTaggedPtrForFatPtr
 
 /// Identity comparison
 impl PartialEq for FatPtr {
@@ -283,6 +285,7 @@ impl TaggedPtr {
         }
     }
 
+    // ANCHOR: DefTaggedPtrIntoFatPtr
     fn into_fat_ptr(&self) -> FatPtr {
         unsafe {
             if self.tag == 0 {
@@ -305,6 +308,7 @@ impl TaggedPtr {
             }
         }
     }
+    // ANCHOR_END: DefTaggedPtrIntoFatPtr
 }
 
 // ANCHOR: DefFromFatPtrForTaggedPtr

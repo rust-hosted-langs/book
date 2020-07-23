@@ -61,9 +61,11 @@ pub struct ObjectHeader {
 
 impl ObjectHeader {
     /// Convert the ObjectHeader address to a FatPtr pointing at the object itself.
-    /// NOTE any type that is a runtime dynamic type must be added to the below list
+    // NOTE Any type that is a runtime dynamic type must be added to the below list
+    // NOTE Be careful to match the correct TypeList discriminant with it's corresponding FatPtr discriminant
+    // NOTE Be careful to untag the pointer before putting it into a `FatPtr`
     // ANCHOR: DefObjectHeaderGetObjectFatPtr
-    pub fn get_object_fatptr(&self) -> FatPtr {
+    pub unsafe fn get_object_fatptr(&self) -> FatPtr {
         let ptr_to_self = self.non_null_ptr();
         let object_addr = HeapStorage::get_object(ptr_to_self);
 

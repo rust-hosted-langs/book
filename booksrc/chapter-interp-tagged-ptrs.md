@@ -33,11 +33,11 @@ of pointer is a _fat_ pointer.
 
 We could easily use a fat pointer type for runtime type identification
 in our interpreter. Each pointer could carry with it an additional word with
-the type id in it, or we could even just use trait objects directly!
+the type id in it, or we could even just use trait objects!
 
 A dynamically typed language will manage many pointers that must be type
 identified at runtime. Carrying around an extra word per pointer is expensive,
-space-wise.
+space-wise, however.
 
 
 ## Tagged pointers
@@ -48,13 +48,13 @@ partially improving the time overhead of the header type-id lookup.
 In a pointer to any object on the heap, the least most significant bits turn out
 to always be zero due to word or double-word alignment.
 
-On a 64 bit platform, a pointer will be a 64 bit word. Since objects will be
-at least word-aligned - a pointer will always be a multiple of 8 - that means
-that there are 3 bits that are always 0. On 32 bit platforms, the 2 least
+On a 64 bit platform, a pointer is a 64 bit word. Since objects are
+at least word-aligned, a pointer is always be a multiple of 8 and
+the 3 least significant bits are always 0. On 32 bit platforms, the 2 least
 significant bits are always 0.
 
       64..............48..............32..............16...........xxx
-    0b1000001111011101101100101010101010010101010011110110101111101000
+    0b1111111111111111111111111111111111111111111111111111111111111000
                                                                    / |
                                                                   /  |
                                                                 unused
@@ -76,18 +76,18 @@ need to make a tagged pointer type that will fundamentally be `unsafe` because
 it won't be safe to dereference it. Then we'll need a safe abstraction over
 that type to make it safe to dereference.
 
-But first we need to understand the object header.
+But first we need to understand the object header and how we get an object's
+type from it.
 
 
-### The allocation object header
+### The object header
 
 We introduced the object header traits in the earlier chapter
 [Defining the allocation API](./chapter-allocation-api.md). The chapter
 explained how the object header is the responsibility of the interpreter to
 implement.
 
-Now that we need to implement type identification, we need the object header
-implementation first.
+Now that we need to implement type identification, we need the object header.
 
 The allocator API requires that the type identifier implement the
 `AllocTypeId` trait. We'll use an `enum` to identify for all our runtime types:
@@ -97,11 +97,11 @@ The allocator API requires that the type identifier implement the
 ```
 
 Given that the allocator API requires every object that can be allocated to
-have an associated type id `const`, this enum represents every type that
+have an associated type id `const`, this `enum` represents every type that
 can be allocated and that we will go on to describe in this book.
 
-This type identifier `enum` is a member of the `ObjectHeader` struct along
-with a few other members that our Immix implementation requires:
+It is a member of the `ObjectHeader` struct along with a few other members
+that our Immix implementation requires:
 
 ```rust,ignore
 {{#include ../interpreter/src/headers.rs:DefObjectHeader}}
@@ -113,31 +113,30 @@ collection part of the book.
 
 ### A safe pointer abstraction
 
-Starting with the safe abstraction, a type that can represent one of multiple
-types at runtime is obviously the `enum`.
-We can wrap possible `ScopedPtr<T>` types in an `enum`:
+A type that can represent one of multiple types at runtime is obviously the
+`enum`. We can wrap possible `ScopedPtr<T>` types like so:
 
 ```rust,ignore
 {{#include ../interpreter/src/taggedptr.rs:DefValue}}
 ```
 
-Notice that this `enum` does _not_ include all the same types that were
+Note that this definition does _not_ include all the same types that were
 listed above in `TypeList`. Only the types that can be passed dynamically at
-runtime need to be represented here. Other types not listed here are known
-at runtime.
+runtime need to be represented here. The types not included here are always
+referenced directly by `ScopedPtr<T>` and are therefore known types at
+compile and run time.
 
 You probably also noticed that `Value` _is_ the fat pointer we discussed
 earlier. It is composed of a set of `ScopedPtr<T>`s, each of which should
-only require a single word, and an enum discriminant integer, which will
+only require a single word, and an `enum` discriminant integer, which will
 also, due to alignment, require a word.
 
-This enum, since it wraps `ScopedPtr<T>` and has the same requirement
+This `enum`, since it wraps `ScopedPtr<T>` and has the same requirement
 for an explicit lifetime, is Safe To Dereference.
 
 As this type occupies the same space as a fat pointer, it isn't the type
-we want for storing pointers at rest, though.
-
-For that type, let's look at the compact tagged pointer type now.
+we want for storing pointers at rest, though. For that type, let's look at
+the compact tagged pointer type now.
 
 
 ### What lies beneath
@@ -173,8 +172,10 @@ Thus you can see from the choice of embedded tag values, we've optimized for
 fast identification of `Pair`s and `Symbol`s and integer math. If we decide to,
 it will be easy to switch to other types to represent in the 2 tag bits.
 
+### Connecting into the allocation API
+
 Translating between `Value` and `TaggedPtr` will be made easier by creating
-an intermediate type that represents all types as an enum but doesn't require
+an intermediate type that represents all types as an `enum` but doesn't require
 a valid lifetime. This type will be useful because it is most closely
 ergonomic with the allocator API and the object header type information.
 
@@ -182,7 +183,18 @@ ergonomic with the allocator API and the object header type information.
 {{#include ../interpreter/src/taggedptr.rs:DefFatPtr}}
 ```
 
-Next we'll look at how to convert between `FatPtr`, `TaggedPtr` and `Value`.
+We'll extend `Heap` (see previous chapter) with a method to return a tagged
+pointer on request:
+
+```rust,ignore
+impl Heap {
+{{#include ../interpreter/src/memory.rs:DefHeapAllocTagged}}
+}
+```
+
+In this method it's clear that we implemented `From<T>` to convert
+between pointer types. Next we'll look at how these conversions are
+implemented.
 
 
 ## Type conversions
@@ -191,6 +203,7 @@ We have three pointer types: `Value`, `FatPtr` and `TaggedPtr`, each which
 has a distinct flavor. We need to be able to convert from one to the other:
 
     TaggedPtr <-> FatPtr -> Value
+
 
 ### FatPtr to Value
 
@@ -256,9 +269,23 @@ Finally, we can use the above methods to implement `From<FatPtr` for `TaggedPtr`
 
 ### TaggedPtr to FatPtr
 
-To convert from a `TaggedPtr` to the intermediate type, we need to access the
-object header. The header object itself will own the method for returning a
-`FatPtr`.
+To convert from a `TaggedPtr` to the intermediate type is implemented in two
+parts: identifying object types from the tag; identifying object types from the
+header where the tag is insufficient.
+
+Part the first, which requires `unsafe` due to accessing a `union` type and
+dereferencing the object header for the `TAG_OBJECT` discriminant:
+
+```rust,ignore
+{{#include ../interpreter/src/taggedptr.rs:FromTaggedPtrForFatPtr}}
+
+impl TaggedPtr {
+{{#include ../interpreter/src/taggedptr.rs:DefTaggedPtrIntoFatPtr}}
+}
+```
+
+And part two, the object header method `get_object_fatptr()` as seen in the
+code above:
 
 ```rust,ignore
 impl ObjectHeader {
@@ -266,11 +293,31 @@ impl ObjectHeader {
 }
 ```
 
-## Tagged pointers in data structures
+This method contains no unsafe code and yet we've declared it unsafe!
+
+Manipulating pointer types is not unsafe in of itself, only dereferencing them
+is unsafe and we are not dereferencing them here.
+
+While we have the safety rails of the `enum` types to prevent
+_invalid_ types from being returned, we could easily mismatch a `TypeList` value
+with an incorrect `FatPtr` value and return an _incorrect_ type. Additionally
+we could forget to untag a pointer, leaving it as an invalid pointer value.
+
+These possible mistakes could cause undefined behavior and quite likely crash
+the interpreter.
+
+The compiler will not catch these cases and so this is an area for critical
+scrutiny of correctness! Hence the method is marked unsafe to draw attention.
+
+
+## Using tagged pointers in data structures
+
+Finally, we need to see how to use these types in data structures that we'll
+create.
 
 In the previous chapter, we defined a `CellPtr` type that wrapped a `RawPtr<T>`
 in a `Cell<T>` so that data structures can contain mutable pointers to other
-objects. Similarly, we'll want something to wrap tagged pointers.
+objects. Similarly, we'll want something to wrap tagged pointers:
 
 ```rust,ignore
 {{#include ../interpreter/src/safeptr.rs:DefTaggedCellPtr}}
@@ -284,16 +331,19 @@ to `ScopedPtr<T>`.
 ```
 
 This `TaggedScopedPtr` carries an instance of `TaggedPtr` _and_ a `Value`.
-This makes it three words that need to be hefted around to represent a
-pointer. It's suitable for handling pointers that are actively in use in
-the virtual machine instruction interpreter but nowhere else!
+This tradeoff means that while this type has three words to heft around,
+the `TaggedPtr` member can be quickly accessed for copying into a
+`TaggedCellPtr` without needing to down-convert from `Value`.
+
+The type is only suitable for handling pointers that actively need to be
+dereferenced due to it's size.
 
 > ***Note:*** Redundancy: TaggedScopedPtr and Value are almost
 > identical in requirement and functionality. TODO: merge into one type.
 > See issue <https://github.com/rust-hosted-langs/book/issues/30>
 
 
-## Recap
+## Quick recap
 
 In summary, what we created here was a set of pointer types:
 
