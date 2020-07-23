@@ -132,11 +132,13 @@ impl<T: Sized> From<ScopedPtr<'_, T>> for CellPtr<T> {
 
 /// A _tagged_ runtime typed pointer type with scope limited by `MutatorScope` such that a `Value`
 /// instance can safely be derived and accessed. This type is neccessary to derive `Value`s from.
+// ANCHOR: DefTaggedScopedPtr
 #[derive(Copy, Clone)]
 pub struct TaggedScopedPtr<'guard> {
     ptr: TaggedPtr,
     value: Value<'guard>,
 }
+// ANCHOR_END: DefTaggedScopedPtr
 
 impl<'guard> TaggedScopedPtr<'guard> {
     pub fn new(guard: &'guard dyn MutatorScope, ptr: TaggedPtr) -> TaggedScopedPtr<'guard> {
@@ -187,10 +189,12 @@ impl<'guard> PartialEq for TaggedScopedPtr<'guard> {
 
 /// A wrapper around the runtime typed `TaggedPtr` for storing pointers in data structures with
 /// interior mutability, allowing pointers to be updated to point at different target objects.
+// ANCHOR: DefTaggedCellPtr
 #[derive(Clone)]
 pub struct TaggedCellPtr {
     inner: Cell<TaggedPtr>,
 }
+// ANCHOR_END: DefTaggedCellPtr
 
 impl TaggedCellPtr {
     /// Construct a new Nil TaggedCellPtr instance
@@ -215,9 +219,11 @@ impl TaggedCellPtr {
 
     /// Return the pointer as a `TaggedScopedPtr` type that carries a copy of the `TaggedPtr` and
     /// a `Value` type for both copying and access convenience
+    // ANCHOR: DefTaggedCellPtrGet
     pub fn get<'guard>(&self, guard: &'guard dyn MutatorScope) -> TaggedScopedPtr<'guard> {
         TaggedScopedPtr::new(guard, self.inner.get())
     }
+    // ANCHOR_END: DefTaggedCellPtrGet
 
     /// Set this pointer to point at the same object as a given `TaggedScopedPtr` instance
     /// The explicit 'guard lifetime bound to MutatorScope is omitted here since the TaggedScopedPtr

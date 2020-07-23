@@ -25,22 +25,22 @@ use crate::vm::{CallFrameList, Thread, Upvalue};
 #[repr(u16)]
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub enum TypeList {
-    Pair,
-    Symbol,
-    NumberObject,
-    Text,
-    Array, // type id for array backing bytes
-    List,
+    ArrayBackingBytes,
+    ArrayOpcode,
     ArrayU8,
     ArrayU16,
     ArrayU32,
-    Dict,
-    ArrayOpcode,
     ByteCode,
-    InstructionStream,
-    Function,
-    Partial,
     CallFrameList,
+    Dict,
+    Function,
+    InstructionStream,
+    List,
+    NumberObject,
+    Pair,
+    Partial,
+    Symbol,
+    Text,
     Thread,
     Upvalue,
 }
@@ -50,40 +50,46 @@ impl AllocTypeId for TypeList {}
 // ANCHOR_END: DefTypeList
 
 /// A heap-allocated object header
+// ANCHOR: DefObjectHeader
 pub struct ObjectHeader {
     mark: Mark,
     size_class: SizeClass,
     type_id: TypeList,
     size_bytes: u32,
 }
+// ANCHOR_END: DefObjectHeader
 
 impl ObjectHeader {
-    /// Convert the ObjectHeader address to a FatPtr pointing at the object itself
-    pub fn get_object_fatptr(&self) -> FatPtr {
+    /// Convert the ObjectHeader address to a FatPtr pointing at the object itself.
+    // NOTE Any type that is a runtime dynamic type must be added to the below list
+    // NOTE Be careful to match the correct TypeList discriminant with it's corresponding FatPtr discriminant
+    // NOTE Be careful to untag the pointer before putting it into a `FatPtr`
+    // ANCHOR: DefObjectHeaderGetObjectFatPtr
+    pub unsafe fn get_object_fatptr(&self) -> FatPtr {
         let ptr_to_self = self.non_null_ptr();
         let object_addr = HeapStorage::get_object(ptr_to_self);
 
-        // Only Object* types should be derived from the header.
-        // Symbol, Pair and Number should have been derived from a pointer tag.
-        //
-        // NOTE any type that is a runtime dynamic type must be added to the below list
         match self.type_id {
-            TypeList::NumberObject => {
-                FatPtr::NumberObject(RawPtr::untag(object_addr.cast::<NumberObject>()))
-            }
-            TypeList::Text => FatPtr::Text(RawPtr::untag(object_addr.cast::<Text>())),
             TypeList::ArrayU8 => FatPtr::ArrayU8(RawPtr::untag(object_addr.cast::<ArrayU8>())),
             TypeList::ArrayU16 => FatPtr::ArrayU16(RawPtr::untag(object_addr.cast::<ArrayU16>())),
             TypeList::ArrayU32 => FatPtr::ArrayU32(RawPtr::untag(object_addr.cast::<ArrayU32>())),
-            TypeList::List => FatPtr::List(RawPtr::untag(object_addr.cast::<List>())),
             TypeList::Dict => FatPtr::Dict(RawPtr::untag(object_addr.cast::<Dict>())),
             TypeList::Function => FatPtr::Function(RawPtr::untag(object_addr.cast::<Function>())),
+            TypeList::List => FatPtr::List(RawPtr::untag(object_addr.cast::<List>())),
+            TypeList::NumberObject => {
+                FatPtr::NumberObject(RawPtr::untag(object_addr.cast::<NumberObject>()))
+            }
+            TypeList::Pair => FatPtr::Pair(RawPtr::untag(object_addr.cast::<Pair>())),
             TypeList::Partial => FatPtr::Partial(RawPtr::untag(object_addr.cast::<Partial>())),
+            TypeList::Symbol => FatPtr::Symbol(RawPtr::untag(object_addr.cast::<Symbol>())),
+            TypeList::Text => FatPtr::Text(RawPtr::untag(object_addr.cast::<Text>())),
             TypeList::Upvalue => FatPtr::Upvalue(RawPtr::untag(object_addr.cast::<Upvalue>())),
 
+            // Other types not represented by FatPtr are an error to id here
             _ => panic!("Invalid ObjectHeader type tag {:?}!", self.type_id),
         }
     }
+    // ANCHOR_END: DefObjectHeaderGetObjectFatPtr
 }
 
 impl AsNonNull for ObjectHeader {}
@@ -108,7 +114,7 @@ impl AllocHeader for ObjectHeader {
         ObjectHeader {
             mark,
             size_class,
-            type_id: TypeList::Array,
+            type_id: TypeList::ArrayBackingBytes,
             size_bytes: size as u32,
         }
     }

@@ -45,6 +45,7 @@ impl<'memory> MutatorView<'memory> {
     // ANCHOR_END: DefMutatorViewAlloc
 
     /// Write an object into the heap and return a scope-limited runtime-tagged pointer to it
+    // ANCHOR: DefMutatorViewAllocTagged
     pub fn alloc_tagged<T>(&self, object: T) -> Result<TaggedScopedPtr<'_>, RuntimeError>
     where
         FatPtr: From<RawPtr<T>>,
@@ -52,6 +53,7 @@ impl<'memory> MutatorView<'memory> {
     {
         Ok(TaggedScopedPtr::new(self, self.heap.alloc_tagged(object)?))
     }
+    // ANCHOR_END: DefMutatorViewAllocTagged
 
     /// Make space for an array of bytes
     pub fn alloc_array(&self, capacity: ArraySize) -> Result<RawPtr<u8>, RuntimeError> {
@@ -103,6 +105,7 @@ impl Heap {
     // ANCHOR_END: DefHeapAlloc
 
     /// Write an object into the heap and return a tagged pointer to it
+    // ANCHOR: DefHeapAllocTagged
     fn alloc_tagged<T>(&self, object: T) -> Result<TaggedPtr, RuntimeError>
     where
         FatPtr: From<RawPtr<T>>,
@@ -110,6 +113,7 @@ impl Heap {
     {
         Ok(TaggedPtr::from(FatPtr::from(self.heap.alloc(object)?)))
     }
+    // ANCHOR_END: DefHeapAllocTagged
 
     fn alloc_array(&self, capacity: ArraySize) -> Result<RawPtr<u8>, RuntimeError> {
         Ok(self.heap.alloc_array(capacity)?)
