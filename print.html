@@ -2238,18 +2238,44 @@ the <code>TaggedPtr</code> member can be quickly accessed for copying into a
 dereferenced due to it's size.</p>
 <blockquote>
 <p><em><strong>Note:</strong></em> Redundancy: TaggedScopedPtr and Value are almost
-identical in requirement and functionality. TODO: merge into one type.
+identical in requirement and functionality.
+TODO: consider merging into one type.
 See issue <a href="https://github.com/rust-hosted-langs/book/issues/30">https://github.com/rust-hosted-langs/book/issues/30</a></p>
 </blockquote>
+<p>A <code>TaggedScopedPtr</code> can be obtained by:</p>
+<ul>
+<li>calling <code>TaggedCellPtr::get()</code></li>
+<li>or the <code>MutatorView::alloc_tagged()</code> method</li>
+</ul>
+<p>The <code>get()</code> method on <code>TaggedCellPtr</code> returns a <code>TaggedScopedPtr</code>:</p>
+<pre><code class="language-rust ignore">impl TaggedCellPtr {
+    pub fn get&lt;'guard&gt;(&amp;self, guard: &amp;'guard dyn MutatorScope) -&gt; TaggedScopedPtr&lt;'guard&gt; {
+        TaggedScopedPtr::new(guard, self.inner.get())
+    }
+}
+</code></pre>
+<p>The <code>MutatorView</code> method to allocate a new object and get back a tagged
+pointer (a <code>TaggedScopedPtr</code>) looks simply like this:</p>
+<pre><code class="language-rust ignore">impl MutatorView {
+    pub fn alloc_tagged&lt;T&gt;(&amp;self, object: T) -&gt; Result&lt;TaggedScopedPtr&lt;'_&gt;, RuntimeError&gt;
+    where
+        FatPtr: From&lt;RawPtr&lt;T&gt;&gt;,
+        T: AllocObject&lt;TypeList&gt;,
+    {
+        Ok(TaggedScopedPtr::new(self, self.heap.alloc_tagged(object)?))
+    }
+}
+</code></pre>
 <h2><a class="header" href="#quick-recap" id="quick-recap">Quick recap</a></h2>
 <p>In summary, what we created here was a set of pointer types:</p>
 <ul>
 <li>types suitable for storing a pointer at rest - <code>TaggedPtr</code> and <code>TaggedCellPtr</code></li>
 <li>types suitable for dereferencing a pointer - <code>Value</code> and <code>TaggedScopedPtr</code></li>
-<li>a type suitable for intermediating between the two - <code>FatPtr</code></li>
+<li>a type suitable for intermediating between the two - <code>FatPtr</code> - that the
+heap allocation interface can return</li>
 </ul>
-<p>Next, we'll put these to use in defining the first and simplest data structures
-of our interpreter.</p>
+<p>We now have the basic pieces to start defining data structures for our
+interpreter, so that is what we shall do next!</p>
 <hr />
 <div class="footnote-definition" id="1"><sup class="footnote-definition-label">1</sup>
 <p>There are other pointer tagging schemes, notably the use of &quot;spare&quot; NaN
