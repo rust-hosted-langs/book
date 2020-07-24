@@ -339,8 +339,31 @@ The type is only suitable for handling pointers that actively need to be
 dereferenced due to it's size.
 
 > ***Note:*** Redundancy: TaggedScopedPtr and Value are almost
-> identical in requirement and functionality. TODO: merge into one type.
+> identical in requirement and functionality.
+> TODO: consider merging into one type.
 > See issue <https://github.com/rust-hosted-langs/book/issues/30>
+
+A `TaggedScopedPtr` can be obtained by:
+
+* calling `TaggedCellPtr::get()`
+* or the `MutatorView::alloc_tagged()` method
+
+The `get()` method on `TaggedCellPtr` returns a `TaggedScopedPtr`:
+
+```rust,ignore
+impl TaggedCellPtr {
+{{#include ../interpreter/src/safeptr.rs:DefTaggedCellPtrGet}}
+}
+```
+
+The `MutatorView` method to allocate a new object and get back a tagged
+pointer (a `TaggedScopedPtr`) looks simply like this:
+
+```rust,ignore
+impl MutatorView {
+{{#include ../interpreter/src/memory.rs:DefMutatorViewAllocTagged}}
+}
+```
 
 
 ## Quick recap
@@ -349,10 +372,11 @@ In summary, what we created here was a set of pointer types:
 
 * types suitable for storing a pointer at rest - `TaggedPtr` and `TaggedCellPtr`
 * types suitable for dereferencing a pointer - `Value` and `TaggedScopedPtr`
-* a type suitable for intermediating between the two - `FatPtr`
+* a type suitable for intermediating between the two - `FatPtr` - that the
+  heap allocation interface can return
 
-Next, we'll put these to use in defining the first and simplest data structures
-of our interpreter.
+We now have the basic pieces to start defining data structures for our
+interpreter, so that is what we shall do next!
 
 ----
 
