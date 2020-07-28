@@ -8,6 +8,8 @@ use crate::safeptr::{MutatorScope, ScopedPtr, TaggedCellPtr, TaggedScopedPtr};
 use crate::taggedptr::Value;
 
 /// A Pair of pointers, like a Cons cell of old
+// ANCHOR: DefPair
+#[derive(Clone)]
 pub struct Pair {
     pub first: TaggedCellPtr,
     pub second: TaggedCellPtr,
@@ -15,9 +17,11 @@ pub struct Pair {
     pub first_pos: Cell<Option<SourcePos>>,
     pub second_pos: Cell<Option<SourcePos>>,
 }
+// ANCHOR_END: DefPair
 
 impl Pair {
     /// Return a new empty Pair instance
+    // ANCHOR: DefPairNew
     pub fn new() -> Pair {
         Pair {
             first: TaggedCellPtr::new_nil(),
@@ -26,6 +30,7 @@ impl Pair {
             second_pos: Cell::new(None),
         }
     }
+    // ANCHOR_END: DefPairNew
 
     /// Set Pair.second to a new Pair with newPair.first set to the value
     pub fn append<'guard>(
@@ -97,6 +102,7 @@ impl Print for Pair {
 }
 
 /// Link the two values `head` and `rest` into a Pair instance
+// ANCHOR: DefCons
 pub fn cons<'guard>(
     mem: &'guard MutatorView,
     head: TaggedScopedPtr<'guard>,
@@ -107,6 +113,7 @@ pub fn cons<'guard>(
     pair.second.set(rest);
     mem.alloc_tagged(pair)
 }
+// ANCHOR_END: DefCons
 
 /// Unpack a list of Pair instances into a Vec
 pub fn vec_from_pairs<'guard>(

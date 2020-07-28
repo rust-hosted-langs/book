@@ -12,11 +12,13 @@ use crate::safeptr::MutatorScope;
 /// underlying str data must have a lifetime of at least that of the Symbol instance to
 /// prevent use-after-free.
 /// See `SymbolMap`
+// ANCHOR: DefSymbol
 #[derive(Copy, Clone)]
 pub struct Symbol {
     name_ptr: *const u8,
     name_len: usize,
 }
+// ANCHOR_END: DefSymbol
 
 impl Symbol {
     /// The originating &str must be owned by a SymbolMap hash table
