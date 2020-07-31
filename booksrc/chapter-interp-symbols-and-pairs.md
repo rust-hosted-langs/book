@@ -29,9 +29,10 @@ and `Symbol`s.
 Since this structure will be used for parsing and compiling, the `Pair`
 `struct` has a couple of extra members that optionally describe the source
 code line and character number of the values pointed at by `first` and
-`second`. We'll come back to these in the chapter on parsing.
+`second`. These will be useful for reporting error messages. We'll come back
+to these in the chapter on parsing.
 
-To instantiate a `Pair` function with `first` and `second` set to `Nil`, let's
+To instantiate a `Pair` function with `first` and `second` set to nil, let's
 create a `new()` function:
 
 ```rust,ignore
@@ -69,25 +70,32 @@ impl Pair {
 
 This method, given a value to append, creates a new `Pair` whose member `first`
 points at the value, then sets the `second` of the `&self` `Pair` to that new
-`Pair` instance. This is in support of s-expression notation `(a b c)` which
+`Pair` instance. This is in support of s-expression notation `(a b)` which
 describes a linked-list of `Pair`s arranged, in pseudo-Rust:
 
 ```
 Pair {
-    first: &a,
-    second: &Pair {
-        first: &b,
-        second: &Pair {
-            first: &c
-            second: nil
-        }
-    }
+    first: a,
+    second: Pair {
+        first: b,
+        second: nil,
+    },
 }
 ```
 
 The second method is for directly setting the value of the `second` for
 s-expression dot-notation style: `(a . b)` is represented by `first` pointing
-at `a`, dotted with `b` which is pointed at by `second`.
+at `a`, dotted with `b` which is pointed at by `second`. In our pseudo
+representation:
+
+```
+Pair {
+    first: a,
+    second: b,
+}
+```
+
+The implementation is simply:
 
 ```rust,ignore
 impl Pair {
@@ -130,9 +138,9 @@ Symbols are in fact pointers to interned strings. Since each symbol points
 to a unique string, we can identify a symbol by it's pointer value rather than
 needing to look up the string itself.
 
-However, symbols need to be looked up by their string name, and symbol pointers
-must dereference to find their name string. i.e. a bidirectional mapping of
-string to pointer and pointer to string.
+However, symbols do need to be discovered by their string name, and symbol
+pointers must dereference to return their string form. i.e. a we need a
+bidirectional mapping of string to pointer and pointer to string.
 
 In our implementation, we use a `HashMap<String, RawPtr<Symbol>>` to map from
 name strings to symbol pointers, while the `Symbol` object itself points back
@@ -144,11 +152,14 @@ This is encapsulated in a `SymbolMap` struct:
 {{#include ../interpreter/src/symbolmap.rs:DefSymbolMap}}
 ```
 
-The second member `Arena` requires further explanation: since symbols are
+where we use `RefCell` to wrap operations in interior mutability, just like
+all other allocator functionality.
+
+The second struct member `Arena` requires further explanation: since symbols are
 unique strings that can be identified and compared by their pointer values,
 these pointer values must remain static throughout the program lifetime.
 Thus, `Symbol` objects cannot be managed by a heap that might perform object
-relocation. We have a separate heap type for objects that are never
+relocation. We need a separate heap type for objects that are never
 moved or freed unil the program ends, the `Arena` type.
 
 The `Arena` type is simple. It, like `Heap`, wraps `StickyImmixHeap` but
@@ -165,7 +176,7 @@ Allocating a `Symbol` will use the `Arena::alloc()` method which calls through
 to the `StickyImmixHeap` instance.
 
 We'll add a method for getting a `Symbol` from it's name string to the
-`SymbolMap`:
+`SymbolMap` at the allocator API level:
 
 ```rust,ignore
 impl SymbolMap {
@@ -173,7 +184,7 @@ impl SymbolMap {
 }
 ```
 
-We'll add wrappers to the `Heap` and `MutatorView` impls to scope-restrict
+Then we'll add wrappers to the `Heap` and `MutatorView` impls to scope-restrict
 access:
 
 ```rust,ignore
