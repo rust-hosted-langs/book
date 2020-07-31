@@ -149,20 +149,20 @@ macro_rules! declare_allocobject {
     };
 }
 
-declare_allocobject!(Symbol, Symbol);
-declare_allocobject!(Pair, Pair);
-declare_allocobject!(NumberObject, NumberObject);
-declare_allocobject!(Text, Text);
-declare_allocobject!(List, List);
+declare_allocobject!(ArrayOpcode, ArrayOpcode);
 declare_allocobject!(ArrayU8, ArrayU8);
 declare_allocobject!(ArrayU16, ArrayU16);
 declare_allocobject!(ArrayU32, ArrayU32);
-declare_allocobject!(Dict, Dict);
-declare_allocobject!(ArrayOpcode, ArrayOpcode);
 declare_allocobject!(ByteCode, ByteCode);
-declare_allocobject!(InstructionStream, InstructionStream);
-declare_allocobject!(Function, Function);
-declare_allocobject!(Partial, Partial);
 declare_allocobject!(CallFrameList, CallFrameList);
+declare_allocobject!(Dict, Dict);
+declare_allocobject!(Function, Function);
+declare_allocobject!(InstructionStream, InstructionStream);
+declare_allocobject!(List, List);
+declare_allocobject!(NumberObject, NumberObject);
+declare_allocobject!(Pair, Pair);
+declare_allocobject!(Partial, Partial);
+declare_allocobject!(Symbol, Symbol);
+declare_allocobject!(Text, Text);
 declare_allocobject!(Thread, Thread);
 declare_allocobject!(Upvalue, Upvalue);

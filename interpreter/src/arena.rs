@@ -53,9 +53,11 @@ impl AllocHeader for ArenaHeader {
 /// These values are not dropped on Arena deallocation.
 /// Values must be "atomic", that is, not composed of other object
 /// pointers that need to be traced.
+// ANCHOR: DefArena
 pub struct Arena {
     heap: StickyImmixHeap<ArenaHeader>,
 }
+// ANCHOR_END: DefArena
 
 impl Arena {
     pub fn new() -> Arena {
@@ -68,12 +70,14 @@ impl Arena {
 impl AllocRaw for Arena {
     type Header = ArenaHeader;
 
+    // ANCHOR: DefArenaAlloc
     fn alloc<T>(&self, object: T) -> Result<RawPtr<T>, AllocError>
     where
         T: AllocObject<TypeList>,
     {
         self.heap.alloc(object)
     }
+    // ANCHOR_END: DefArenaAlloc
 
     fn alloc_array(&self, _size_bytes: ArraySize) -> Result<RawPtr<u8>, AllocError> {
         unimplemented!()

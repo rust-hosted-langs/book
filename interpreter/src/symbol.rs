@@ -12,11 +12,13 @@ use crate::safeptr::MutatorScope;
 /// underlying str data must have a lifetime of at least that of the Symbol instance to
 /// prevent use-after-free.
 /// See `SymbolMap`
+// ANCHOR: DefSymbol
 #[derive(Copy, Clone)]
 pub struct Symbol {
     name_ptr: *const u8,
     name_len: usize,
 }
+// ANCHOR_END: DefSymbol
 
 impl Symbol {
     /// The originating &str must be owned by a SymbolMap hash table
@@ -28,14 +30,18 @@ impl Symbol {
     }
 
     /// Unsafe because Symbol does not own the &str nor can it know anything about the actual lifetime
+    // ANCHOR: DefSymbolUnguardedAsStr
     pub unsafe fn unguarded_as_str<'desired_lifetime>(&self) -> &'desired_lifetime str {
         let slice = slice::from_raw_parts(self.name_ptr, self.name_len);
         str::from_utf8(slice).unwrap()
     }
+    // ANCHOR_END: DefSymbolUnguardedAsStr
 
+    // ANCHOR: DefSymbolAsStr
     pub fn as_str<'guard>(&self, _guard: &'guard dyn MutatorScope) -> &'guard str {
         unsafe { self.unguarded_as_str() }
     }
+    // ANCHOR_END: DefSymbolAsStr
 }
 
 impl Print for Symbol {

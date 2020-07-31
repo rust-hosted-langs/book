@@ -13,7 +13,7 @@
 - [An interpreter: Eval-rs](./part-interpreter.md)
   - [Allocating objects and dereferencing safely](./chapter-interp-alloc.md)
   - [Tagged pointers and object headers](./chapter-interp-tagged-ptrs.md)
-  - [TODO - Symbols and Pairs](./404.md)
+  - [Symbols and Pairs](./chapter-interp-symbols-and-pairs.md)
   - [TODO - Parsing](./404.md)
   - [TODO - Arrays](./404.md)
   - [TODO - Bytecode](./404.md)

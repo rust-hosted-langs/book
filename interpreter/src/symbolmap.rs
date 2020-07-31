@@ -14,10 +14,12 @@ use crate::symbol::Symbol;
 /// mapping HashMap.
 ///
 /// No Symbol is ever deleted. Symbol name strings must be immutable.
+// ANCHOR: DefSymbolMap
 pub struct SymbolMap {
     map: RefCell<HashMap<String, RawPtr<Symbol>>>,
     arena: Arena,
 }
+// ANCHOR_END: DefSymbolMap
 
 impl SymbolMap {
     pub fn new() -> SymbolMap {
@@ -27,11 +29,11 @@ impl SymbolMap {
         }
     }
 
+    // Can't take a map.entry(name) without providing an owned String, i.e. cloning 'name'
+    // Can't insert a new entry with just a reference without hashing twice, and cloning 'name'
+    // The common case, lookups, should be fast, inserts can be slower.
+    // ANCHOR: DefSymbolMapLookup
     pub fn lookup(&self, name: &str) -> RawPtr<Symbol> {
-        // Can't take a map.entry(name) without providing an owned String, i.e. cloning 'name'
-        // Can't insert a new entry with just a reference without hashing twice, and cloning 'name'
-        // The common case, lookups, should be fast, inserts can be slower.
-
         {
             if let Some(ptr) = self.map.borrow().get(name) {
                 return *ptr;
@@ -43,4 +45,5 @@ impl SymbolMap {
         self.map.borrow_mut().insert(name, ptr);
         ptr
     }
+    // ANCHOR_END: DefSymbolMapLookup
 }
