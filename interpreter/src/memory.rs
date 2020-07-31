@@ -27,9 +27,11 @@ impl<'memory> MutatorView<'memory> {
     }
 
     /// Get a Symbol pointer from its name
+    // ANCHOR: DefMutatorViewLookupSym
     pub fn lookup_sym(&self, name: &str) -> TaggedScopedPtr<'_> {
         TaggedScopedPtr::new(self, self.heap.lookup_sym(name))
     }
+    // ANCHOR_END: DefMutatorViewLookupSym
 
     /// Write an object into the heap and return a scope-limited pointer to it
     // ANCHOR: DefMutatorViewAlloc
@@ -90,9 +92,11 @@ impl Heap {
     }
 
     /// Get a Symbol pointer from its name
+    // ANCHOR: DefHeapLookupSym
     fn lookup_sym(&self, name: &str) -> TaggedPtr {
         TaggedPtr::symbol(self.syms.lookup(name))
     }
+    // ANCHOR_END: DefHeapLookupSym
 
     /// Write an object to the heap and return the raw pointer to it
     // ANCHOR: DefHeapAlloc

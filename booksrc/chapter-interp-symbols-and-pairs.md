@@ -70,15 +70,15 @@ impl Pair {
 This method, given a value to append, creates a new `Pair` whose member `first`
 points at the value, then sets the `second` of the `&self` `Pair` to that new
 `Pair` instance. This is in support of s-expression notation `(a b c)` which
-describes a linked-list of `Pair`s arranged:
+describes a linked-list of `Pair`s arranged, in pseudo-Rust:
 
 ```
 Pair {
-    first: a,
-    second: Pair {
-        first: b,
-        second: Pair {
-            first: c
+    first: &a,
+    second: &Pair {
+        first: &b,
+        second: &Pair {
+            first: &c
             second: nil
         }
     }
@@ -148,7 +148,7 @@ The second member `Arena` requires further explanation: since symbols are
 unique strings that can be identified and compared by their pointer values,
 these pointer values must remain static throughout the program lifetime.
 Thus, `Symbol` objects cannot be managed by a heap that might perform object
-relocation. And so we have a separate heap type for objects that are never
+relocation. We have a separate heap type for objects that are never
 moved or freed unil the program ends, the `Arena` type.
 
 The `Arena` type is simple. It, like `Heap`, wraps `StickyImmixHeap` but
@@ -164,4 +164,66 @@ API requirements but whose methods will never be needed.
 Allocating a `Symbol` will use the `Arena::alloc()` method which calls through
 to the `StickyImmixHeap` instance.
 
-TODO lookup_symbol etc()
+We'll add a method for getting a `Symbol` from it's name string to the
+`SymbolMap`:
+
+```rust,ignore
+impl SymbolMap {
+{{#include ../interpreter/src/symbolmap.rs:DefSymbolMapLookup}}
+}
+```
+
+We'll add wrappers to the `Heap` and `MutatorView` impls to scope-restrict
+access:
+
+```rust,ignore
+impl Heap {
+{{#include ../interpreter/src/memory.rs:DefHeapLookupSym}}
+}
+```
+
+and
+
+```rust,ignore
+impl<'memory> MutatorView<'memory> {
+{{#include ../interpreter/src/memory.rs:DefMutatorViewLookupSym}}
+}
+```
+
+This scope restriction is absolutely necessary, despite these objects never
+being freed or moved during runtime. This is because `Symbol`, as a standalone
+struct, remains unsafe to use with it's raw `&str` components. These components
+can only safely be accessed when there is a guarantee that the backing
+`Hashmap` is still in existence, which is only when the `MutatorView` is
+accessible.
+
+Two methods on `Symbol` guard access to the `&str`, one unsafe to reassemble
+the `&str` from raw components, the other safe when given a `MutatorScope`
+guard instance.
+
+```rust,ignore
+impl Symbol {
+{{#include ../interpreter/src/symbol.rs:DefSymbolUnguardedAsStr}}
+
+{{#include ../interpreter/src/symbol.rs:DefSymbolAsStr}}
+}
+```
+
+Finally, to make `Symbol`s allocatable in the Sticky Immix heap, we need to
+implement `AllocObject` for it:
+
+```rust,ignore
+impl AllocObject<TypeList> for Symbol {
+    const TYPE_ID: TypeList = TypeList::Symbol;
+}
+```
+
+
+## Moving on swiftly
+
+Now we've got the elemental pieces of s-expressions, lists and symbols, we can
+move on to parsing s-expression strings.
+
+Since the focus of this book is the underlying mechanisms of memory management
+in Rust and the details of runtime implementation, parsing will receive less
+attention. We'll make it quick!
