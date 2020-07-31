@@ -33,6 +33,7 @@ impl Pair {
     // ANCHOR_END: DefPairNew
 
     /// Set Pair.second to a new Pair with newPair.first set to the value
+    // ANCHOR: DefPairAppend
     pub fn append<'guard>(
         &self,
         mem: &'guard MutatorView,
@@ -46,11 +47,14 @@ impl Pair {
 
         Ok(pair)
     }
+    // ANCHOR_END: DefPairAppend
 
     /// Set Pair.second to the given value
+    // ANCHOR: DefPairDot
     pub fn dot<'guard>(&self, value: TaggedScopedPtr<'guard>) {
         self.second.set(value);
     }
+    // ANCHOR_END: DefPairDot
 
     pub fn set_first_source_code_pos(&self, pos: SourcePos) {
         self.first_pos.set(Some(pos));

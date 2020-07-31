@@ -9,8 +9,8 @@ The definition of `Symbol` is just the raw components of a `&str`:
 {{#include ../interpreter/src/symbol.rs:DefSymbol}}
 ```
 
-How we handle these raw components will be covered in just a bit.
-First though, we'll delve into the `Pair` type.
+Why this is how `Symbol` is defined and how we handle these raw components will
+be covered in just a bit. First though, we'll delve into the `Pair` type.
 
 
 ## Pairs of pointers
@@ -22,7 +22,7 @@ The definition of `Pair` is
 ```
 
 The type of `first` and `second` is `TaggedCellPtr`, as seen in the previous
-chapter. This pointer type can point at any runtime supported type. By the
+chapter. This pointer type can point at any dynamic type. By the
 end of this chapter we'll be able to build a nested linked list of `Pair`s
 and `Symbol`s.
 
@@ -49,13 +49,51 @@ assigns a value to `first` and `second` and puts the `Pair` on to the heap:
 ```
 
 Here we have the lifetime `'guard` associated with the `MutatorView` instance
-which grants access to the `alloc_tagged()` method.
+which grants access to the allocator `alloc_tagged()` method and the getter
+and setter on `TaggedScopedPtr`.
 
 The other two args, `head` and `rest` are required to share the same `'guard`
-lifetime as the `MutatorView` instance, or rather, at least `'guard` must be
+lifetime as the `MutatorView` instance, or rather, `'guard` must at least be
 a subtype of their lifetimes. Their values, of type `TaggedScopedPtr<'guard>`,
 can be written directly to the `first` and `second` members of `Pair` with
-`TaggedCellPtr::set()`.
+the setter `TaggedCellPtr::set()`.
+
+We'll also add a couple `impl` methods for appending an object to a `Pair`
+in linked-list fashion:
+
+```rust,ignore
+impl Pair {
+{{#include ../interpreter/src/pair.rs:DefPairAppend}}
+}
+```
+
+This method, given a value to append, creates a new `Pair` whose member `first`
+points at the value, then sets the `second` of the `&self` `Pair` to that new
+`Pair` instance. This is in support of s-expression notation `(a b c)` which
+describes a linked-list of `Pair`s arranged:
+
+```
+Pair {
+    first: a,
+    second: Pair {
+        first: b,
+        second: Pair {
+            first: c
+            second: nil
+        }
+    }
+}
+```
+
+The second method is for directly setting the value of the `second` for
+s-expression dot-notation style: `(a . b)` is represented by `first` pointing
+at `a`, dotted with `b` which is pointed at by `second`.
+
+```rust,ignore
+impl Pair {
+{{#include ../interpreter/src/pair.rs:DefPairDot}}
+}
+```
 
 The only other piece to add, since `Pair` must be able to be passed into
 our allocator API, is the `AllocObject` impl for `Pair`:
@@ -66,8 +104,8 @@ impl AllocObject<TypeList> for Pair {
 }
 ```
 
-This impl will repeat for every type in `TypeList` so it'll be a great candidate
-for a macro.
+This impl pattern will repeat for every type in `TypeList` so it'll be a great
+candidate for a macro.
 
 And that's it! We have a cons-cell style `Pair` type and some elementary
 methods for creating and allocating them.
@@ -78,4 +116,52 @@ see has some nuance to it.
 
 ## Symbols and pointers
 
-TODO
+Let's recap the definition of `Symbol` and that it is the raw members of a
+`&str`:
+
+```rust,ignore
+{{#include ../interpreter/src/symbol.rs:DefSymbol}}
+```
+
+By this definition, a symbol has a name string, but does not own the string
+itself. What means this?
+
+Symbols are in fact pointers to interned strings. Since each symbol points
+to a unique string, we can identify a symbol by it's pointer value rather than
+needing to look up the string itself.
+
+However, symbols need to be looked up by their string name, and symbol pointers
+must dereference to find their name string. i.e. a bidirectional mapping of
+string to pointer and pointer to string.
+
+In our implementation, we use a `HashMap<String, RawPtr<Symbol>>` to map from
+name strings to symbol pointers, while the `Symbol` object itself points back
+to the name string.
+
+This is encapsulated in a `SymbolMap` struct:
+
+```rust,ignore
+{{#include ../interpreter/src/symbolmap.rs:DefSymbolMap}}
+```
+
+The second member `Arena` requires further explanation: since symbols are
+unique strings that can be identified and compared by their pointer values,
+these pointer values must remain static throughout the program lifetime.
+Thus, `Symbol` objects cannot be managed by a heap that might perform object
+relocation. And so we have a separate heap type for objects that are never
+moved or freed unil the program ends, the `Arena` type.
+
+The `Arena` type is simple. It, like `Heap`, wraps `StickyImmixHeap` but
+unlike `Heap`, it will never run garbage collection.
+
+```rust,ignore
+{{#include ../interpreter/src/arena.rs:DefArena}}
+```
+
+The `ArenaHeader` is a simple object header type to fulfill the allocator
+API requirements but whose methods will never be needed.
+
+Allocating a `Symbol` will use the `Arena::alloc()` method which calls through
+to the `StickyImmixHeap` instance.
+
+TODO lookup_symbol etc()

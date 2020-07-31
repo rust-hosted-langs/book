@@ -14,10 +14,12 @@ use crate::symbol::Symbol;
 /// mapping HashMap.
 ///
 /// No Symbol is ever deleted. Symbol name strings must be immutable.
+// ANCHOR: DefSymbolMap
 pub struct SymbolMap {
     map: RefCell<HashMap<String, RawPtr<Symbol>>>,
     arena: Arena,
 }
+// ANCHOR_END: DefSymbolMap
 
 impl SymbolMap {
     pub fn new() -> SymbolMap {
