@@ -14,7 +14,7 @@
   - [Allocating objects and dereferencing safely](./chapter-interp-alloc.md)
   - [Tagged pointers and object headers](./chapter-interp-tagged-ptrs.md)
   - [Symbols and Pairs](./chapter-interp-symbols-and-pairs.md)
-  - [TODO - Parsing](./404.md)
+  - [TODO - Parsing](./chapter-interp-parsing.md)
   - [TODO - Arrays](./404.md)
   - [TODO - Bytecode](./404.md)
   - [TODO - Basic expressions](./404.md)
