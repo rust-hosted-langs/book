@@ -8,11 +8,13 @@ use blockalloc::BlockError;
 use stickyimmix::AllocError;
 
 /// Source code position
+// ANCHOR: DefSourcePos
 #[derive(Copy, Clone, Debug, PartialEq)]
 pub struct SourcePos {
     pub line: u32,
     pub column: u32,
 }
+// ANCHOR_END: DefSourcePos
 
 impl SourcePos {
     fn new(line: u32, column: u32) -> SourcePos {

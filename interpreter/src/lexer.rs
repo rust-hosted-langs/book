@@ -15,6 +15,7 @@ const DOT: char = '.';
 const DOUBLE_QUOTE: char = '"';
 const SINGLE_QUOTE: char = '\'';
 
+// ANCHOR: DefTokenType
 #[derive(Debug, PartialEq)]
 pub enum TokenType {
     OpenParen,
@@ -24,12 +25,15 @@ pub enum TokenType {
     Text(String),
     Quote,
 }
+// ANCHOR_END: DefTokenType
 
+// ANCHOR: DefToken
 #[derive(Debug, PartialEq)]
 pub struct Token {
     pub pos: SourcePos,
     pub token: TokenType,
 }
+// ANCHOR_END: DefToken
 
 impl Token {
     fn new(pos: SourcePos, token: TokenType) -> Token {
