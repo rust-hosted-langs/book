@@ -269,12 +269,14 @@ fn parse_tokens<'guard>(
 }
 
 /// Parse the given string into an AST
+// ANCHOR: DefParse
 pub fn parse<'guard>(
     mem: &'guard MutatorView,
     input: &str,
 ) -> Result<TaggedScopedPtr<'guard>, RuntimeError> {
     parse_tokens(mem, tokenize(input)?)
 }
+// ANCHOR_END: DefParse
 
 #[cfg(test)]
 mod test {
