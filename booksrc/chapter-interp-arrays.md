@@ -1,17 +1,17 @@
 # Arrays
 
 Before we get to the basics of compilation, we need another data structure:
-the humble array. The primary use for arrays will be to store the bytecode
+the humble array. The first use for arrays will be to store the bytecode
 sequences that the compiler generates.
 
-Rust already has `Vec` but as we're implementing everything in terms of our
+Rust already provides `Vec` but as we're implementing everything in terms of our
 memory management abstraction, we cannot directly use `Vec`. Rust does not
 (yet) expose the ability to specify a custom allocator type as part of `Vec`,
 nor are we interested in replacing the global allocator.
 
 Our only option is to write our own version of `Vec`! Fortunately we can
-learn a lot from `Vec` and it's underlying implementation. Jump over to the
-[Nomicon][1] for the Rust-oriented approach to arrays.
+learn a lot from `Vec` itself and it's underlying implementation. Jump over to
+the [Rustonomicon][1] for a primer on the internals of `Vec`.
 
 The first thing we'll learn is to split the implementation into a `RawArray<T>`
 type and an `Array<T>` type. `RawArray<T>` will provide an unsafe abstraction
@@ -50,6 +50,38 @@ it safely. Here's `with_capcity()`, now:
 
 ```rust,ignore
 {{#include ../interpreter/src/rawarray.rs:DefRawArrayWithCapacity}}
+```
+
+### Resizing
+
+If a `RawArray<T>`'s content will exceed it's capacity, there is
+`RawArray<T>::resize()`. It allocates a new backing array using the
+`MutatorView` method `alloc_array()` and copies the content of the old
+over to the new, finally swapping in the new backing array for the old.
+
+The code for this is straightforward but a little longer, go check it out
+in `interpreter/src/rawarray.rs`.
+
+### Accessing
+
+Since `RawArray<T>` will be wrapped by `Array<T>`, we need a couple more
+methods to access the raw memory:
+
+```rust,ignore
+impl<T: Sized> RawArray<T> {
+{{#include ../interpreter/src/rawarray.rs:DefRawArrayCapacity}}
+
+{{#include ../interpreter/src/rawarray.rs:DefRawArrayAsPtr}}
+}
+```
+
+And that's it! Now for the safe wrapper.
+
+
+## Array
+
+```rust,ignore
+{{#include ../interpreter/src/array.rs:DefArray}}
 ```
 
 

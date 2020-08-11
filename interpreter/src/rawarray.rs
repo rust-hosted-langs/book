@@ -131,15 +131,19 @@ impl<T: Sized> RawArray<T> {
     }
 
     /// Return the capacity of the array in the count of objects it can hold
+    // ANCHOR: DefRawArrayCapacity
     pub fn capacity(&self) -> ArraySize {
         self.capacity
     }
+    // ANCHOR_END: DefRawArrayCapacity
 
     /// Return a pointer to the array
+    // ANCHOR: DefRawArrayAsPtr
     pub fn as_ptr(&self) -> Option<*const T> {
         match self.ptr {
             Some(ptr) => Some(ptr.as_ptr()),
             None => None,
         }
     }
+    // ANCHOR_END: DefRawArrayAsPtr
 }

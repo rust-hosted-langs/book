@@ -35,12 +35,14 @@ const EXPOSED_MUTABLY: isize = 1;
 /// Since SliceableContainer allows mutable access to the interior
 /// of the array, RefCell-style runtime semantics are employed to
 /// prevent the array being modified outside of the slice borrow.
+// ANCHOR: DefArray
 #[derive(Clone)]
 pub struct Array<T: Sized + Clone> {
     length: Cell<ArraySize>,
     data: Cell<RawArray<T>>,
     borrow: Cell<BorrowFlag>,
 }
+// ANCHOR_END: DefArray
 
 /// Internal implementation
 impl<T: Sized + Clone> Array<T> {
