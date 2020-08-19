@@ -47,6 +47,7 @@ pub struct Array<T: Sized + Clone> {
 /// Internal implementation
 impl<T: Sized + Clone> Array<T> {
     /// Allocate a new instance on the heap
+    // ANCHOR: DefArrayAlloc
     pub fn alloc<'guard>(
         mem: &'guard MutatorView,
     ) -> Result<ScopedPtr<'guard, Array<T>>, RuntimeError>
@@ -55,6 +56,7 @@ impl<T: Sized + Clone> Array<T> {
     {
         mem.alloc(Array::new())
     }
+    // ANCHOR_END: DefArrayAlloc
 
     /// Clone the contents of an existing Array
     pub fn alloc_clone<'guard>(
@@ -79,6 +81,7 @@ impl<T: Sized + Clone> Array<T> {
     }
 
     /// Return a bounds-checked pointer to the object at the given index
+    // ANCHOR: DefArrayGetOffset
     fn get_offset(&self, index: ArraySize) -> Result<*mut T, RuntimeError> {
         if index >= self.length.get() {
             Err(RuntimeError::new(ErrorKind::BoundsError))
@@ -94,8 +97,10 @@ impl<T: Sized + Clone> Array<T> {
             Ok(dest_ptr)
         }
     }
+    // ANCHOR_END: DefArrayGetOffset
 
     /// Bounds-checked write
+    // ANCHOR: DefArrayWrite
     fn write<'guard>(
         &self,
         _guard: &'guard dyn MutatorScope,
@@ -108,8 +113,10 @@ impl<T: Sized + Clone> Array<T> {
             Ok(&*dest as &T)
         }
     }
+    // ANCHOR_END: DefArrayWrite
 
     /// Bounds-checked read
+    // ANCHOR: DefArrayRead
     fn read<'guard>(
         &self,
         _guard: &'guard dyn MutatorScope,
@@ -120,8 +127,10 @@ impl<T: Sized + Clone> Array<T> {
             Ok(read(dest))
         }
     }
+    // ANCHOR_END: DefArrayRead
 
     /// Bounds-checked reference-read
+    // ANCHOR: DefArrayReadRef
     pub fn read_ref<'guard>(
         &self,
         _guard: &'guard dyn MutatorScope,
@@ -132,6 +141,7 @@ impl<T: Sized + Clone> Array<T> {
             Ok(&*dest as &T)
         }
     }
+    // ANCHOR_END: DefArrayReadRef
 
     /// Represent the array as a slice. This is necessarily unsafe even for the 'guard lifetime
     /// duration because while a slice is held, other code can cause array internals to change

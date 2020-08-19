@@ -80,9 +80,106 @@ And that's it! Now for the safe wrapper.
 
 ## Array
 
+The definition of the struct wrapping `RawArray<T>` is as follows:
+
 ```rust,ignore
 {{#include ../interpreter/src/array.rs:DefArray}}
 ```
+
+Here we have three members:
+
+* `length` - the length of the array
+* `data` - the `RawArray<T>` being wrapped
+* `borrow` - a flag serving as a runtime borrow check, allowing `RefCell`
+  runtime semantics, since we're in a world of interior mutability patterns
+
+We have a method to create a new array - `Array::alloc()`
+
+```rust,ignore
+impl<T: Sized + Clone> Array<T> {
+{{#include ../interpreter/src/array.rs:DefArrayAlloc}}
+}
+```
+
+In fact we'll extend this pattern of a method named "alloc" to any data
+structure for convenience sake.
+
+There are many more methods for `Array<T>` and it would be exhausting to be
+exhaustive. Let's go over the core methods used to read and write elements
+and then an example use case.
+
+### Reading and writing
+
+First of all, we need a function that takes an array index and returns a
+pointer to a memory location, if the index is within bounds:
+
+```rust,ignore
+impl<T: Sized + Clone> Array<T> {
+{{#include ../interpreter/src/array.rs:DefArrayGetOffset}}
+}
+```
+
+There are two bounds checks here - firstly, the index should be within the
+(likely non-zero) length values; secondly, the `RawArray<T>` instance
+should have a backing array allocated. If either of these checks fail, the
+result is an error. If these checks pass, we can be confident that there
+is array backing memory and that we can return a valid pointer to somewhere
+inside that memory block.
+
+For reading a value in an array, we need two methods:
+
+1. one that handles move/copy semantics and returns a value
+2. one that handles reference semantics and returns a reference to the original
+   value in it's location in the backing memory
+
+First, then:
+
+```rust,ignore
+impl<T: Sized + Clone> Array<T> {
+{{#include ../interpreter/src/array.rs:DefArrayRead}}
+}
+```
+
+and secondly:
+
+```rust,ignore
+impl<T: Sized + Clone> Array<T> {
+{{#include ../interpreter/src/array.rs:DefArrayReadRef}}
+}
+```
+
+Writing, or copying, an object to an array is implemented as simply as follows:
+
+```rust,ignore
+impl<T: Sized + Clone> Array<T> {
+{{#include ../interpreter/src/array.rs:DefArrayReadRef}}
+}
+```
+
+These simple functions should only be used internally by `Array<T>` impl
+methods. We have numerous methods that wrap the above in more appropriate
+semantics for values of `T` in `Array<T>`.
+
+### The Array interfaces
+
+To define the interfaces to the Array, and other collection types, we define a
+number of traits. For example, a collection that behaves as a stack implements
+`StackContainer`; a numerically indexable type implements `IndexedContainer`,
+and so on. As we'll wee, there is some nuance, though, when it comes to a
+difference between collections of non-pointer types and collections of pointer
+types.
+
+For our example, we will describe the stack interfaces of `Array<T>`.
+
+First, the general case trait, with methods for accessing values stored in the
+array (non-pointer types):
+
+```rust,ignore
+{{#include ../interpreter/src/containers.rs:DefStackContainer}}
+```
+
+These are unremarkable functions, by now we're familiar with the references to
+`MutatorScope` and `MutatorView` in method parameter lists.
 
 
 [1]: https://doc.rust-lang.org/nomicon/vec.html

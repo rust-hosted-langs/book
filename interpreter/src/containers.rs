@@ -19,6 +19,7 @@ pub trait Container<T: Sized + Clone>: Sized {
     /// Create a new, empty container instance.
     fn new() -> Self;
     /// Create a new container instance with the given capacity.
+    // TODO: this may not make sense for tree types
     fn with_capacity<'guard>(
         mem: &'guard MutatorView,
         capacity: ArraySize,
@@ -54,6 +55,7 @@ pub trait FillAnyContainer: FillContainer<TaggedCellPtr> {
 }
 
 /// Generic stack trait. If implemented, the container can function as a stack
+// ANCHOR: DefStackContainer
 pub trait StackContainer<T: Sized + Clone>: Container<T> {
     /// Push can trigger an underlying array resize, hence it requires the ability to allocate
     fn push<'guard>(&self, mem: &'guard MutatorView, item: T) -> Result<(), RuntimeError>;
@@ -65,6 +67,7 @@ pub trait StackContainer<T: Sized + Clone>: Container<T> {
     /// Return the value at the top of the stack without removing it
     fn top<'guard>(&self, _guard: &'guard dyn MutatorScope) -> Result<T, RuntimeError>;
 }
+// ANCHOR_END: DefStackContainer
 
 /// Specialized stack trait. If implemented, the container can function as a stack
 pub trait StackAnyContainer: StackContainer<TaggedCellPtr> {
