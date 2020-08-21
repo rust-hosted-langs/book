@@ -165,7 +165,7 @@ semantics for values of `T` in `Array<T>`.
 To define the interfaces to the Array, and other collection types, we define a
 number of traits. For example, a collection that behaves as a stack implements
 `StackContainer`; a numerically indexable type implements `IndexedContainer`,
-and so on. As we'll wee, there is some nuance, though, when it comes to a
+and so on. As we'll see, there is some nuance, though, when it comes to a
 difference between collections of non-pointer types and collections of pointer
 types.
 
@@ -180,6 +180,71 @@ array (non-pointer types):
 
 These are unremarkable functions, by now we're familiar with the references to
 `MutatorScope` and `MutatorView` in method parameter lists.
+
+In any instance of `Array<T>`, `T` need only implement `Clone` and cannot be
+dynamically sized. Thus `T` can be any primitive type or any straightforward
+struct.
+
+What if we want to store pointers to other objects? For example, if we want a
+heterogenous array, such as Python's `List` type, what would we provide in
+place of `T`? The answer is to use the `TaggedCellPtr` type. However,
+an `Array<TaggedCellPtr`, because we want to interface with pointers and
+use the memory access abstractions provided, can be made a little more
+ergonomic. For that reason, we have separate traits for containers of type
+`Container<TaggedCellPtr`. In the case of the stack interface this looks like:
+
+```rust,ignore
+{{#include ../interpreter/src/containers.rs:DefStackAnyContainer}}
+```
+
+As you can see, these methods, while for `T = TaggedCellPtr`, provide an
+interface based on passing and returning `TaggedScopedPtr`.
+
+Let's look at the implementation of one of these methods - `push()`  - for
+both `StackContainer` and `StackAnyContainer`.
+
+Here's the code for `StackContainer::push()`:
+
+```rust,ignore
+impl<T: Sized + Clone> StackContainer<T> for Array<T> {
+{{#include ../interpreter/src/array.rs:DefStackContainerArrayPush}}
+}
+```
+
+In summary, the order of operations is:
+
+1. Check that a runtime borrow isn't in progress. If it is, return an error.
+1. Since we must implement interior mutability, the member `data` of the
+   `Array<T>` struct is a `Cell`. We have to `get()` the content in order
+   to use it.
+1. We then ask whether the array backing store needs to be grown. If so,
+   we resize the `RawArray<T>` and, since it's kept in a `Cell` on `Array<T>`,
+   we have to `set()` value back into `data` to save the change.
+1. Now we have an `RawArray<T>` that has enough capacity, the length is
+   incremented and the object to be pushed is written to the next memory
+   location using the internal `Array<T>::write()` method detailed earlier.
+
+Fortunately we can implement `StackAnyContainer::push()` in terms of
+`StackContainer::push()`:
+
+```rust,ignore
+impl StackAnyContainer for Array<TaggedCellPtr> {
+{{#include ../interpreter/src/array.rs:DefStackAnyContainerArrayPush}}
+}
+```
+
+## In conclusion
+
+We referenced how `Vec` is implemented internally and followed the same pattern
+of defining a `RawArray<T>` unsafe layer with a safe `Array<T>` wrapper. Then
+we looked into the stack interface for `Array<T>` and the implementation of
+`push()`.
+
+There is more to arrays, of course - indexed access the most obvious, and also
+a few convenience methods. See the source code in `interpreter/src/array.rs`
+for the full detail.
+
+In the next chapter we'll put `Array<T>` to use in a `Bytecode` type!
 
 
 [1]: https://doc.rust-lang.org/nomicon/vec.html

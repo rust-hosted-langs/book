@@ -70,6 +70,7 @@ pub trait StackContainer<T: Sized + Clone>: Container<T> {
 // ANCHOR_END: DefStackContainer
 
 /// Specialized stack trait. If implemented, the container can function as a stack
+// ANCHOR: DefStackAnyContainer
 pub trait StackAnyContainer: StackContainer<TaggedCellPtr> {
     /// Push can trigger an underlying array resize, hence it requires the ability to allocate
     fn push<'guard>(
@@ -91,6 +92,7 @@ pub trait StackAnyContainer: StackContainer<TaggedCellPtr> {
         _guard: &'guard dyn MutatorScope,
     ) -> Result<TaggedScopedPtr<'guard>, RuntimeError>;
 }
+// ANCHOR_END: DefStackAnyContainer
 
 /// Generic indexed-access trait. If implemented, the container can function as an indexable vector
 pub trait IndexedContainer<T: Sized + Clone>: Container<T> {
