@@ -35,16 +35,19 @@ const EXPOSED_MUTABLY: isize = 1;
 /// Since SliceableContainer allows mutable access to the interior
 /// of the array, RefCell-style runtime semantics are employed to
 /// prevent the array being modified outside of the slice borrow.
+// ANCHOR: DefArray
 #[derive(Clone)]
 pub struct Array<T: Sized + Clone> {
     length: Cell<ArraySize>,
     data: Cell<RawArray<T>>,
     borrow: Cell<BorrowFlag>,
 }
+// ANCHOR_END: DefArray
 
 /// Internal implementation
 impl<T: Sized + Clone> Array<T> {
     /// Allocate a new instance on the heap
+    // ANCHOR: DefArrayAlloc
     pub fn alloc<'guard>(
         mem: &'guard MutatorView,
     ) -> Result<ScopedPtr<'guard, Array<T>>, RuntimeError>
@@ -53,6 +56,7 @@ impl<T: Sized + Clone> Array<T> {
     {
         mem.alloc(Array::new())
     }
+    // ANCHOR_END: DefArrayAlloc
 
     /// Clone the contents of an existing Array
     pub fn alloc_clone<'guard>(
@@ -77,6 +81,7 @@ impl<T: Sized + Clone> Array<T> {
     }
 
     /// Return a bounds-checked pointer to the object at the given index
+    // ANCHOR: DefArrayGetOffset
     fn get_offset(&self, index: ArraySize) -> Result<*mut T, RuntimeError> {
         if index >= self.length.get() {
             Err(RuntimeError::new(ErrorKind::BoundsError))
@@ -92,8 +97,10 @@ impl<T: Sized + Clone> Array<T> {
             Ok(dest_ptr)
         }
     }
+    // ANCHOR_END: DefArrayGetOffset
 
     /// Bounds-checked write
+    // ANCHOR: DefArrayWrite
     fn write<'guard>(
         &self,
         _guard: &'guard dyn MutatorScope,
@@ -106,8 +113,10 @@ impl<T: Sized + Clone> Array<T> {
             Ok(&*dest as &T)
         }
     }
+    // ANCHOR_END: DefArrayWrite
 
     /// Bounds-checked read
+    // ANCHOR: DefArrayRead
     fn read<'guard>(
         &self,
         _guard: &'guard dyn MutatorScope,
@@ -118,8 +127,10 @@ impl<T: Sized + Clone> Array<T> {
             Ok(read(dest))
         }
     }
+    // ANCHOR_END: DefArrayRead
 
     /// Bounds-checked reference-read
+    // ANCHOR: DefArrayReadRef
     pub fn read_ref<'guard>(
         &self,
         _guard: &'guard dyn MutatorScope,
@@ -130,6 +141,7 @@ impl<T: Sized + Clone> Array<T> {
             Ok(&*dest as &T)
         }
     }
+    // ANCHOR_END: DefArrayReadRef
 
     /// Represent the array as a slice. This is necessarily unsafe even for the 'guard lifetime
     /// duration because while a slice is held, other code can cause array internals to change
@@ -230,6 +242,7 @@ impl<T: Sized + Clone> FillContainer<T> for Array<T> {
 
 impl<T: Sized + Clone> StackContainer<T> for Array<T> {
     /// Push can trigger an underlying array resize, hence it requires the ability to allocate
+    // ANCHOR: DefStackContainerArrayPush
     fn push<'guard>(&self, mem: &'guard MutatorView, item: T) -> Result<(), RuntimeError> {
         if self.borrow.get() != INTERIOR_ONLY {
             return Err(RuntimeError::new(ErrorKind::MutableBorrowError));
@@ -254,6 +267,7 @@ impl<T: Sized + Clone> StackContainer<T> for Array<T> {
         self.write(mem, length, item)?;
         Ok(())
     }
+    // ANCHOR_END: DefStackContainerArrayPush
 
     /// Pop returns None if the container is empty, otherwise moves the last item of the array
     /// out to the caller.
@@ -401,6 +415,7 @@ impl FillAnyContainer for Array<TaggedCellPtr> {
 
 impl StackAnyContainer for Array<TaggedCellPtr> {
     /// Push can trigger an underlying array resize, hence it requires the ability to allocate
+    // ANCHOR: DefStackAnyContainerArrayPush
     fn push<'guard>(
         &self,
         mem: &'guard MutatorView,
@@ -412,6 +427,7 @@ impl StackAnyContainer for Array<TaggedCellPtr> {
             TaggedCellPtr::new_with(item),
         )?)
     }
+    // ANCHOR_END: DefStackAnyContainerArrayPush
 
     /// Pop returns None if the container is empty, otherwise moves the last item of the array
     /// out to the caller.

@@ -13,7 +13,9 @@ At a glance, these are:
 * A compiler and VM that interact with the above two layers
 
 The goal of this book is not to cover a full featured language but rather to
-provide a solid foundation on which you can build further features.
+provide a solid foundation on which you can build further features. Along
+the way we'll implement as much as possible in terms of our own memory
+management abstractions rather than using Rust std collections.
 
 ### Level of difficulty
 

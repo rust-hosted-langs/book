@@ -23,11 +23,13 @@ pub fn default_array_growth(capacity: ArraySize) -> Result<ArraySize, RuntimeErr
 
 /// Fundamental array type on which other variable-length types are built.
 /// Analagous to RawVec.
+// ANCHOR: DefRawArray
 pub struct RawArray<T: Sized> {
     /// Count of T-sized objects that can fit in the array
     capacity: ArraySize,
     ptr: Option<NonNull<T>>,
 }
+// ANCHOR_END: DefRawArray
 
 /// Since this base array type needs to be used in an interior-mutable way by the containers
 /// built on top of it, the Copy+Clone traits need to be implemented for it so that it can
@@ -53,6 +55,7 @@ impl<T: Sized> RawArray<T> {
     }
 
     /// Return a RawArray of the given capacity number of bytes allocated
+    // ANCHOR: DefRawArrayWithCapacity
     pub fn with_capacity<'scope>(
         mem: &'scope MutatorView,
         capacity: u32,
@@ -67,6 +70,7 @@ impl<T: Sized> RawArray<T> {
             ptr: NonNull::new(mem.alloc_array(capacity_bytes)?.as_ptr() as *mut T),
         })
     }
+    // ANCHOR_END: DefRawArrayWithCapacity
 
     /// Resize the array to the new capacity
     /// TODO the inner implementation of this should live in the allocator API to make
@@ -127,15 +131,19 @@ impl<T: Sized> RawArray<T> {
     }
 
     /// Return the capacity of the array in the count of objects it can hold
+    // ANCHOR: DefRawArrayCapacity
     pub fn capacity(&self) -> ArraySize {
         self.capacity
     }
+    // ANCHOR_END: DefRawArrayCapacity
 
     /// Return a pointer to the array
+    // ANCHOR: DefRawArrayAsPtr
     pub fn as_ptr(&self) -> Option<*const T> {
         match self.ptr {
             Some(ptr) => Some(ptr.as_ptr()),
             None => None,
         }
     }
+    // ANCHOR_END: DefRawArrayAsPtr
 }

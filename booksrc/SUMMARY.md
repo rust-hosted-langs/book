@@ -15,7 +15,7 @@
   - [Tagged pointers and object headers](./chapter-interp-tagged-ptrs.md)
   - [Symbols and Pairs](./chapter-interp-symbols-and-pairs.md)
   - [Parsing s-expressions](./chapter-interp-parsing.md)
-  - [TODO - Arrays](./404.md)
+  - [Arrays](./chapter-interp-arrays.md)
   - [TODO - Bytecode](./404.md)
   - [TODO - Basic expressions](./404.md)
   - [TODO - Numbers](./404.md)
