@@ -16,7 +16,7 @@
   - [Symbols and Pairs](./chapter-interp-symbols-and-pairs.md)
   - [Parsing s-expressions](./chapter-interp-parsing.md)
   - [Arrays](./chapter-interp-arrays.md)
-  - [TODO - Bytecode](./404.md)
+  - [Bytecode](./chapter-interp-bytecode.md)
   - [TODO - Basic expressions](./404.md)
   - [TODO - Numbers](./404.md)
   - [TODO - Dicts](./404.md)
