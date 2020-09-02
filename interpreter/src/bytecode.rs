@@ -322,8 +322,7 @@ impl InstructionStream {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::memory::{Memory, Mutator};
+    use super::Opcode;
     use std::mem::size_of;
 
     #[test]
