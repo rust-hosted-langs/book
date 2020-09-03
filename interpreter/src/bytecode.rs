@@ -40,7 +40,6 @@ pub type NumArgs = u8;
 /// Direct u32 is more ergonomic for the compiler but enum struct variants is
 /// more ergonomic for the vm and probably more performant. Lots of match repetition
 /// though :(
-#[repr(u8)]
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum Opcode {
     NoOp,
@@ -325,10 +324,12 @@ mod test {
     use super::Opcode;
     use std::mem::size_of;
 
+    // ANCHOR: DefTestOpcodeIs32Bits
     #[test]
     fn test_opcode_is_32_bits() {
         // An Opcode should be 32 bits; anything bigger and we've mis-defined some
-        // discriminant
+        // variant
         assert!(size_of::<Opcode>() == 4);
     }
+    // ANCHOR_END: DefTestOpcodeIs32Bits
 }

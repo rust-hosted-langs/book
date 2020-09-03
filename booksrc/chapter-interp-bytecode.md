@@ -61,8 +61,73 @@ We have options in how we describe opcodes in Rust.
     * Cons: encoding scheme limited to what an enum can represent
 
 The ability to leverage the compiler to prevent opcode encoding errors is
-attractive and we don't have any need for complex encodings. We'll use an enum
+attractive and we won't have any need for complex encodings. We'll use an enum
 to represent all possible opcodes and their operands.
+
+Since a Rust enum can contain named values within each variant, this is what
+we use to most tightly define our opcodes.
+
+### Opcode size
+
+Since we're using `enum` instead of a directly size-controlled type such as u32
+for our opcodes, we have to be more careful about making sure our opcode type
+doesn't take up more space than is necessary.  32 bits is ideal for reasons
+stated earlier (8 bits for the operator and 8 bits for three operands each.)
+
+Let's do some experiments.
+
+First, we need to define a register as an 8 bit value. We'll also define an
+inline literal integer as 16 bits.
+
+```rust,ignore
+type Register = u8;
+type LiteralInt = i16;
+```
+
+Then we'll create an opcode enum with a few variants that might be typical:
+
+```rust,ignore
+enum Opcode {
+    Add {
+        dest: Register,
+        a: Register,
+        b: Register
+    },
+    LoadLiteral {
+        dest: Register,
+        value: LiteralInt
+    }
+}
+```
+
+It should be obvious that with an enum like this we can safely pass compiled
+bytecode from the compiler to the VM. It should also be clear that this, by
+allowing use of `match` statements, will be very ergonomic to work with.
+
+Theoretically, if our variants never have more than 3 `Register` values, or
+one `Register` and one `LiteralInt` sized value, the compiler should be able
+to pack `Opcode` into 32 bits.
+
+Our test: we hope the output of the following code to be `4` - 4 bytes or 32
+bits.
+
+```rust,ignore
+use std::mem::size_of;
+
+fn main() {
+    println!("Size of Opcode is {}", size_of::<Opcode>());
+}
+```
+
+we get `Size of Opcode is 4`!
+
+If we add more than 256 variants or values that sum up to greater than 24 bits,
+this will not hold. To keep an eye on this situation, we'll put this check
+into a unit test:
+
+```rust,ignore
+{{#include ../interpreter/src/bytecode.rs:DefTestOpcodeIs32Bits}}
+```
 
 ---
 
