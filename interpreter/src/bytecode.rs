@@ -152,18 +152,24 @@ pub enum Opcode {
 
 /// Bytecode is stored as fixed-width 32-bit values.
 /// This is not the most efficient format but it is easy to work with.
+// ANCHOR: DefArrayOpcode
 pub type ArrayOpcode = Array<Opcode>;
+// ANCHOR_END: DefArrayOpcode
 
 /// Literals are stored in a separate list of machine-word-width pointers.
 /// This is also not the most efficient scheme but it is easy to work with.
+// ANCHOR: DefLiterals
 pub type Literals = List;
+// ANCHOR_END: DefLiterals
 
 /// Byte code consists of the code and any literals used.
+// ANCHOR: DefByteCode
 #[derive(Clone)]
 pub struct ByteCode {
     code: ArrayOpcode,
     literals: Literals,
 }
+// ANCHOR_END: DefByteCode
 
 impl ByteCode {
     /// Instantiate a blank ByteCode instance
@@ -255,10 +261,12 @@ impl Print for ByteCode {
 
 /// An InstructionStream is a pointer to a ByteCode instance and an instruction pointer giving the
 /// current index into the ByteCode
+// ANCHOR: DefInstructionStream
 pub struct InstructionStream {
     instructions: CellPtr<ByteCode>,
     ip: Cell<ArraySize>,
 }
+// ANCHOR_END: DefInstructionStream
 
 impl InstructionStream {
     /// Create an InstructionStream instance with the given ByteCode instance that will be iterated over
@@ -273,10 +281,12 @@ impl InstructionStream {
     }
 
     /// Change to a different stack frame, either as a function call or a return
+    // ANCHOR: DefInstructionStreamSwitchFrame
     pub fn switch_frame(&self, code: ScopedPtr<'_, ByteCode>, ip: ArraySize) {
         self.instructions.set(code);
         self.ip.set(ip);
     }
+    // ANCHOR_END: DefInstructionStreamSwitchFrame
 
     /// Retrieve the next instruction and return it, incrementing the instruction pointer
     pub fn get_next_opcode<'guard>(
