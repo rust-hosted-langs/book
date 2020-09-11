@@ -233,6 +233,16 @@ impl StackAnyContainer for Array<TaggedCellPtr> {
 }
 ```
 
+### One last thing
+
+To more easily differentiate arrays of type `Array<T>` from arrays of type
+`Array<TaggedCellPtr>`, we make a type alias `List` where:
+
+```rust,ignore
+pub type List = Array<TaggedCellPtr>;
+```
+
+
 ## In conclusion
 
 We referenced how `Vec` is implemented internally and followed the same pattern

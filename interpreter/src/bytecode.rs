@@ -40,7 +40,6 @@ pub type NumArgs = u8;
 /// Direct u32 is more ergonomic for the compiler but enum struct variants is
 /// more ergonomic for the vm and probably more performant. Lots of match repetition
 /// though :(
-#[repr(u8)]
 #[derive(PartialEq, Debug, Clone, Copy)]
 pub enum Opcode {
     NoOp,
@@ -153,18 +152,24 @@ pub enum Opcode {
 
 /// Bytecode is stored as fixed-width 32-bit values.
 /// This is not the most efficient format but it is easy to work with.
+// ANCHOR: DefArrayOpcode
 pub type ArrayOpcode = Array<Opcode>;
+// ANCHOR_END: DefArrayOpcode
 
 /// Literals are stored in a separate list of machine-word-width pointers.
 /// This is also not the most efficient scheme but it is easy to work with.
+// ANCHOR: DefLiterals
 pub type Literals = List;
+// ANCHOR_END: DefLiterals
 
 /// Byte code consists of the code and any literals used.
+// ANCHOR: DefByteCode
 #[derive(Clone)]
 pub struct ByteCode {
     code: ArrayOpcode,
     literals: Literals,
 }
+// ANCHOR_END: DefByteCode
 
 impl ByteCode {
     /// Instantiate a blank ByteCode instance
@@ -256,10 +261,12 @@ impl Print for ByteCode {
 
 /// An InstructionStream is a pointer to a ByteCode instance and an instruction pointer giving the
 /// current index into the ByteCode
+// ANCHOR: DefInstructionStream
 pub struct InstructionStream {
     instructions: CellPtr<ByteCode>,
     ip: Cell<ArraySize>,
 }
+// ANCHOR_END: DefInstructionStream
 
 impl InstructionStream {
     /// Create an InstructionStream instance with the given ByteCode instance that will be iterated over
@@ -274,12 +281,16 @@ impl InstructionStream {
     }
 
     /// Change to a different stack frame, either as a function call or a return
+    // ANCHOR: DefInstructionStreamSwitchFrame
     pub fn switch_frame(&self, code: ScopedPtr<'_, ByteCode>, ip: ArraySize) {
         self.instructions.set(code);
         self.ip.set(ip);
     }
+    // ANCHOR_END: DefInstructionStreamSwitchFrame
 
     /// Retrieve the next instruction and return it, incrementing the instruction pointer
+    // TODO: https://github.com/rust-hosted-langs/book/issues/39
+    // ANCHOR: DefInstructionStreamGetNextOpcode
     pub fn get_next_opcode<'guard>(
         &self,
         guard: &'guard dyn MutatorScope,
@@ -292,6 +303,7 @@ impl InstructionStream {
         self.ip.set(self.ip.get() + 1);
         Ok(instr)
     }
+    // ANCHOR_END: DefInstructionStreamGetNextOpcode
 
     /// Given an index into the literals list, return the pointer in the list at that index.
     pub fn get_literal<'guard>(
@@ -322,14 +334,15 @@ impl InstructionStream {
 
 #[cfg(test)]
 mod test {
-    use super::*;
-    use crate::memory::{Memory, Mutator};
+    use super::Opcode;
     use std::mem::size_of;
 
+    // ANCHOR: DefTestOpcodeIs32Bits
     #[test]
     fn test_opcode_is_32_bits() {
         // An Opcode should be 32 bits; anything bigger and we've mis-defined some
-        // discriminant
+        // variant
         assert!(size_of::<Opcode>() == 4);
     }
+    // ANCHOR_END: DefTestOpcodeIs32Bits
 }
