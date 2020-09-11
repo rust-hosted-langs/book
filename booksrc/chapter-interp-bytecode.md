@@ -6,20 +6,23 @@ structure.
 
 We won't go much into detail on each bytecode operation, that will be more
 usefully covered in the compiler and virtual machine chapters. Here, we'll
-describe the data structures involved. As such, this will be a shorter
-chapter. Let's go!
+describe the data structures involved. As such, this will be one of our
+shorter chapters. Let's go!
 
 
 ## Design questions
 
 Now that we're talking bytecode, we're at the point of choosing what type of
-virtual machine we will be compiling for. The most common type is stack-based.
+virtual machine we will be compiling for. The most common type is stack-based
+where operands are pushed and popped on and off the stack. This requires
+instructions for pushing and popping, with instructions in-between for operating
+on values on the stack.
 
 We'll be implementing a register-based VM though. The inspiration for this
 comes from Lua 5[^1] which implements a fixed-width bytecode register VM. While
 stack based VMs are typically claimed to be simpler, we'll see that the Lua
 way of allocating registers per function also has an inherent simplicity and
-has performance gains over a stack VM, specifically for an interpreted
+has performance gains over a stack VM, at least for an interpreted
 non jit-compiled VM.
 
 Given register based, fixed-width bytecode, each opcode must reference the
@@ -74,7 +77,7 @@ for our opcodes, we have to be more careful about making sure our opcode type
 doesn't take up more space than is necessary.  32 bits is ideal for reasons
 stated earlier (8 bits for the operator and 8 bits for three operands each.)
 
-Let's do some experiments.
+Let's do an experiment.
 
 First, we need to define a register as an 8 bit value. We'll also define an
 inline literal integer as 16 bits.
@@ -120,7 +123,7 @@ fn main() {
 }
 ```
 
-we get `Size of Opcode is 4`!
+And indeed when we run this, we get `Size of Opcode is 4`!
 
 To keep an eye on this situation, we'll put this check into a unit test:
 
@@ -128,7 +131,7 @@ To keep an eye on this situation, we'll put this check into a unit test:
 {{#include ../interpreter/src/bytecode.rs:DefTestOpcodeIs32Bits}}
 ```
 
-Now, let's put these into an array.
+Now, let's put these `Opcode`s into an array.
 
 
 ## An array of Opcode
@@ -218,8 +221,8 @@ to build a `ByteCode` structure.
 We'll need a different set of functions for our virtual machine to access
 `ByteCode` from an execution standpoint.
 
-Execution of bytecode involves a contiguous sequence of instructions and an
-instruction pointer. We're going to compile a separate `ByteCode` instance
+The execution view of bytecode is of a contiguous sequence of instructions and
+an instruction pointer. We're going to create a separate `ByteCode` instance
 for each function that gets compiled, so our execution model will have to
 be able to jump between `ByteCode` instances. We'll need a new struct to
 represent that:
@@ -238,6 +241,27 @@ impl InstructionStream {
 {{#include ../interpreter/src/bytecode.rs:DefInstructionStreamSwitchFrame}}
 }
 ```
+
+Of course, the main function needed during execution is to retrieve the next
+opcode. Ideally, we can keep a pointer that points directly at the next opcode
+such that only a single dereference and pointer increment is needed to get
+the opcode and advance the instruction pointer. Our implementation is less
+efficient for now, requiring a dereference of 1. the `ByteCode` instance and
+then 2. the `ArrayOpcode` instance and finally 3. an indexing into the
+`ArrayOpcode` instance:
+
+```rust,ignore
+{{#include ../interpreter/src/bytecode.rs:DefInstructionStreamGetNextOpcode}}
+```
+
+
+## Conclusion
+
+The full `Opcode` definition can be found in `interpreter/src/bytecode.rs`.
+
+As we work toward implementing a compiler, the next data structure we need is
+a dictionary or hash map. This will also build on the foundational
+`RawArray<T>` implementation. Let's go on to that now!
 
 
 ---

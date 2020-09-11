@@ -289,6 +289,8 @@ impl InstructionStream {
     // ANCHOR_END: DefInstructionStreamSwitchFrame
 
     /// Retrieve the next instruction and return it, incrementing the instruction pointer
+    // TODO: https://github.com/rust-hosted-langs/book/issues/39
+    // ANCHOR: DefInstructionStreamGetNextOpcode
     pub fn get_next_opcode<'guard>(
         &self,
         guard: &'guard dyn MutatorScope,
@@ -301,6 +303,7 @@ impl InstructionStream {
         self.ip.set(self.ip.get() + 1);
         Ok(instr)
     }
+    // ANCHOR_END: DefInstructionStreamGetNextOpcode
 
     /// Given an index into the literals list, return the pointer in the list at that index.
     pub fn get_literal<'guard>(
