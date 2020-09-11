@@ -1,0 +1,448 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Bytecode - Writing Interpreters in Rust: a Guide</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="part-allocators.html"><strong aria-hidden="true">2.</strong> Allocation</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-alignment.html"><strong aria-hidden="true">2.1.</strong> Alignment</a></li><li class="chapter-item expanded "><a href="chapter-blocks.html"><strong aria-hidden="true">2.2.</strong> Obtaining blocks of memory</a></li><li class="chapter-item expanded "><a href="chapter-what-is-alloc.html"><strong aria-hidden="true">2.3.</strong> The type of allocation</a></li></ol></li><li class="chapter-item expanded "><a href="part-stickyimmix.html"><strong aria-hidden="true">3.</strong> An allocator: Sticky Immix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-simple-bump.html"><strong aria-hidden="true">3.1.</strong> Bump allocation</a></li><li class="chapter-item expanded "><a href="chapter-managing-blocks.html"><strong aria-hidden="true">3.2.</strong> Allocating into multiple blocks</a></li><li class="chapter-item expanded "><a href="chapter-allocation-api.html"><strong aria-hidden="true">3.3.</strong> Defining the allocation API</a></li><li class="chapter-item expanded "><a href="chapter-allocation-impl.html"><strong aria-hidden="true">3.4.</strong> Implementing the API</a></li></ol></li><li class="chapter-item expanded "><a href="part-interpreter.html"><strong aria-hidden="true">4.</strong> An interpreter: Eval-rs</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-interp-alloc.html"><strong aria-hidden="true">4.1.</strong> Allocating objects and dereferencing safely</a></li><li class="chapter-item expanded "><a href="chapter-interp-tagged-ptrs.html"><strong aria-hidden="true">4.2.</strong> Tagged pointers and object headers</a></li><li class="chapter-item expanded "><a href="chapter-interp-symbols-and-pairs.html"><strong aria-hidden="true">4.3.</strong> Symbols and Pairs</a></li><li class="chapter-item expanded "><a href="chapter-interp-parsing.html"><strong aria-hidden="true">4.4.</strong> Parsing s-expressions</a></li><li class="chapter-item expanded "><a href="chapter-interp-arrays.html"><strong aria-hidden="true">4.5.</strong> Arrays</a></li><li class="chapter-item expanded "><a href="chapter-interp-bytecode.html" class="active"><strong aria-hidden="true">4.6.</strong> Bytecode</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">4.7.</strong> TODO - Dicts</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">4.8.</strong> TODO - Compiler: Design</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">4.9.</strong> TODO - Compiler: Implementation</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">4.10.</strong> TODO - Virtual Machine</a></li></ol></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">5.</strong> Garbage collection</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">5.1.</strong> TODO - Tracing</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">5.2.</strong> TODO - Sweeping</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">5.3.</strong> TODO - Recycling blocks</a></li></ol></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">6.</strong> Advanced garbage collection</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">6.1.</strong> TODO - ?</a></li></ol></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">7.</strong> Full Immix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">7.1.</strong> TODO - ?</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Writing Interpreters in Rust: a Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#bytecode" id="bytecode">Bytecode</a></h1>
+<p>In this chapter we will look at a bytecode compilation target. We'll combine
+this with a section on the virtual machine interface to the bytecode data
+structure.</p>
+<p>We won't go much into detail on each bytecode operation, that will be more
+usefully covered in the compiler and virtual machine chapters. Here, we'll
+describe the data structures involved. As such, this will be one of our
+shorter chapters. Let's go!</p>
+<h2><a class="header" href="#design-questions" id="design-questions">Design questions</a></h2>
+<p>Now that we're talking bytecode, we're at the point of choosing what type of
+virtual machine we will be compiling for. The most common type is stack-based
+where operands are pushed and popped on and off the stack. This requires
+instructions for pushing and popping, with instructions in-between for operating
+on values on the stack.</p>
+<p>We'll be implementing a register-based VM though. The inspiration for this
+comes from Lua 5<sup class="footnote-reference"><a href="#1">1</a></sup> which implements a fixed-width bytecode register VM. While
+stack based VMs are typically claimed to be simpler, we'll see that the Lua
+way of allocating registers per function also has an inherent simplicity and
+has performance gains over a stack VM, at least for an interpreted
+non jit-compiled VM.</p>
+<p>Given register based, fixed-width bytecode, each opcode must reference the
+register numbers that it operates on. Thus, for an (untyped) addition
+operation <code>x = a + b</code>, each of <code>x</code>, <code>a</code> and <code>b</code> must be associated with a
+register.</p>
+<p>Following Lua, encoding this as a fixed width opcode typically looks like
+encoding the operator and operands as 8 bit values packed into a 32 bit opcode
+word. That implies, given 8 bits, that there can be a theoretical maximum of
+256 registers for a function call. For the addition above, this encoding
+might look like this:</p>
+<pre><code class="language-ignore">   32.....24......16.......8.......0
+    [reg a ][reg b ][reg x ][Add   ]
+</code></pre>
+<p>where the first 8 bits contain the operator, in this case &quot;Add&quot;, and the
+other three 8 bit slots in the 32 bit word each contain a register number.</p>
+<p>For some operators, we will need to encode values larger than 8 bits. As
+we will still need space for an operator and a destination register, that
+leaves a maximum of 16 bits for larger values.</p>
+<h2><a class="header" href="#opcodes" id="opcodes">Opcodes</a></h2>
+<p>We have options in how we describe opcodes in Rust.</p>
+<ol>
+<li>Each opcode represented by a u32
+<ul>
+<li>Pros: encoding flexibility, it's just a set of bits</li>
+<li>Cons: bit shift and masking operations to encode and decode operator
+and operands. This isn't necessarily a big deal but it doesn't allow
+us to leverage the Rust type system to avoid encoding mistakes</li>
+</ul>
+</li>
+<li>Each opcode represented by an enum discriminant
+<ul>
+<li>Pros: operators and operands baked as Rust types at compile time, type
+safe encoding; no bit operations needed</li>
+<li>Cons: encoding scheme limited to what an enum can represent</li>
+</ul>
+</li>
+</ol>
+<p>The ability to leverage the compiler to prevent opcode encoding errors is
+attractive and we won't have any need for complex encodings. We'll use an enum
+to represent all possible opcodes and their operands.</p>
+<p>Since a Rust enum can contain named values within each variant, this is what
+we use to most tightly define our opcodes.</p>
+<h3><a class="header" href="#opcode-size" id="opcode-size">Opcode size</a></h3>
+<p>Since we're using <code>enum</code> instead of a directly size-controlled type such as u32
+for our opcodes, we have to be more careful about making sure our opcode type
+doesn't take up more space than is necessary.  32 bits is ideal for reasons
+stated earlier (8 bits for the operator and 8 bits for three operands each.)</p>
+<p>Let's do an experiment.</p>
+<p>First, we need to define a register as an 8 bit value. We'll also define an
+inline literal integer as 16 bits.</p>
+<pre><code class="language-rust ignore">type Register = u8;
+type LiteralInteger = i16;
+</code></pre>
+<p>Then we'll create an opcode enum with a few variants that might be typical:</p>
+<pre><code class="language-rust ignore">#[derive(Copy, Clone)]
+enum Opcode {
+    Add {
+        dest: Register,
+        a: Register,
+        b: Register
+    },
+    LoadLiteral {
+        dest: Register,
+        value: LiteralInteger
+    }
+}
+</code></pre>
+<p>It should be obvious that with an enum like this we can safely pass compiled
+bytecode from the compiler to the VM. It should also be clear that this, by
+allowing use of <code>match</code> statements, will be very ergonomic to work with.</p>
+<p>Theoretically, if we never have more than 256 variants, our variants never have
+more than 3 <code>Register</code> values (or one <code>Register</code> and one <code>LiteralInteger</code> sized
+value), the compiler should be able to pack <code>Opcode</code> into 32 bits.</p>
+<p>Our test: we hope the output of the following code to be <code>4</code> - 4 bytes or 32
+bits.</p>
+<pre><code class="language-rust ignore">use std::mem::size_of;
+
+fn main() {
+    println!(&quot;Size of Opcode is {}&quot;, size_of::&lt;Opcode&gt;());
+}
+</code></pre>
+<p>And indeed when we run this, we get <code>Size of Opcode is 4</code>!</p>
+<p>To keep an eye on this situation, we'll put this check into a unit test:</p>
+<pre><code class="language-rust ignore">    #[test]
+    fn test_opcode_is_32_bits() {
+        // An Opcode should be 32 bits; anything bigger and we've mis-defined some
+        // variant
+        assert!(size_of::&lt;Opcode&gt;() == 4);
+    }
+</code></pre>
+<p>Now, let's put these <code>Opcode</code>s into an array.</p>
+<h2><a class="header" href="#an-array-of-opcode" id="an-array-of-opcode">An array of Opcode</a></h2>
+<p>We can define this array easily, given that <code>Array&lt;T&gt;</code> is a generic type:</p>
+<pre><code class="language-rust ignore">pub type ArrayOpcode = Array&lt;Opcode&gt;;
+</code></pre>
+<p>Is this enough to define bytecode? Not quite. We've accommodated 16 bit
+literal signed integers, but all kinds of other types can be literals.
+We need some way of referencing any literal type in bytecode. For that
+we add a <code>Literals</code> type, which is just:</p>
+<pre><code class="language-rust ignore">pub type Literals = List;
+</code></pre>
+<p>Any opcode that loads a literal (other than a 16 bit signed integer) will
+need to reference an object in the <code>Literals</code> list. This is easy enough:
+just as there's a <code>LiteralInteger</code>, we have <code>LiteralId</code> defined as</p>
+<pre><code class="language-rust ignore">pub type LiteralId = u16;
+</code></pre>
+<p>This id is an index into the <code>Literals</code> list.  This isn't the most efficient
+scheme or encoding, but given a preference for fixed 32 bit opcodes, it will
+also keep things simple.</p>
+<p>The <code>ByteCode</code> type, finally, is a composition of <code>ArrayOpcode</code> and <code>Literals</code>:</p>
+<pre><code class="language-rust ignore">#[derive(Clone)]
+pub struct ByteCode {
+    code: ArrayOpcode,
+    literals: Literals,
+}
+</code></pre>
+<h2><a class="header" href="#bytecode-compiler-support" id="bytecode-compiler-support">Bytecode compiler support</a></h2>
+<p>There are a few methods implemented for <code>ByteCode</code>:</p>
+<ol>
+<li><code>fn push&lt;'guard&gt;(&amp;self, mem: &amp;'MutatorView, op: Opcode) -&gt; Result&lt;(), RuntimeError&gt;</code>
+This function pushes a new opcode into the <code>ArrayOpcode</code> instance.</li>
+<li>
+<pre><code class="language-rust ignore">fn update_jump_offset&lt;'guard&gt;(
+    &amp;self,
+    mem: &amp;'guard MutatorView,
+    instruction: ArraySize,
+    offset: JumpOffset,
+) -&gt; Result&lt;(), RuntimeError&gt;
+</code></pre>
+This function, given an instruction index into the <code>ArrayOpcode</code> instance,
+and given that the instruction at that index is a type of jump instruction,
+sets the relative jump offset of the instruction to the given offset.
+This is necessary because forward jumps cannot be calculated until all the
+in-between instructions have been compiled first.</li>
+<li>
+<pre><code class="language-rust ignore">fn push_lit&lt;'guard&gt;(
+    &amp;self,
+    mem: &amp;'guard MutatorView,
+    literal: TaggedScopedPtr
+) -&gt; Result&lt;LiteralId, RuntimeError&gt;
+</code></pre>
+This function pushes a literal on to the <code>Literals</code> list and returns the
+index - the id - of the item.</li>
+<li>
+<pre><code class="language-rust ignore">fn push_loadlit&lt;'guard&gt;(
+    &amp;self,
+    mem: &amp;'guard MutatorView,
+    dest: Register,
+    literal_id: LiteralId,
+) -&gt; Result&lt;(), RuntimeError&gt;
+</code></pre>
+After pushing a literal into the <code>Literals</code> list, the corresponding load
+instruction should be pushed into the <code>ArrayOpcode</code> list.</li>
+</ol>
+<p><code>ByteCode</code> and it's functions combined with the <code>Opcode</code> enum are enough to
+build a compiler for.</p>
+<h2><a class="header" href="#bytecode-execution-support" id="bytecode-execution-support">Bytecode execution support</a></h2>
+<p>The previous section described a handful of functions for our compiler to use
+to build a <code>ByteCode</code> structure.</p>
+<p>We'll need a different set of functions for our virtual machine to access
+<code>ByteCode</code> from an execution standpoint.</p>
+<p>The execution view of bytecode is of a contiguous sequence of instructions and
+an instruction pointer. We're going to create a separate <code>ByteCode</code> instance
+for each function that gets compiled, so our execution model will have to
+be able to jump between <code>ByteCode</code> instances. We'll need a new struct to
+represent that:</p>
+<pre><code class="language-rust ignore">pub struct InstructionStream {
+    instructions: CellPtr&lt;ByteCode&gt;,
+    ip: Cell&lt;ArraySize&gt;,
+}
+</code></pre>
+<p>In this definition, the pointer <code>instructions</code> can be updated to point at any
+<code>ByteCode</code> instance. This allows us to switch between functions by managing
+different <code>ByteCode</code> pointers as part of a stack of call frames. In support
+of this we have:</p>
+<pre><code class="language-rust ignore">impl InstructionStream {
+    pub fn switch_frame(&amp;self, code: ScopedPtr&lt;'_, ByteCode&gt;, ip: ArraySize) {
+        self.instructions.set(code);
+        self.ip.set(ip);
+    }
+}
+</code></pre>
+<p>Of course, the main function needed during execution is to retrieve the next
+opcode. Ideally, we can keep a pointer that points directly at the next opcode
+such that only a single dereference and pointer increment is needed to get
+the opcode and advance the instruction pointer. Our implementation is less
+efficient for now, requiring a dereference of 1. the <code>ByteCode</code> instance and
+then 2. the <code>ArrayOpcode</code> instance and finally 3. an indexing into the
+<code>ArrayOpcode</code> instance:</p>
+<pre><code class="language-rust ignore">    pub fn get_next_opcode&lt;'guard&gt;(
+        &amp;self,
+        guard: &amp;'guard dyn MutatorScope,
+    ) -&gt; Result&lt;Opcode, RuntimeError&gt; {
+        let instr = self
+            .instructions
+            .get(guard)
+            .code
+            .get(guard, self.ip.get())?;
+        self.ip.set(self.ip.get() + 1);
+        Ok(instr)
+    }
+</code></pre>
+<h2><a class="header" href="#conclusion" id="conclusion">Conclusion</a></h2>
+<p>The full <code>Opcode</code> definition can be found in <code>interpreter/src/bytecode.rs</code>.</p>
+<p>As we work toward implementing a compiler, the next data structure we need is
+a dictionary or hash map. This will also build on the foundational
+<code>RawArray&lt;T&gt;</code> implementation. Let's go on to that now!</p>
+<hr />
+<div class="footnote-definition" id="1"><sup class="footnote-definition-label">1</sup>
+<p>Roberto Ierusalimschy et al, <a href="https://www.lua.org/doc/jucs05.pdf">The Implementation of Lua 5.0</a></p>
+</div>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="chapter-interp-arrays.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="404.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="chapter-interp-arrays.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="404.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>
