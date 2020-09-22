@@ -17,7 +17,7 @@
   - [Parsing s-expressions](./chapter-interp-parsing.md)
   - [Arrays](./chapter-interp-arrays.md)
   - [Bytecode](./chapter-interp-bytecode.md)
-  - [TODO - Dicts](./404.md)
+  - [Dicts](./chapter-interp-dicts.md)
   - [TODO - Compiler: Design](./404.md)
   - [TODO - Compiler: Implementation](./404.md)
   - [TODO - Virtual Machine](./404.md)
