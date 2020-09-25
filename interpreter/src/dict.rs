@@ -19,12 +19,14 @@ const LOAD_FACTOR: f32 = 0.80;
 const TOMBSTONE: u64 = 1;
 
 /// Internal entry representation, keeping copy of hash for the key
+// ANCHOR: DefDictItem
 #[derive(Clone)]
 pub struct DictItem {
     key: TaggedCellPtr,
     value: TaggedCellPtr,
     hash: u64,
 }
+// ANCHOR_END: DefDictItem
 
 impl DictItem {
     fn blank() -> DictItem {
@@ -120,6 +122,7 @@ fn needs_to_grow(used_entries: ArraySize, capacity: ArraySize) -> bool {
 }
 
 /// A mutable Dict key/value associative data structure.
+// ANCHOR: DefDict
 pub struct Dict {
     /// Number of items stored
     length: Cell<ArraySize>,
@@ -128,6 +131,7 @@ pub struct Dict {
     /// Backing array for key/value entries
     data: Cell<RawArray<DictItem>>,
 }
+// ANCHOR_END: DefDict
 
 impl Dict {
     /// Allocate a new instance on the heap
