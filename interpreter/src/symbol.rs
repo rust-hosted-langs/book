@@ -55,8 +55,10 @@ impl Print for Symbol {
     }
 }
 
+// ANCHOR: DefImplHashableForSymbol
 impl Hashable for Symbol {
     fn hash<'guard, H: Hasher>(&self, guard: &'guard dyn MutatorScope, h: &mut H) {
         self.as_str(guard).hash(h)
     }
 }
+// ANCHOR_END: DefImplHashableForSymbol

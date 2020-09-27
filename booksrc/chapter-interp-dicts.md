@@ -40,6 +40,42 @@ entries, we'll add a separate `length` that excludes tombstones.
 ```
 
 
+## Hashing
+
+Since our only language supported types for now are `Symbol`s, `Pair`s and
+inline integers in our tagged pointer, we'll take the step of least complexity
+and implement hashing for `Symbol`s and tagged integers only to begin with.
+This is all we _need_ support for to implement the compiler and virtual machine.
+
+The Rust standard library defines trait `std::hash::Hash` that must be
+implemented by types that want to be hashed. This trait requires the type to
+implement method `fn hash<H>(&self, state: &mut H) where H: Hasher`.
+
+This signature requires a reference to the type `&self` to access it's data.
+In our world, this is insufficient: we also require a `&MutatorScope`
+lifetime to access an object. We will have to wrap `std::hash::Hash` in our
+own trait that extends, essentially the same signature, with this scope
+guard parameter. This trait is named `Hashable`:
+
+
+```rust,ignore
+{{#include ../interpreter/src/hashable.rs:DefHashable}}
+```
+
+We can implement this trait for `Symbol` - it's a straightforward wrap of
+calling `Hash::hash()`:
+
+```rust,ignore
+{{#include ../interpreter/src/symbol.rs:DefImplHashableForSymbol}}
+```
+
+Then finally, because this is all for a dynamically typed interpreter, we'll
+write a function that can take any type - a `TaggedScopedPtr` - and attempt
+to return a hash value from it:
+
+```rust,ignore
+{{#include ../interpreter/src/dict.rs:DefHashKey}}
+```
 
 
 [1]: http://craftinginterpreters.com/hash-tables.html

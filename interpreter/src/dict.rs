@@ -40,6 +40,7 @@ impl DictItem {
 
 /// Generate a hash value for a key
 /// TODO move this function somewhere more suitable
+// ANCHOR: DefHashKey
 fn hash_key<'guard>(
     guard: &'guard dyn MutatorScope,
     key: TaggedScopedPtr<'guard>,
@@ -54,6 +55,7 @@ fn hash_key<'guard>(
         _ => Err(RuntimeError::new(ErrorKind::UnhashableError)),
     }
 }
+// ANCHOR_END: DefHashKey
 
 /// Given a key, generate the hash and search for an entry that either matches this hash
 /// or the next available blank entry.
