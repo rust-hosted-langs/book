@@ -43,11 +43,8 @@ accurately report the number of items in a dict.
 
 ## Hashing
 
-Since our only language supported types for now are `Symbol`, `Pair` and
-inline integers in our tagged pointer, we'll take the step of least complexity
-and implement hashing only for `Symbol` and tagged integers to begin with.
-In any case, this is all we _need_ support for to implement the compiler and
-virtual machine.
+To implement our compiler we will need to be able to hash the `Symbol` type and
+integers (inline in tagged pointers.)
 
 The Rust standard library defines trait `std::hash::Hash` that must be
 implemented by types that want to be hashed. This trait requires the type to
