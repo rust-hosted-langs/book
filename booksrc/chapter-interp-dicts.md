@@ -1,6 +1,6 @@
 # Dicts
 
-The implementation of dicts is going to combine a reuse of the
+The implementation of dicts, or hash tables, is going to combine a reuse of the
 [RawArray](./chapter-interp-arrays.md)
 type and closely follow the [Crafting Interpreters][1] design:
 
@@ -9,7 +9,7 @@ type and closely follow the [Crafting Interpreters][1] design:
 * FNV hashing
 
 Go read the corresponding chapter in Crafting Interpreters and then come
-back here. We won't duplicate Bob's excellent explanation of the above
+back here. We won't duplicate much of Bob's excellent explanation of the above
 terms and we'll assume you are familiar with his chapter when reading
 ours.
 
@@ -71,11 +71,70 @@ calling `Hash::hash()`:
 
 Then finally, because this is all for a dynamically typed interpreter, we'll
 write a function that can take any type - a `TaggedScopedPtr` - and attempt
-to return a hash value from it:
+to return a 64 bit hash value from it:
 
 ```rust,ignore
 {{#include ../interpreter/src/dict.rs:DefHashKey}}
 ```
+
+Now we can take a `Symbol` or a tagged integer and use them as keys in our
+`Dict`.
+
+
+## Finding an entry
+
+The methods that a dictionary typically provides, lookup, insertion and
+deletion, all hinge around one internal function, `find_entry()`.
+
+This function scans the internal `RawArray<DictItem>` array for a slot that
+matches the hash value argument. It may find an exact match for an existing
+key-value entry; if it does not, it will return the first available slot for
+the hash value, whether an empty never-before used slot or the tombstone
+entry of a formerly used slot.
+
+A tombstone, remember, is a slot that previously held a key-value pair but
+has been deleted. These slots must be specially marked so that when searching
+for an entry that generated a hash for an earlier slot but had to be inserted
+at a later slot, we know to keep looking rather than stop searching at the
+empty slot of a deleted entry.
+
+Slot  | Content
+------|--------
+n - 1 | empty
+n     | X: hash % capacity == n
+n + 1 | tombstone
+n + 2 | Y: hash % capacity == n
+n + 3 | empty
+
+For example, in the above table:
+
+* Key `X`'s hash maps to slot `n`.
+* At some point another entry was inserted at slot `n + 1`.
+* Then `Y`, with hash mapping also to slot `n`, was inserted, but had to be
+  bumped to slot `n + 2` because the previous two slots were occupied.
+* Then the entry at slot `n + 1` was deleted and marked as a tombstone.
+
+If slot `n + 1` was simply marked as `empty` after it's occupant was deleted,
+then when searching for `Y` we wouldn't know to keep searching and find `Y` in
+slot `n + 2`. Hence, deleted entries are marked differently to empty slots.
+
+Here is the code for this function:
+
+```rust,ignore
+{{#include ../interpreter/src/dict.rs:DefFindEntry}}
+```
+
+To begin with, it calculates the index in the array from which to start
+searching. Then it iterates over the internal array, examining each entry's
+hash and key as it goes.
+
+* The first tombstone that is encountered is saved. This may turn out to be the
+  entry that should be returned if an exact hash match isn't found by the time
+  a never-before used slot is reached. We want to reuse tombstone entries, of
+  course.
+* If no tombstone was found and we reach a never-before used slot, return
+  that slot.
+* If an exact match is found, return that slot of course.
 
 
 [1]: http://craftinginterpreters.com/hash-tables.html

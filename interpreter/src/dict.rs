@@ -57,6 +57,7 @@ fn hash_key<'guard>(
 }
 // ANCHOR_END: DefHashKey
 
+// ANCHOR: DefFindEntry
 /// Given a key, generate the hash and search for an entry that either matches this hash
 /// or the next available blank entry.
 fn find_entry<'guard>(
@@ -69,9 +70,12 @@ fn find_entry<'guard>(
         .as_ptr()
         .ok_or(RuntimeError::new(ErrorKind::BoundsError))?;
 
-    // find the first available or matching entry slot
-    let mut tombstone: Option<&mut DictItem> = None;
+    // calculate the starting index into `data` to begin scanning at
     let mut index = (hash % data.capacity() as u64) as ArraySize;
+
+    // the first tombstone we find will be saved here
+    let mut tombstone: Option<&mut DictItem> = None;
+
     loop {
         let entry = unsafe { &mut *(ptr.offset(index as isize) as *mut DictItem) as &mut DictItem };
 
@@ -93,9 +97,11 @@ fn find_entry<'guard>(
             }
         }
 
+        // increment the index, wrapping back to 0 when we get to the end of the array
         index = (index + 1) % data.capacity();
     }
 }
+// ANCHOR_END: DefFindEntry
 
 /// Reset all slots to a blank entry
 fn fill_with_blank_entries<'guard>(
