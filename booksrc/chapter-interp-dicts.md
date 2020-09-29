@@ -118,7 +118,7 @@ If slot `n + 1` was simply marked as `empty` after it's occupant was deleted,
 then when searching for `Y` we wouldn't know to keep searching and find `Y` in
 slot `n + 2`. Hence, deleted entries are marked differently to empty slots.
 
-Here is the code for this function:
+Here is the code for the Find Entry function:
 
 ```rust,ignore
 {{#include ../interpreter/src/dict.rs:DefFindEntry}}
