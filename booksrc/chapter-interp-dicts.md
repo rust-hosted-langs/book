@@ -22,8 +22,8 @@ a struct `DictItem`.
 
 Here, we'll also introduce the single diversion from
 Crafting Interpreters' implementation in that we'll cache the hash value and
-use it as part of a tombstone indicator. This adds an extra 64 bits storage
-requirement per item but we will also take the stance that if two keys have
+use it as part of a tombstone indicator. This adds an extra word
+per entry but we will also take the stance that if two keys have
 the same hash value then the keys are equal. This simplifies our implementation
 as we won't need to implement object equality comparisons just yet.
 
@@ -33,7 +33,8 @@ as we won't need to implement object equality comparisons just yet.
 
 The `Dict` itself mirrors Crafting Interpreters' implementation of a count of
 used entries and an array of entries. Since tombstones are counted as used
-entries, we'll add a separate `length` that excludes tombstones.
+entries, we'll add a separate `length` that excludes tombstones so we can
+accurately report the number of items in a dict.
 
 ```rust,ignore
 {{#include ../interpreter/src/dict.rs:DefDict}}
@@ -42,10 +43,11 @@ entries, we'll add a separate `length` that excludes tombstones.
 
 ## Hashing
 
-Since our only language supported types for now are `Symbol`s, `Pair`s and
+Since our only language supported types for now are `Symbol`, `Pair` and
 inline integers in our tagged pointer, we'll take the step of least complexity
-and implement hashing for `Symbol`s and tagged integers only to begin with.
-This is all we _need_ support for to implement the compiler and virtual machine.
+and implement hashing only for `Symbol` and tagged integers to begin with.
+In any case, this is all we _need_ support for to implement the compiler and
+virtual machine.
 
 The Rust standard library defines trait `std::hash::Hash` that must be
 implemented by types that want to be hashed. This trait requires the type to
