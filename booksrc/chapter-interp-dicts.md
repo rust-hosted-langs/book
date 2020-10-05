@@ -136,4 +136,39 @@ hash and key as it goes.
 * If an exact match is found, return that slot of course.
 
 
+## The external API
+
+Just as we defined some conainer traits for `Array<T>` to define access to
+arrays based on stack or indexed style access, we'll define a container trait
+for `Dict`:
+
+```rust,ignore
+{{#include ../interpreter/src/containers.rs:DefHashIndexedAnyContainer}}
+```
+
+This trait contains the external API that `Dict` will expose for managing
+keys and values. The implementation of each of these methods will be in terms
+of the `find_entry()` function described above. Let's look at a couple of the
+more complex examples, `assoc()` and `dissoc()`.
+
+### assoc
+
+```rust,ignore
+impl HashIndexedAnyContainer for Dict {
+{{#include ../interpreter/src/dict.rs:DefHashIndexedAnyContainerForDictAssoc}}
+}
+```
+
+### dissoc
+
+```rust,ignore
+impl HashIndexedAnyContainer for Dict {
+{{#include ../interpreter/src/dict.rs:DefHashIndexedAnyContainerForDictDissoc}}
+}
+```
+
+As you can see, once `find_entry()` is implemented as a separate function,
+these methods become fairly easy to comprehend.
+
+
 [1]: http://craftinginterpreters.com/hash-tables.html
