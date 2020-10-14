@@ -1,0 +1,509 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Dicts - Writing Interpreters in Rust: a Guide</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="part-allocators.html"><strong aria-hidden="true">2.</strong> Allocation</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-alignment.html"><strong aria-hidden="true">2.1.</strong> Alignment</a></li><li class="chapter-item expanded "><a href="chapter-blocks.html"><strong aria-hidden="true">2.2.</strong> Obtaining blocks of memory</a></li><li class="chapter-item expanded "><a href="chapter-what-is-alloc.html"><strong aria-hidden="true">2.3.</strong> The type of allocation</a></li></ol></li><li class="chapter-item expanded "><a href="part-stickyimmix.html"><strong aria-hidden="true">3.</strong> An allocator: Sticky Immix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-simple-bump.html"><strong aria-hidden="true">3.1.</strong> Bump allocation</a></li><li class="chapter-item expanded "><a href="chapter-managing-blocks.html"><strong aria-hidden="true">3.2.</strong> Allocating into multiple blocks</a></li><li class="chapter-item expanded "><a href="chapter-allocation-api.html"><strong aria-hidden="true">3.3.</strong> Defining the allocation API</a></li><li class="chapter-item expanded "><a href="chapter-allocation-impl.html"><strong aria-hidden="true">3.4.</strong> Implementing the API</a></li></ol></li><li class="chapter-item expanded "><a href="part-interpreter.html"><strong aria-hidden="true">4.</strong> An interpreter: Eval-rs</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-interp-alloc.html"><strong aria-hidden="true">4.1.</strong> Allocating objects and dereferencing safely</a></li><li class="chapter-item expanded "><a href="chapter-interp-tagged-ptrs.html"><strong aria-hidden="true">4.2.</strong> Tagged pointers and object headers</a></li><li class="chapter-item expanded "><a href="chapter-interp-symbols-and-pairs.html"><strong aria-hidden="true">4.3.</strong> Symbols and Pairs</a></li><li class="chapter-item expanded "><a href="chapter-interp-parsing.html"><strong aria-hidden="true">4.4.</strong> Parsing s-expressions</a></li><li class="chapter-item expanded "><a href="chapter-interp-arrays.html"><strong aria-hidden="true">4.5.</strong> Arrays</a></li><li class="chapter-item expanded "><a href="chapter-interp-bytecode.html"><strong aria-hidden="true">4.6.</strong> Bytecode</a></li><li class="chapter-item expanded "><a href="chapter-interp-dicts.html" class="active"><strong aria-hidden="true">4.7.</strong> Dicts</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">4.8.</strong> TODO - Virtual Machine: Design</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">4.9.</strong> TODO - Compiler: Design</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">4.10.</strong> TODO - Virtual Machine: Implementation</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">4.11.</strong> TODO - Compiler: Implementation</a></li></ol></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">5.</strong> Garbage collection</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">5.1.</strong> TODO - Tracing</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">5.2.</strong> TODO - Sweeping</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">5.3.</strong> TODO - Recycling blocks</a></li></ol></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">6.</strong> Advanced garbage collection</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">6.1.</strong> TODO - ?</a></li></ol></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">7.</strong> Full Immix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">7.1.</strong> TODO - ?</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Writing Interpreters in Rust: a Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#dicts" id="dicts">Dicts</a></h1>
+<p>The implementation of dicts, or hash tables, is going to combine a reuse of the
+<a href="./chapter-interp-arrays.html">RawArray</a>
+type and closely follow the <a href="http://craftinginterpreters.com/hash-tables.html">Crafting Interpreters</a> design:</p>
+<ul>
+<li>open addressing</li>
+<li>linear probing</li>
+<li>FNV hashing</li>
+</ul>
+<p>Go read the corresponding chapter in Crafting Interpreters and then come
+back here. We won't duplicate much of Bob's excellent explanation of the above
+terms and we'll assume you are familiar with his chapter when reading
+ours.</p>
+<h2><a class="header" href="#code-design" id="code-design">Code design</a></h2>
+<p>A <code>Dict</code> in our interpreter will allow any hashable value as a key and any
+type as a value. We'll store pointers to the key and the value together in
+a struct <code>DictItem</code>.</p>
+<p>Here, we'll also introduce the single diversion from
+Crafting Interpreters' implementation in that we'll cache the hash value and
+use it as part of a tombstone indicator. This adds an extra word
+per entry but we will also take the stance that if two keys have
+the same hash value then the keys are equal. This simplifies our implementation
+as we won't need to implement object equality comparisons just yet.</p>
+<pre><code class="language-rust ignore">#[derive(Clone)]
+pub struct DictItem {
+    key: TaggedCellPtr,
+    value: TaggedCellPtr,
+    hash: u64,
+}
+</code></pre>
+<p>The <code>Dict</code> itself mirrors Crafting Interpreters' implementation of a count of
+used entries and an array of entries. Since tombstones are counted as used
+entries, we'll add a separate <code>length</code> that excludes tombstones so we can
+accurately report the number of items in a dict.</p>
+<pre><code class="language-rust ignore">pub struct Dict {
+    /// Number of items stored
+    length: Cell&lt;ArraySize&gt;,
+    /// Total count of items plus tombstones
+    used_entries: Cell&lt;ArraySize&gt;,
+    /// Backing array for key/value entries
+    data: Cell&lt;RawArray&lt;DictItem&gt;&gt;,
+}
+</code></pre>
+<h2><a class="header" href="#hashing" id="hashing">Hashing</a></h2>
+<p>To implement our compiler we will need to be able to hash the <code>Symbol</code> type and
+integers (inline in tagged pointers.)</p>
+<p>The Rust standard library defines trait <code>std::hash::Hash</code> that must be
+implemented by types that want to be hashed. This trait requires the type to
+implement method <code>fn hash&lt;H&gt;(&amp;self, state: &amp;mut H) where H: Hasher</code>.</p>
+<p>This signature requires a reference to the type <code>&amp;self</code> to access it's data.
+In our world, this is insufficient: we also require a <code>&amp;MutatorScope</code>
+lifetime to access an object. We will have to wrap <code>std::hash::Hash</code> in our
+own trait that extends, essentially the same signature, with this scope
+guard parameter. This trait is named <code>Hashable</code>:</p>
+<pre><code class="language-rust ignore">/// Similar to Hash but for use in a mutator lifetime-limited scope
+pub trait Hashable {
+    fn hash&lt;'guard, H: Hasher&gt;(&amp;self, _guard: &amp;'guard dyn MutatorScope, hasher: &amp;mut H);
+}
+</code></pre>
+<p>We can implement this trait for <code>Symbol</code> - it's a straightforward wrap of
+calling <code>Hash::hash()</code>:</p>
+<pre><code class="language-rust ignore">impl Hashable for Symbol {
+    fn hash&lt;'guard, H: Hasher&gt;(&amp;self, guard: &amp;'guard dyn MutatorScope, h: &amp;mut H) {
+        self.as_str(guard).hash(h)
+    }
+}
+</code></pre>
+<p>Then finally, because this is all for a dynamically typed interpreter, we'll
+write a function that can take any type - a <code>TaggedScopedPtr</code> - and attempt
+to return a 64 bit hash value from it:</p>
+<pre><code class="language-rust ignore">fn hash_key&lt;'guard&gt;(
+    guard: &amp;'guard dyn MutatorScope,
+    key: TaggedScopedPtr&lt;'guard&gt;,
+) -&gt; Result&lt;u64, RuntimeError&gt; {
+    match *key {
+        Value::Symbol(s) =&gt; {
+            let mut hasher = FnvHasher::default();
+            s.hash(guard, &amp;mut hasher);
+            Ok(hasher.finish())
+        }
+        Value::Number(n) =&gt; Ok(n as u64),
+        _ =&gt; Err(RuntimeError::new(ErrorKind::UnhashableError)),
+    }
+}
+</code></pre>
+<p>Now we can take a <code>Symbol</code> or a tagged integer and use them as keys in our
+<code>Dict</code>.</p>
+<h2><a class="header" href="#finding-an-entry" id="finding-an-entry">Finding an entry</a></h2>
+<p>The methods that a dictionary typically provides, lookup, insertion and
+deletion, all hinge around one internal function, <code>find_entry()</code>.</p>
+<p>This function scans the internal <code>RawArray&lt;DictItem&gt;</code> array for a slot that
+matches the hash value argument. It may find an exact match for an existing
+key-value entry; if it does not, it will return the first available slot for
+the hash value, whether an empty never-before used slot or the tombstone
+entry of a formerly used slot.</p>
+<p>A tombstone, remember, is a slot that previously held a key-value pair but
+has been deleted. These slots must be specially marked so that when searching
+for an entry that generated a hash for an earlier slot but had to be inserted
+at a later slot, we know to keep looking rather than stop searching at the
+empty slot of a deleted entry.</p>
+<table><thead><tr><th>Slot</th><th>Content</th></tr></thead><tbody>
+<tr><td>n - 1</td><td>empty</td></tr>
+<tr><td>n</td><td>X: hash % capacity == n</td></tr>
+<tr><td>n + 1</td><td>tombstone</td></tr>
+<tr><td>n + 2</td><td>Y: hash % capacity == n</td></tr>
+<tr><td>n + 3</td><td>empty</td></tr>
+</tbody></table>
+<p>For example, in the above table:</p>
+<ul>
+<li>Key <code>X</code>'s hash maps to slot <code>n</code>.</li>
+<li>At some point another entry was inserted at slot <code>n + 1</code>.</li>
+<li>Then <code>Y</code>, with hash mapping also to slot <code>n</code>, was inserted, but had to be
+bumped to slot <code>n + 2</code> because the previous two slots were occupied.</li>
+<li>Then the entry at slot <code>n + 1</code> was deleted and marked as a tombstone.</li>
+</ul>
+<p>If slot <code>n + 1</code> was simply marked as <code>empty</code> after it's occupant was deleted,
+then when searching for <code>Y</code> we wouldn't know to keep searching and find <code>Y</code> in
+slot <code>n + 2</code>. Hence, deleted entries are marked differently to empty slots.</p>
+<p>Here is the code for the Find Entry function:</p>
+<pre><code class="language-rust ignore">/// Given a key, generate the hash and search for an entry that either matches this hash
+/// or the next available blank entry.
+fn find_entry&lt;'guard&gt;(
+    _guard: &amp;'guard dyn MutatorScope,
+    data: &amp;RawArray&lt;DictItem&gt;,
+    hash: u64,
+) -&gt; Result&lt;&amp;'guard mut DictItem, RuntimeError&gt; {
+    // get raw pointer to base of array
+    let ptr = data
+        .as_ptr()
+        .ok_or(RuntimeError::new(ErrorKind::BoundsError))?;
+
+    // calculate the starting index into `data` to begin scanning at
+    let mut index = (hash % data.capacity() as u64) as ArraySize;
+
+    // the first tombstone we find will be saved here
+    let mut tombstone: Option&lt;&amp;mut DictItem&gt; = None;
+
+    loop {
+        let entry = unsafe { &amp;mut *(ptr.offset(index as isize) as *mut DictItem) as &amp;mut DictItem };
+
+        if entry.hash == TOMBSTONE &amp;&amp; entry.key.is_nil() {
+            // this is a tombstone: save the first tombstone reference we find
+            if tombstone.is_none() {
+                tombstone = Some(entry);
+            }
+        } else if entry.hash == hash {
+            // this is an exact match slot
+            return Ok(entry);
+        } else if entry.key.is_nil() {
+            // this is a non-tombstone empty slot
+            if let Some(earlier_entry) = tombstone {
+                // if we recorded a tombstone, return _that_ slot to be reused
+                return Ok(earlier_entry);
+            } else {
+                return Ok(entry);
+            }
+        }
+
+        // increment the index, wrapping back to 0 when we get to the end of the array
+        index = (index + 1) % data.capacity();
+    }
+}
+</code></pre>
+<p>To begin with, it calculates the index in the array from which to start
+searching. Then it iterates over the internal array, examining each entry's
+hash and key as it goes.</p>
+<ul>
+<li>The first tombstone that is encountered is saved. This may turn out to be the
+entry that should be returned if an exact hash match isn't found by the time
+a never-before used slot is reached. We want to reuse tombstone entries, of
+course.</li>
+<li>If no tombstone was found and we reach a never-before used slot, return
+that slot.</li>
+<li>If an exact match is found, return that slot of course.</li>
+</ul>
+<h2><a class="header" href="#the-external-api" id="the-external-api">The external API</a></h2>
+<p>Just as we defined some conainer traits for <code>Array&lt;T&gt;</code> to define access to
+arrays based on stack or indexed style access, we'll define a container trait
+for <code>Dict</code>:</p>
+<pre><code class="language-rust ignore">pub trait HashIndexedAnyContainer {
+    /// Return a pointer to to the object associated with the given key.
+    /// Absence of an association should return an error.
+    fn lookup&lt;'guard&gt;(
+        &amp;self,
+        guard: &amp;'guard dyn MutatorScope,
+        key: TaggedScopedPtr,
+    ) -&gt; Result&lt;TaggedScopedPtr&lt;'guard&gt;, RuntimeError&gt;;
+
+    /// Associate a key with a value.
+    fn assoc&lt;'guard&gt;(
+        &amp;self,
+        mem: &amp;'guard MutatorView,
+        key: TaggedScopedPtr&lt;'guard&gt;,
+        value: TaggedScopedPtr&lt;'guard&gt;,
+    ) -&gt; Result&lt;(), RuntimeError&gt;;
+
+    /// Remove an association by its key.
+    fn dissoc&lt;'guard&gt;(
+        &amp;self,
+        guard: &amp;'guard dyn MutatorScope,
+        key: TaggedScopedPtr,
+    ) -&gt; Result&lt;TaggedScopedPtr&lt;'guard&gt;, RuntimeError&gt;;
+
+    /// Returns true if the key exists in the container.
+    fn exists&lt;'guard&gt;(
+        &amp;self,
+        guard: &amp;'guard dyn MutatorScope,
+        key: TaggedScopedPtr,
+    ) -&gt; Result&lt;bool, RuntimeError&gt;;
+}
+</code></pre>
+<p>This trait contains the external API that <code>Dict</code> will expose for managing
+keys and values. The implementation of each of these methods will be in terms
+of the <code>find_entry()</code> function described above. Let's look at a couple of the
+more complex examples, <code>assoc()</code> and <code>dissoc()</code>.</p>
+<h3><a class="header" href="#assoc" id="assoc">assoc</a></h3>
+<pre><code class="language-rust ignore">impl HashIndexedAnyContainer for Dict {
+    fn assoc&lt;'guard&gt;(
+        &amp;self,
+        mem: &amp;'guard MutatorView,
+        key: TaggedScopedPtr&lt;'guard&gt;,
+        value: TaggedScopedPtr&lt;'guard&gt;,
+    ) -&gt; Result&lt;(), RuntimeError&gt; {
+        let hash = hash_key(mem, key)?;
+
+        let mut data = self.data.get();
+        // check the load factor (what percentage of the capacity is or has been used)
+        if needs_to_grow(self.used_entries.get() + 1, data.capacity()) {
+            // create a new, larger, backing array, and copy all existing entries over
+            self.grow_capacity(mem)?;
+            data = self.data.get();
+        }
+
+        // find the slot whose entry matches the hash or is the nearest available entry
+        let entry = find_entry(mem, &amp;data, hash)?;
+
+        // update counters if necessary
+        if entry.key.is_nil() {
+            // if `key` is nil, this entry is unused: increment the length
+            self.length.set(self.length.get() + 1);
+            if entry.hash == 0 {
+                // if `hash` is 0, this entry has _never_ been used: increment the count
+                // of used entries
+                self.used_entries.set(self.used_entries.get() + 1);
+            }
+        }
+
+        // finally, write the key, value and hash to the entry
+        entry.key.set(key);
+        entry.value.set(value);
+        entry.hash = hash;
+
+        Ok(())
+    }
+}
+</code></pre>
+<h3><a class="header" href="#dissoc" id="dissoc">dissoc</a></h3>
+<pre><code class="language-rust ignore">impl HashIndexedAnyContainer for Dict {
+    fn dissoc&lt;'guard&gt;(
+        &amp;self,
+        guard: &amp;'guard dyn MutatorScope,
+        key: TaggedScopedPtr,
+    ) -&gt; Result&lt;TaggedScopedPtr&lt;'guard&gt;, RuntimeError&gt; {
+        let hash = hash_key(guard, key)?;
+
+        let data = self.data.get();
+        let entry = find_entry(guard, &amp;data, hash)?;
+
+        if entry.key.is_nil() {
+            // a nil key means the key was not found in the Dict
+            return Err(RuntimeError::new(ErrorKind::KeyError));
+        }
+
+        // decrement the length but not the `used_entries` count
+        self.length.set(self.length.get() - 1);
+
+        // write the &quot;tombstone&quot; markers to the entry
+        entry.key.set_to_nil();
+        entry.hash = TOMBSTONE;
+
+        // return the value that was associated with the key
+        Ok(entry.value.get(guard))
+    }
+}
+</code></pre>
+<p>As you can see, once <code>find_entry()</code> is implemented as a separate function,
+these methods become fairly easy to comprehend.</p>
+<h2><a class="header" href="#conclusion" id="conclusion">Conclusion</a></h2>
+<p>If you <em>haven't</em> read Bob Nystron's chapter on <a href="http://craftinginterpreters.com/hash-tables.html">hash tables</a> in Crafting 
+Interpreters we encourage you to do so: it will help make sense of this 
+chapter.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="chapter-interp-bytecode.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="404.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="chapter-interp-bytecode.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="404.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>
