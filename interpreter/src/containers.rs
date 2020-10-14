@@ -150,6 +150,7 @@ pub trait IndexedAnyContainer: IndexedContainer<TaggedCellPtr> {
 }
 
 /// Hashable-indexed interface. Objects used as keys must implement Hashable.
+// ANCHOR: DefHashIndexedAnyContainer
 pub trait HashIndexedAnyContainer {
     /// Return a pointer to to the object associated with the given key.
     /// Absence of an association should return an error.
@@ -181,6 +182,7 @@ pub trait HashIndexedAnyContainer {
         key: TaggedScopedPtr,
     ) -> Result<bool, RuntimeError>;
 }
+// ANCHOR_END: DefHashIndexedAnyContainer
 
 /// Convert a Pair list to a different container
 pub trait AnyContainerFromPairList: Container<TaggedCellPtr> {

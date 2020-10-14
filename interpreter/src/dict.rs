@@ -19,12 +19,14 @@ const LOAD_FACTOR: f32 = 0.80;
 const TOMBSTONE: u64 = 1;
 
 /// Internal entry representation, keeping copy of hash for the key
+// ANCHOR: DefDictItem
 #[derive(Clone)]
 pub struct DictItem {
     key: TaggedCellPtr,
     value: TaggedCellPtr,
     hash: u64,
 }
+// ANCHOR_END: DefDictItem
 
 impl DictItem {
     fn blank() -> DictItem {
@@ -38,6 +40,7 @@ impl DictItem {
 
 /// Generate a hash value for a key
 /// TODO move this function somewhere more suitable
+// ANCHOR: DefHashKey
 fn hash_key<'guard>(
     guard: &'guard dyn MutatorScope,
     key: TaggedScopedPtr<'guard>,
@@ -52,7 +55,9 @@ fn hash_key<'guard>(
         _ => Err(RuntimeError::new(ErrorKind::UnhashableError)),
     }
 }
+// ANCHOR_END: DefHashKey
 
+// ANCHOR: DefFindEntry
 /// Given a key, generate the hash and search for an entry that either matches this hash
 /// or the next available blank entry.
 fn find_entry<'guard>(
@@ -65,9 +70,12 @@ fn find_entry<'guard>(
         .as_ptr()
         .ok_or(RuntimeError::new(ErrorKind::BoundsError))?;
 
-    // find the first available or matching entry slot
-    let mut tombstone: Option<&mut DictItem> = None;
+    // calculate the starting index into `data` to begin scanning at
     let mut index = (hash % data.capacity() as u64) as ArraySize;
+
+    // the first tombstone we find will be saved here
+    let mut tombstone: Option<&mut DictItem> = None;
+
     loop {
         let entry = unsafe { &mut *(ptr.offset(index as isize) as *mut DictItem) as &mut DictItem };
 
@@ -89,9 +97,11 @@ fn find_entry<'guard>(
             }
         }
 
+        // increment the index, wrapping back to 0 when we get to the end of the array
         index = (index + 1) % data.capacity();
     }
 }
+// ANCHOR_END: DefFindEntry
 
 /// Reset all slots to a blank entry
 fn fill_with_blank_entries<'guard>(
@@ -120,6 +130,7 @@ fn needs_to_grow(used_entries: ArraySize, capacity: ArraySize) -> bool {
 }
 
 /// A mutable Dict key/value associative data structure.
+// ANCHOR: DefDict
 pub struct Dict {
     /// Number of items stored
     length: Cell<ArraySize>,
@@ -128,6 +139,7 @@ pub struct Dict {
     /// Backing array for key/value entries
     data: Cell<RawArray<DictItem>>,
 }
+// ANCHOR_END: DefDict
 
 impl Dict {
     /// Allocate a new instance on the heap
@@ -225,55 +237,73 @@ impl HashIndexedAnyContainer for Dict {
         }
     }
 
+    // ANCHOR: DefHashIndexedAnyContainerForDictAssoc
     fn assoc<'guard>(
         &self,
         mem: &'guard MutatorView,
         key: TaggedScopedPtr<'guard>,
         value: TaggedScopedPtr<'guard>,
     ) -> Result<(), RuntimeError> {
+        let hash = hash_key(mem, key)?;
+
         let mut data = self.data.get();
+        // check the load factor (what percentage of the capacity is or has been used)
         if needs_to_grow(self.used_entries.get() + 1, data.capacity()) {
+            // create a new, larger, backing array, and copy all existing entries over
             self.grow_capacity(mem)?;
             data = self.data.get();
         }
 
-        let hash = hash_key(mem, key)?;
+        // find the slot whose entry matches the hash or is the nearest available entry
         let entry = find_entry(mem, &data, hash)?;
 
+        // update counters if necessary
         if entry.key.is_nil() {
+            // if `key` is nil, this entry is unused: increment the length
             self.length.set(self.length.get() + 1);
             if entry.hash == 0 {
+                // if `hash` is 0, this entry has _never_ been used: increment the count
+                // of used entries
                 self.used_entries.set(self.used_entries.get() + 1);
             }
         }
 
+        // finally, write the key, value and hash to the entry
         entry.key.set(key);
         entry.value.set(value);
         entry.hash = hash;
 
         Ok(())
     }
+    // ANCHOR_END: DefHashIndexedAnyContainerForDictAssoc
 
+    // ANCHOR: DefHashIndexedAnyContainerForDictDissoc
     fn dissoc<'guard>(
         &self,
         guard: &'guard dyn MutatorScope,
         key: TaggedScopedPtr,
     ) -> Result<TaggedScopedPtr<'guard>, RuntimeError> {
         let hash = hash_key(guard, key)?;
+
         let data = self.data.get();
         let entry = find_entry(guard, &data, hash)?;
 
         if entry.key.is_nil() {
+            // a nil key means the key was not found in the Dict
             return Err(RuntimeError::new(ErrorKind::KeyError));
         }
 
+        // decrement the length but not the `used_entries` count
         self.length.set(self.length.get() - 1);
-        // tombstone combo
+
+        // write the "tombstone" markers to the entry
         entry.key.set_to_nil();
         entry.hash = TOMBSTONE;
 
+        // return the value that was associated with the key
         Ok(entry.value.get(guard))
     }
+    // ANCHOR_END: DefHashIndexedAnyContainerForDictDissoc
 
     fn exists<'guard>(
         &self,
