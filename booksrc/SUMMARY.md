@@ -18,7 +18,7 @@
   - [Arrays](./chapter-interp-arrays.md)
   - [Bytecode](./chapter-interp-bytecode.md)
   - [Dicts](./chapter-interp-dicts.md)
-  - [TODO - Virtual Machine: Design](./404.md)
+  - [Virtual Machine: Design](./chapter-interp-vm-design.md)
   - [TODO - Compiler: Design](./404.md)
   - [TODO - Virtual Machine: Implementation](./404.md)
   - [TODO - Compiler: Implementation](./404.md)

@@ -177,5 +177,8 @@ If you _haven't_ read Bob Nystron's chapter on [hash tables][1] in Crafting
 Interpreters we encourage you to do so: it will help make sense of this 
 chapter.
 
+Now, we'll transition to some compiler and virtual machine design before
+we continue with code implementation.
 
+ 
 [1]: http://craftinginterpreters.com/hash-tables.html
