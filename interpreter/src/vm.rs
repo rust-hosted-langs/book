@@ -86,7 +86,6 @@ pub struct Upvalue {
     value: TaggedCellPtr,
     closed: Cell<bool>,
     location: ArraySize,
-    next: Option<CellPtr<Upvalue>>,
 }
 
 impl Upvalue {
@@ -100,7 +99,6 @@ impl Upvalue {
             value: TaggedCellPtr::new_nil(),
             closed: Cell::new(false),
             location,
-            next: None,
         })
     }
 
