@@ -5,11 +5,9 @@ In this chapter we will outline some Virtual Machine design choices.
 
 ## Bytecode
 
-To begin with, we already have a specification for bytecode from the earlier
-chapter. To recap: 32 bit fixed opcodes with space for operands that are
-registers. 
-
-That design choice was borrowed primarily from the Lua 5 implementation.
+We already discussed our Lua-inspired bytecode in a
+[previous chapter](./chapter-interp-bytecode.md). To recap: 32 bit fixed-width 
+opcodes with space for 8 bit register numbers and/or 16 bit literals.
 
 
 ## The stack
@@ -19,16 +17,20 @@ We'll maintain two separate stack data structures:
 * the register stack
 * the call frame stack
 
-These are separated out because the register stack will be composed entirely
-of `TaggedCellPtr`s - we don't want to coerce a call frame into a set of
-tagged pointers or allocate each frame on the heap.
+These are separated out because the register stack will be composed entirely of
+`TaggedCellPtr`s. We don't want to coerce a call frame struct into a set of 
+tagged pointers or have to allocate each frame on the heap.
 
 ## The register stack
 
-Each call frame will have a stack base pointer. This pointer will indicate the
-base position in the register stack at which the called function will see a 
-window of 256 registers. We can make use of Rust slices to enforce bounds 
-checking on this window.
+The register stack is an array of `TaggedCellPtr`s. Thus each stack value can
+point to a heap object or contain a literal integer.
+
+As operands are limited to 8 bit register numbers, we will interface with the
+stack on a sliding window basis. While each call frame will know it's 
+stack base pointer, the function itself will see only 256 contiguous stack
+locations starting from zero through 255. We can make use of Rust slices to
+create this window into the stack array for each call frame.
 
 ## The call frame stack
 
@@ -51,5 +53,5 @@ documented in Crafting Interpreters: upvalues.
 
 ## Instruction execution
 
-TODO: match on opcode
-See https://github.com/rust-hosted-langs/runtimes-WG/issues/3
+TODO: match on opcode See
+https://github.com/rust-hosted-langs/runtimes-WG/issues/3
