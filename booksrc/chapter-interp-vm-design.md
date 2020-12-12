@@ -125,11 +125,22 @@ arguments.
 > possible, of course, to partially apply arguments to a closure.
 
 
-## Instruction execution
+## Instruction dispatch
 
-TODO: match on opcode See
-https://github.com/rust-hosted-langs/runtimes-WG/issues/3
+The desire is to minimize the machine code overhead between each VM instruction
+code.  This overhead, where the next VM instruction is fetched, decoded and
+mapped to the entry point of the instruction code, is the dispatch code.
+
+We have some options for interpreter dispatch mechanisms. These are well
+documented. [Research][3] into implementing these in Rust concludes that simple
+switch-style dispatch is the only cross-platform construct we can reasonably
+make use of. Other mechanisms come with undesirable complexity and/or platform
+dependent customizations.
+
+What this looks like: a single `match` expression with a pattern to represent
+each bytecode discriminant all wrapped in a loop.
 
 
 [1]: http://craftinginterpreters.com/calls-and-functions.html#call-frames
 [2]: http://craftinginterpreters.com/closures.html
+[3]: https://pliniker.github.io/post/dispatchers/
