@@ -135,10 +135,11 @@ We have some options for interpreter dispatch mechanisms. These are well
 documented. [Research][3] into implementing these in Rust concludes that simple
 switch-style dispatch is the only cross-platform construct we can reasonably
 make use of. Other mechanisms come with undesirable complexity and/or platform
-dependent customizations.
+dependent customizations. For the most part, with modern CPU branch prediction,
+the cost of switch dispatch is small.
 
 What this looks like: a single `match` expression with a pattern to represent
-each bytecode discriminant all wrapped in a loop.
+each bytecode discriminant, all wrapped in a loop.
 
 
 [1]: http://craftinginterpreters.com/calls-and-functions.html#call-frames
