@@ -21,9 +21,17 @@ stack data structures:
 * the register stack for storing stack values
 * the call frame stack
 
-These are separated out because the register stack will be composed entirely of
-`TaggedCellPtr`s. We don't want to coerce a call frame struct into a set of 
-tagged pointers or have to allocate each frame on the heap.
+In our case, these are best separated out because the register stack will be
+composed entirely of `TaggedCellPtr`s.
+
+To store call frames on the register stack we would have to either
+
+1. allocate every stack frame on the heap with pointers to them from the
+   register stack 
+2. or coerce a call frame `struct` type into the register stack type
+
+Neither of these is attractive so we will maintain the call frame stack as an
+independent data structure.
 
 ### The register stack
 
@@ -40,9 +48,9 @@ length of 256.
 
 This requires us to implement a sliding window into the register stack which
 will move as functions are called and return. The call frame stack will contain
-the stack base pointer for each function call and we can happily make use a Rust
-slice to implement the window of 256 contiguous stack slots which a function
-call is limited to.
+the stack base pointer for each function call. We can then happily make use a
+Rust slice to implement the window of 256 contiguous stack slots which a
+function call is limited to.
 
 ### The call frame stack
 
@@ -134,12 +142,22 @@ mapped to the entry point of the instruction code, is the dispatch code.
 We have some options for interpreter dispatch mechanisms. These are well
 documented. [Research][3] into implementing these in Rust concludes that simple
 switch-style dispatch is the only cross-platform construct we can reasonably
-make use of. Other mechanisms come with undesirable complexity and/or platform
-dependent customizations. For the most part, with modern CPU branch prediction,
-the cost of switch dispatch is small.
+make use of. Other mechanisms come with undesirable complexity or are platform
+dependent. For the most part, with modern CPU branch prediction, the cost of
+switch dispatch is small.
 
 What this looks like: a single `match` expression with a pattern to represent
-each bytecode discriminant, all wrapped in a loop.
+each bytecode discriminant, all wrapped in a loop. To illustrate:
+
+```rust,ignore
+loop {
+    let opcode = get_next_opcode();
+    match opcode {
+        Opcode::Add(a, x, y) => { ... },
+        Opcode::Call(f, r, p) => { ... },
+    }
+}
+```
 
 
 [1]: http://craftinginterpreters.com/calls-and-functions.html#call-frames
