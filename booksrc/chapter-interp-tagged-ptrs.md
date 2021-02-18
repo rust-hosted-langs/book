@@ -42,7 +42,7 @@ space-wise, however.
 
 ## Tagged pointers
 
-Many runtimes implement [tagged pointers](1) to avoid the space overhead, while
+Many runtimes implement [tagged pointers][1] to avoid the space overhead, while
 partially improving the time overhead of the header type-id lookup.
 
 In a pointer to any object on the heap, the least most significant bits turn out
