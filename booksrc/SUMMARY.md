@@ -19,7 +19,7 @@
   - [Bytecode](./chapter-interp-bytecode.md)
   - [Dicts](./chapter-interp-dicts.md)
   - [Virtual Machine: Design](./chapter-interp-vm-design.md)
-  - [TODO - Compiler: Design](./404.md)
+  - [Compiler: Design](./chapter-interp-compiler-design.md)
   - [TODO - Virtual Machine: Implementation](./404.md)
   - [TODO - Compiler: Implementation](./404.md)
 - [Garbage collection](./404.md)
