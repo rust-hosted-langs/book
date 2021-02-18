@@ -10,7 +10,8 @@ Crafting Interpreters.
 
 We already discussed our Lua-inspired bytecode in a [previous
 chapter](./chapter-interp-bytecode.md). To recap, we are using 32 bit
-fixed-width opcodes with space for 8 bit register numbers and 16 bit literals.
+fixed-width opcodes with space for 8 bit register identifiers and 16 bit
+literals.
 
 
 ## The stack
@@ -24,7 +25,7 @@ stack data structures:
 In our case, these are best separated out because the register stack will be
 composed entirely of `TaggedCellPtr`s.
 
-To store call frames on the register stack we would have to either
+To store call frames on the register stack we would have to either:
 
 1. allocate every stack frame on the heap with pointers to them from the
    register stack 
@@ -42,9 +43,10 @@ that fit within the range allowed by a tagged pointer.
 
 Since this is a register virtual machine, not following stack push and pop
 semantics, and bytecode operands are limited to 8 bit register indexes, a
-function is limited to addressing a maximum of 256 contiguous registers. Due to
-function call nesting, the register stack may naturally grow much more than a
-length of 256. 
+function is limited to addressing a maximum of 256 contiguous registers. 
+
+Due to function call nesting, the register stack may naturally grow much more
+than a length of 256. 
 
 This requires us to implement a sliding window into the register stack which
 will move as functions are called and return. The call frame stack will contain
@@ -112,8 +114,8 @@ such an operation will, instead of an error, be a `Partial` instance. This value
 must carry with it the arguments given and a pointer to the function waiting to
 be called.
 
-This is far from sufficient for a fully featured currying implementation but is
-an interesting extension to first class functions, especially as it allows us to
+This is insufficient for a fully featured currying implementation but is an
+interesting extension to first class functions, especially as it allows us to
 not _require_ lambdas to be constructed syntactically every time they might be
 used.
 
@@ -121,10 +123,9 @@ By that we mean the following: if we have a function `(def mul (x y) (* x y))`,
 to turn that into a function that multiplies a number by 3 we'd normally have to
 define a second function, or lambda, `(lambda (x) (mul x 3))` and call it
 instead. However, with a simple partial function implementation we can avoid the
-second function definition and call `(mul 3)` directly, which will collect the
-function pointer for `mul` and argument `3` into a `Partial` and wait for the
-final argument before calling into the function `mul` with both required
-arguments.
+lambda definition and call `(mul 3)` directly, which will collect the function
+pointer for `mul` and argument `3` into a `Partial` and wait for the final
+argument before calling into the function `mul` with both required arguments.
 
 > ***Note:*** We can use the same struct for both closures and partial
 > functions. A closure is a yet-to-be-called function carrying a list of
@@ -135,16 +136,16 @@ arguments.
 
 ## Instruction dispatch
 
-The desire is to minimize the machine code overhead between each VM instruction
-code.  This overhead, where the next VM instruction is fetched, decoded and
-mapped to the entry point of the instruction code, is the dispatch code.
+In dispatch, one optimal outcome is to minimize the machine code overhead
+between each VM instruction code.  This overhead, where the next VM instruction
+is fetched, decoded and mapped to the entry point of the instruction code, is
+the dispatch code.  The other axis of optimization is code ergonomics.
 
-We have some options for interpreter dispatch mechanisms. These are well
-documented. [Research][3] into implementing these in Rust concludes that simple
+Prior [research][3] into implementing dispatch in Rust concludes that simple
 switch-style dispatch is the only cross-platform construct we can reasonably
 make use of. Other mechanisms come with undesirable complexity or are platform
-dependent. For the most part, with modern CPU branch prediction, the cost of
-switch dispatch is small.
+dependent. For the most part, with modern CPU branch prediction, the overhead
+of switch dispatch is small.
 
 What this looks like: a single `match` expression with a pattern to represent
 each bytecode discriminant, all wrapped in a loop. To illustrate:
@@ -158,6 +159,11 @@ loop {
     }
 }
 ```
+
+
+## That's it!
+
+Next we'll look at the counterpart of VM design - compiler design.
 
 
 [1]: http://craftinginterpreters.com/calls-and-functions.html#call-frames
