@@ -1,0 +1,344 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Virtual Machine: Design - Writing Interpreters in Rust: a Guide</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="part-allocators.html"><strong aria-hidden="true">2.</strong> Allocation</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-alignment.html"><strong aria-hidden="true">2.1.</strong> Alignment</a></li><li class="chapter-item expanded "><a href="chapter-blocks.html"><strong aria-hidden="true">2.2.</strong> Obtaining blocks of memory</a></li><li class="chapter-item expanded "><a href="chapter-what-is-alloc.html"><strong aria-hidden="true">2.3.</strong> The type of allocation</a></li></ol></li><li class="chapter-item expanded "><a href="part-stickyimmix.html"><strong aria-hidden="true">3.</strong> An allocator: Sticky Immix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-simple-bump.html"><strong aria-hidden="true">3.1.</strong> Bump allocation</a></li><li class="chapter-item expanded "><a href="chapter-managing-blocks.html"><strong aria-hidden="true">3.2.</strong> Allocating into multiple blocks</a></li><li class="chapter-item expanded "><a href="chapter-allocation-api.html"><strong aria-hidden="true">3.3.</strong> Defining the allocation API</a></li><li class="chapter-item expanded "><a href="chapter-allocation-impl.html"><strong aria-hidden="true">3.4.</strong> Implementing the API</a></li></ol></li><li class="chapter-item expanded "><a href="part-interpreter.html"><strong aria-hidden="true">4.</strong> An interpreter: Eval-rs</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-interp-alloc.html"><strong aria-hidden="true">4.1.</strong> Allocating objects and dereferencing safely</a></li><li class="chapter-item expanded "><a href="chapter-interp-tagged-ptrs.html"><strong aria-hidden="true">4.2.</strong> Tagged pointers and object headers</a></li><li class="chapter-item expanded "><a href="chapter-interp-symbols-and-pairs.html"><strong aria-hidden="true">4.3.</strong> Symbols and Pairs</a></li><li class="chapter-item expanded "><a href="chapter-interp-parsing.html"><strong aria-hidden="true">4.4.</strong> Parsing s-expressions</a></li><li class="chapter-item expanded "><a href="chapter-interp-arrays.html"><strong aria-hidden="true">4.5.</strong> Arrays</a></li><li class="chapter-item expanded "><a href="chapter-interp-bytecode.html"><strong aria-hidden="true">4.6.</strong> Bytecode</a></li><li class="chapter-item expanded "><a href="chapter-interp-dicts.html"><strong aria-hidden="true">4.7.</strong> Dicts</a></li><li class="chapter-item expanded "><a href="chapter-interp-vm-design.html" class="active"><strong aria-hidden="true">4.8.</strong> Virtual Machine: Design</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">4.9.</strong> TODO - Compiler: Design</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">4.10.</strong> TODO - Virtual Machine: Implementation</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">4.11.</strong> TODO - Compiler: Implementation</a></li></ol></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">5.</strong> Garbage collection</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">5.1.</strong> TODO - Tracing</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">5.2.</strong> TODO - Sweeping</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">5.3.</strong> TODO - Recycling blocks</a></li></ol></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">6.</strong> Advanced garbage collection</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">6.1.</strong> TODO - ?</a></li></ol></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">7.</strong> Full Immix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">7.1.</strong> TODO - ?</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Writing Interpreters in Rust: a Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#virtual-machine-architecture-and-design" id="virtual-machine-architecture-and-design">Virtual Machine: Architecture and Design</a></h1>
+<p>In this short chapter we will outline our virtual machine design choices. These
+are substantially a matter of pragmatic dynamic language implementation points
+and as such, borrow heavily from uncomplicated prior work such as Lua 5 and 
+Crafting Interpreters.</p>
+<h2><a class="header" href="#bytecode" id="bytecode">Bytecode</a></h2>
+<p>We already discussed our Lua-inspired bytecode in a <a href="./chapter-interp-bytecode.html">previous
+chapter</a>. To recap, we are using 32 bit
+fixed-width opcodes with space for 8 bit register identifiers and 16 bit
+literals.</p>
+<h2><a class="header" href="#the-stack" id="the-stack">The stack</a></h2>
+<p>Following the example of <a href="http://craftinginterpreters.com/calls-and-functions.html#call-frames">Crafting Interpreters</a> we'll maintain two separate
+stack data structures:</p>
+<ul>
+<li>the register stack for storing stack values</li>
+<li>the call frame stack</li>
+</ul>
+<p>In our case, these are best separated out because the register stack will be
+composed entirely of <code>TaggedCellPtr</code>s.</p>
+<p>To store call frames on the register stack we would have to either:</p>
+<ol>
+<li>allocate every stack frame on the heap with pointers to them from the
+register stack </li>
+<li>or coerce a call frame <code>struct</code> type into the register stack type</li>
+</ol>
+<p>Neither of these is attractive so we will maintain the call frame stack as an
+independent data structure.</p>
+<h3><a class="header" href="#the-register-stack" id="the-register-stack">The register stack</a></h3>
+<p>The register stack is a homogeneous array of <code>TaggedCellPtr</code>s. Thus, no object
+is allocated directly on the stack, all objects are heap allocated and the stack
+only consists of pointers to heap objects. The exception is literal integers
+that fit within the range allowed by a tagged pointer.</p>
+<p>Since this is a register virtual machine, not following stack push and pop
+semantics, and bytecode operands are limited to 8 bit register indexes, a
+function is limited to addressing a maximum of 256 contiguous registers. </p>
+<p>Due to function call nesting, the register stack may naturally grow much more
+than a length of 256. </p>
+<p>This requires us to implement a sliding window into the register stack which
+will move as functions are called and return. The call frame stack will contain
+the stack base pointer for each function call. We can then happily make use a
+Rust slice to implement the window of 256 contiguous stack slots which a
+function call is limited to.</p>
+<h3><a class="header" href="#the-call-frame-stack" id="the-call-frame-stack">The call frame stack</a></h3>
+<p>A call frame needs to store three critical data points:</p>
+<ul>
+<li>a pointer to the function being executed</li>
+<li>the return instruction pointer when a nested function is called</li>
+<li>the stack base pointer for the function call</li>
+</ul>
+<p>These three items can form a simple struct and we can define an
+<code>Array&lt;CallFrame&gt;</code> type for optimum performance.</p>
+<h2><a class="header" href="#global-values" id="global-values">Global values</a></h2>
+<p>To store global values, we have all we need: the <code>Dict</code> type that maps <code>Symbol</code>s
+to another value. The VM will, of course, have an abstraction over the internal
+<code>Dict</code> to enforce <code>Symbol</code>s only as keys.</p>
+<h2><a class="header" href="#closures" id="closures">Closures</a></h2>
+<p>In the classic Upvalues implementation from Lua 5, followed also by <a href="http://craftinginterpreters.com/closures.html">Crafting
+Interpreters</a>, a linked list of upvalues is used to map stack locations to
+shared variables.</p>
+<p>In every respect but one, our implementation will be similar.</p>
+<p>In our implementation, we'll use the <code>Dict</code> type that we already have available
+to do this mapping of stack locations to shared variables. </p>
+<p>As the language and compiler will implement lexical scoping, the compiler will
+have static knowledge of the <em>relative</em> stack locations of closed-over variables
+and can generate the appropriate bytecode operands for the virtual machine to
+calculate the absolute stack locations at runtime. Thus, absolute stack
+locations can be mapped to <code>Upvalue</code> objects and so a <code>Dict</code> can be employed to
+facilitate the mapping. This obviates the need to implement a linked list data
+structure.</p>
+<p>The compiler must issue instructions to tell the VM when to make a closure data
+structure. It can do so, of course, because simple analysis shows whether
+a function references nonlocal bindings. A closure data structure as generated
+by the compiler must reference the function that will be called and the list of
+relative stack locations that correspond to each nonlocal binding. </p>
+<p>The VM, when executing the instruction to make a closure, will calculate the
+absolute stack locations for each nonlocal binding and create the closure
+environment - a <code>List&lt;Upvalue&gt;</code>. VM instructions within the function code, as in
+Lua, indirectly reference nonlocal bindings by indexing into this environment.</p>
+<h2><a class="header" href="#partial-functions" id="partial-functions">Partial functions</a></h2>
+<p>Here is one point where we will introduce a less common construct in our virtual
+machine. Functions will be first class, that is they are objects that can be
+passed around as values and arguments. On top of that, we'll allow passing
+insufficient arguments to a function when it is called. The return value of
+such an operation will, instead of an error, be a <code>Partial</code> instance. This value
+must carry with it the arguments given and a pointer to the function waiting to
+be called.</p>
+<p>This is insufficient for a fully featured currying implementation but is an
+interesting extension to first class functions, especially as it allows us to
+not <em>require</em> lambdas to be constructed syntactically every time they might be
+used.</p>
+<p>By that we mean the following: if we have a function <code>(def mul (x y) (* x y))</code>,
+to turn that into a function that multiplies a number by 3 we'd normally have to
+define a second function, or lambda, <code>(lambda (x) (mul x 3))</code> and call it
+instead. However, with a simple partial function implementation we can avoid the
+lambda definition and call <code>(mul 3)</code> directly, which will collect the function
+pointer for <code>mul</code> and argument <code>3</code> into a <code>Partial</code> and wait for the final
+argument before calling into the function <code>mul</code> with both required arguments.</p>
+<blockquote>
+<p><em><strong>Note:</strong></em> We can use the same struct for both closures and partial
+functions. A closure is a yet-to-be-called function carrying a list of
+references to values. or a list of values. A partial is a yet-to-be-called
+function carrying a list of arguments. They look very similar, and it's
+possible, of course, to partially apply arguments to a closure.</p>
+</blockquote>
+<h2><a class="header" href="#instruction-dispatch" id="instruction-dispatch">Instruction dispatch</a></h2>
+<p>In dispatch, one optimal outcome is to minimize the machine code overhead
+between each VM instruction code.  This overhead, where the next VM instruction
+is fetched, decoded and mapped to the entry point of the instruction code, is
+the dispatch code.  The other axis of optimization is code ergonomics.</p>
+<p>Prior <a href="https://pliniker.github.io/post/dispatchers/">research</a> into implementing dispatch in Rust concludes that simple
+switch-style dispatch is the only cross-platform construct we can reasonably
+make use of. Other mechanisms come with undesirable complexity or are platform
+dependent. For the most part, with modern CPU branch prediction, the overhead
+of switch dispatch is small.</p>
+<p>What this looks like: a single <code>match</code> expression with a pattern to represent
+each bytecode discriminant, all wrapped in a loop. To illustrate:</p>
+<pre><code class="language-rust ignore">loop {
+    let opcode = get_next_opcode();
+    match opcode {
+        Opcode::Add(a, x, y) =&gt; { ... },
+        Opcode::Call(f, r, p) =&gt; { ... },
+    }
+}
+</code></pre>
+<h2><a class="header" href="#thats-it" id="thats-it">That's it!</a></h2>
+<p>Next we'll look at the counterpart of VM design - compiler design.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="chapter-interp-dicts.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="404.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="chapter-interp-dicts.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="404.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>
