@@ -104,7 +104,47 @@ _Apply_ takes a function name and a list of arguments. It generates
 instructions to first evaluate each argument, then call the function with the
 argument results.
 
-#### Built in functions
+#### Calling functions
+
+Functions are either built into to the language and VM or are
+library/user-defined functions composed of other functions.
+
+In every case, the simplified pattern for function calls is:
+
+* allocate a register to write the return value into
+* _eval_ each of the arguments in sequence, allocating their resulting values 
+  into consequent registers
+* compile the function call opcode, giving it the number of argument registers
+  it should expect
+
+Compiling a call to a builtin function might translate directly to a dedicated
+bytecode operation. For example, querying whether a value is `nil` with builtin
+function `nil?` compiles 1:1 to a bytecode operation that directly represents
+that query.
+
+Compiling a call to a user defined function is a more involved. In it's more
+general form, supporting first class functions and closures, a function call
+requires two additional pointers to be placed in registers. The complete
+function call register allocation looks like this:
+
+| Register | Use |
+|----------|-----|
+| 0 | reserved for return value |
+| 1 | reserved for closure environment pointer |
+| 2 | first argument |
+| 3 | second argument |
+| ... | |
+| n | function pointer |
+
+If a closure is called, the closure object itself contains a pointer to it's
+environment and the function to call and those pointers can be copied over to
+registers. Otherwise, the closure environment pointer will be a `nil` pointer.
+
+The VM, when entering a new function, will represent the return value register
+always as the zeroth register.
+
+When the function call returns, all registers except the return value are
+discarded.
 
 #### Compiling functions
 
