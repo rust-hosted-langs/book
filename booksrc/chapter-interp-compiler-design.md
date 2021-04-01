@@ -148,6 +148,43 @@ discarded.
 
 #### Compiling functions
 
+Compiling a function requires a few inputs:
+
+* an optional reference to a parent nesting function
+* an optional function name
+* a list of argument names
+* a list of expressions that will compute the return value
+
+The desired output is a data structure that combines:
+
+* the optional function name
+* the argument names
+* the compiled bytecode
+
+First, a scope structure is established. A scope is a lexical nesting block in
+which variables are bound and unbound. In the compiler, this structure is
+simply a mapping of variable name to the register number that contains the
+value.
+
+The first variables to be bound in the function's scope are the argument names.
+The compiler, given the list of argument names to the function and the order in
+which the arguments are given, associates each argument name with the register
+number that will contain it's value. As we saw above, these are predictably and
+reliably registers 2 and upward, one for each argument.
+
+A scope may have a parent scope if the function is defined within another
+function. This is how nonlocal variable references will be looked up. We will
+go further into that when we discuss closures.
+
+The second step is to _eval_ each expression in the function, assigning the
+result to register 0, the preallocated return value register. The result of
+compiling each expression via _eval_ is bytecode.
+
+Thirdly and finally, a function object is instantiated, given the name, the
+argument names and the bytecode.
+
+#### Compiling closures
+
 #### Compiling let
 
 ## Register allocation
