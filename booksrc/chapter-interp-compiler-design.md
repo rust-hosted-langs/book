@@ -180,10 +180,29 @@ The second step is to _eval_ each expression in the function, assigning the
 result to register 0, the preallocated return value register. The result of
 compiling each expression via _eval_ is bytecode.
 
-Thirdly and finally, a function object is instantiated, given the name, the
+Thirdly and finally, a function object is instantiated, given it's name, the
 argument names and the bytecode.
 
 #### Compiling closures
+
+During compilation of the expressions within a function, if any of those
+expressions reference non-local variables (that is, variables not declared
+within the scope of the function) then the function object needs additional
+data to describe how to access those non-local variables at runtime.
+
+In the below example, the anonymous inner function references the parameter
+to the outer function, `n`. When the inner function is returned, the value
+of `n` must be carried with it even after the stack scope of the outer
+function is popped and later overwritten with values for other functions.
+
+```
+(def make_adder (n) 
+  (lambda (x) (+ x n))
+)
+```
+
+_Eval_, when presented with a symbol to evaluate that has not been declared
+in the function scope, ...
 
 #### Compiling let
 
