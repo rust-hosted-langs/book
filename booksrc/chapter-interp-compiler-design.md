@@ -191,9 +191,9 @@ within the scope of the function) then the function object needs additional
 data to describe how to access those non-local variables at runtime.
 
 In the below example, the anonymous inner function references the parameter
-to the outer function, `n`. When the inner function is returned, the value
-of `n` must be carried with it even after the stack scope of the outer
-function is popped and later overwritten with values for other functions.
+`n` to the outer function, `n`. When the inner function is returned, the value
+of `n` must be carried with it even after the stack scope of the outer function
+is popped and later overwritten with values for other functions.
 
 ```
 (def make_adder (n) 
@@ -201,8 +201,20 @@ function is popped and later overwritten with values for other functions.
 )
 ```
 
-_Eval_, when presented with a symbol to evaluate that has not been declared
-in the function scope, ...
+_Eval_, when presented with a symbol to evaluate that has not been declared in
+the function scope, searches outer scopes next. If a binding is found in an
+outer scope, an upvalue reference is added to the function's _local_ scope that
+points to the outer scope and a `GetUpvalue` instruction is compiled.
+
+This upvalue is a combination of two values: a count of stack frames to skip
+over to find the outer scope variable, the register offset in that stack frame.
+The VM will use these to identify the location on the stack where a non-local
+variable should be read from.
+
+Upvalues are added to the function object that is returned by the function
+compiler.
+
+Closing over ...
 
 #### Compiling let
 
