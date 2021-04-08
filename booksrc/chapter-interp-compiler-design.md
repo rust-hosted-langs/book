@@ -55,18 +55,18 @@ Otherwise if the node is any other symbol, it is assumed to be bound to a value
 (it must be a variable) and an instruction is generated for fetching the value
 into a register.
 
-Variables come in three kinds: local, non-local or global.
+Variables come in three kinds: local, nonlocal or global.
 
 **Local**: the symbol has been declared earlier in the expression using `let` and
 the compiler already has a record of that - the symbol is associated with a
 local register index and a simple lookup instruction is generated.
 
-**Non-local**: the symbol has been bound in a parent nesting function. Again,
+**Nonlocal**: the symbol has been bound in a parent nesting function. Again,
 the compiler has a record of the declaration, which register is associated with
 the symbol and which relative call frame will contain that register. An upvalue
 lookup instruction is generated.
 
-**Global**: if the symbol isn't found as a local binding or a non-local binding,
+**Global**: if the symbol isn't found as a local binding or a nonlocal binding,
 it is assumed to be a global, and a late-binding global lookup instruction is
 generated. In the event the programmer has misspelled a variable name, this is
 possibly the instruction that will be generated and the programmer will see an
@@ -148,6 +148,22 @@ discarded.
 
 #### Compiling functions
 
+Let's look at a simple function definition:
+
+```
+(def is_true (x) 
+  (is? x true))
+```
+
+This function has a name `is_true`, takes one argument `x` and evaluates one
+expression `(is? x true)`.
+
+The same function may be written without a name:
+
+```
+(lambda (x) (is? x true))
+```
+
 Compiling a function requires a few inputs:
 
 * an optional reference to a parent nesting function
@@ -186,9 +202,9 @@ argument names and the bytecode.
 #### Compiling closures
 
 During compilation of the expressions within a function, if any of those
-expressions reference non-local variables (that is, variables not declared
+expressions reference nonlocal variables (that is, variables not declared
 within the scope of the function) then the function object needs additional
-data to describe how to access those non-local variables at runtime.
+data to describe how to access those nonlocal variables at runtime.
 
 In the below example, the anonymous inner function references the parameter
 `n` to the outer function, `n`. When the inner function is returned, the value
@@ -203,19 +219,65 @@ is popped and later overwritten with values for other functions.
 
 _Eval_, when presented with a symbol to evaluate that has not been declared in
 the function scope, searches outer scopes next. If a binding is found in an
-outer scope, an upvalue reference is added to the function's _local_ scope that
-points to the outer scope and a `GetUpvalue` instruction is compiled.
+outer scope, a nonlocal reference is added to the function's _local_ scope
+that points to the outer scope and a `GetUpvalue` instruction is compiled.
 
-This upvalue is a combination of two values: a count of stack frames to skip
-over to find the outer scope variable, the register offset in that stack frame.
-The VM will use these to identify the location on the stack where a non-local
-variable should be read from.
+This nonlocal reference is a combination of two values: a count of stack
+frames to skip over to find the outer scope variable and the register offset in
+that stack frame.
 
-Upvalues are added to the function object that is returned by the function
-compiler.
-
-Closing over ...
+Non-local references are added to the function object that is returned by the
+function compiler. The VM will use these to identify the absolute location on
+the stack where a nonlocal variable should be read from and create upvalue
+objects at runtime when a variable is closed over.
 
 #### Compiling let
 
+Let is the declaration of variables and assigning values: the binding of 
+values, or the results of expressions, to symbols. Secondly, it provides
+space to evaluate expressions that incorporate those variables.
+
+Here we bind the result of `(make_adder 3)` - a function - to the symbol
+`add_3` and then call `add_3` with argument `4`.
+
+```
+(let ((add_3 (make_adder 3)))
+  (add_3 4))
+```
+
+The result of the entire `let` expression should be `7`.
+
+Compiling `let` simply introduces additional scopes within a function scope.
+That is, instead of a function containing a single scope for all it's
+variables, scopes are nested. A stack of scopes is needed, with the parameters
+occupying the outermost scope.
+
+First a new scope is pushed on to the scope stack and each symbol being bound
+is added to the new scope.
+
+To generate code, a result register is reserved and a register for each binding
+is reserved.
+
+Finally, each expression is evaluated and the scope is popped, removing the
+bindings from view.
+
 ## Register allocation
+
+A function call may make use of no more than 256 registers. Recall from earlier
+that the 0th register is reserved for the function return value and subsequent
+registers are reserved for the function arguments.
+
+Beyond these initial registers the compiler uses a simple strategy in register
+allocation: if a variable (a parameter or a `let` binding) is declared, it is
+allocated a register based on a stack discipline. Thus, variables are
+essentially pushed and popped off the register stack as they come into and out
+of scope.
+
+This strategy primarily ensures code simplicity - there is no register
+allocation optimization.
+
+## C'est tout!
+
+That covers the VM and compiler design at an overview level. We've glossed over
+a lot of detail but the next chapters will expose the implementation detail.
+Get ready!
