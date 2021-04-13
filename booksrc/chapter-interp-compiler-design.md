@@ -26,18 +26,17 @@ language, will support them without refactoring.
 
 Our compiler design is based on the _eval/apply_ pattern.
 
-In this pattern we recursively descend into the `Pair` AST, beginning with
-calling _eval_ on the root node of the expression to be compiled.
+In this pattern we recursively descend into the `Pair` AST, calling _eval_ on
+the root node of the expression to be compiled.
 
 _Eval_ is, of course, short for "evaluate" - we want to evaluate the given
-expression. In our case, the immediate requirement is not the result but the
-sequence of instructions that will generate the result, that will evaluate the
-expression.
+expression. In the case of a compiler, we don't want the result yet, rather
+the sequence of instructions that will generate the result.
 
 More concretely, _eval_ looks at the node in the AST it is given and if it
 resolves to fetching a value for a variable, it generates that instruction;
-otherwise if it is a function call, the arguments are evaluated and then the
-function and arguments are passed to _apply_, which generates appropriate
+otherwise if it is a compound expression, the arguments are evaluated and then
+the function and arguments are passed to _apply_, which generates appropriate
 function call instructions.
 
 ### Implementing Eval
@@ -57,14 +56,15 @@ into a register.
 
 Variables come in three kinds: local, nonlocal or global.
 
-**Local**: the symbol has been declared earlier in the expression using `let` and
-the compiler already has a record of that - the symbol is associated with a
-local register index and a simple lookup instruction is generated.
+**Local**: the symbol has been declared earlier in the expression (either it is
+a function parameter or it was declared using `let`) and the compiler already
+has a record of it. The symbol is already associated with a local register
+index and a simple register copy instruction is generated.
 
 **Nonlocal**: the symbol has been bound in a parent nesting function. Again,
-the compiler has a record of the declaration, which register is associated with
-the symbol and which relative call frame will contain that register. An upvalue
-lookup instruction is generated.
+the compiler already has a record of the declaration, which register is
+associated with the symbol and which relative call frame will contain that
+register. An upvalue lookup instruction is generated.
 
 **Global**: if the symbol isn't found as a local binding or a nonlocal binding,
 it is assumed to be a global, and a late-binding global lookup instruction is
@@ -75,10 +75,11 @@ unknown-variable error at runtime.
 #### Expressions and function calls
 
 When _eval_ is passed a `Pair`, this represents the beginning of an expression,
-or a function call. A composition of things.
+a function call. A composition of things.
 
-In s-expression syntax, a function call looks like `(function_name arg1 arg2)`.
-That is parsed into a `Pair` tree, which takes the form:
+In s-expression syntax, all expressions and function calls looks like
+`(function_name arg1 arg2)`.  That is parsed into a `Pair` tree, which takes
+the form:
 
 ```
 Pair(
@@ -100,9 +101,9 @@ list and leaves the rest up to _apply_.
 
 ### Implementing Apply
 
-_Apply_ takes a function name and a list of arguments. It generates
-instructions to first evaluate each argument, then call the function with the
-argument results.
+_Apply_ takes a function name and a list of arguments. First it recurses into
+_eval_ for each argument expression, then  generates instructions to call the
+function with the argument results.
 
 #### Calling functions
 
@@ -177,10 +178,9 @@ The desired output is a data structure that combines:
 * the argument names
 * the compiled bytecode
 
-First, a scope structure is established. A scope is a lexical nesting block in
-which variables are bound and unbound. In the compiler, this structure is
-simply a mapping of variable name to the register number that contains the
-value.
+First, a scope structure is established. A scope is a lexical block in which
+variables are bound and unbound. In the compiler, this structure is simply a
+mapping of variable name to the register number that contains the value.
 
 The first variables to be bound in the function's scope are the argument names.
 The compiler, given the list of argument names to the function and the order in
