@@ -75,7 +75,7 @@ to another value. The VM will, of course, have an abstraction over the internal
 
 ## Closures
 
-In the classic Upvalues implementation from Lua 5, followed also by [Crafting
+In the classic upvalues implementation from Lua 5, followed also by [Crafting
 Interpreters][2], a linked list of upvalues is used to map stack locations to
 shared variables.
 
