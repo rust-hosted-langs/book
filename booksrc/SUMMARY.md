@@ -20,7 +20,7 @@
   - [Dicts](./chapter-interp-dicts.md)
   - [Virtual Machine: Design](./chapter-interp-vm-design.md)
   - [Compiler: Design](./chapter-interp-compiler-design.md)
-  - [TODO - Virtual Machine: Implementation](./404.md)
+  - [Virtual Machine: Implementation](./chapter-interp-vm-impl.md)
   - [TODO - Compiler: Implementation](./404.md)
 - [Garbage collection](./404.md)
   - [TODO - Tracing](./404.md)
