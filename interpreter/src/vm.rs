@@ -29,6 +29,7 @@ pub enum EvalStatus<'guard> {
 }
 
 /// A call frame, separate from the register stack
+// ANCHOR: DefCallFrame
 #[derive(Clone)]
 pub struct CallFrame {
     /// Pointer to the Function being executed
@@ -38,6 +39,7 @@ pub struct CallFrame {
     /// Stack base - index into the register stack where register window for this function begins
     base: ArraySize,
 }
+// ANCHOR_END: DefCallFrame
 
 impl CallFrame {
     /// Instantiate an outer-level call frame at the beginning of the stack
@@ -72,13 +74,16 @@ impl CallFrame {
 
 /// Call frames are stored in a separate stack to the register window stack. This simplifies types
 /// and stack math.
+// ANCHOR: DefCallFrameList
 pub type CallFrameList = Array<CallFrame>;
+// ANCHOR_END: DefCallFrameList
 
 /// A closure upvalue as generally described by Lua 5.1 implementation.
 /// There is one main difference - in the Lua (and Crafting Interpreters) documentation, an upvalue
 /// is closed by pointing the `location` pointer at the `closed` pointer directly in the struct.
 /// This isn't a good idea _here_ because a stack location may be invalidated by the stack List
 /// object being reallocated. This VM doesn't support pointers into objects.
+// ANCHOR: DefUpvalue
 #[derive(Clone)]
 pub struct Upvalue {
     // Upvalue location can't be a pointer because it would be a pointer into the dynamically
@@ -87,6 +92,7 @@ pub struct Upvalue {
     closed: Cell<bool>,
     location: ArraySize,
 }
+// ANCHOR_END: DefUpvalue
 
 impl Upvalue {
     /// Allocate a new Upvalue on the heap. The absolute stack index of the object must be
@@ -168,11 +174,14 @@ fn env_upvalue_lookup<'guard>(
 /// It is composed of all the data structures required for execution of a bytecode stream -
 /// register stack, call frames, closure upvalues, thread-local global associations and the current
 /// instruction pointer.
+// ANCHOR: DefThread
 pub struct Thread {
-    /// An array of StackFrames
+    /// An array of CallFrames
     frames: CellPtr<CallFrameList>,
     /// An array of pointers any object type
     stack: CellPtr<List>,
+    /// The current stack base pointer
+    stack_base: Cell<ArraySize>,
     /// A dict that should only contain Number keys and Upvalue values. This is a mapping of
     /// absolute stack indeces to Upvalue objects where stack values are closed over.
     upvalues: CellPtr<Dict>,
@@ -180,9 +189,8 @@ pub struct Thread {
     globals: CellPtr<Dict>,
     /// The current instruction location
     instr: CellPtr<InstructionStream>,
-    /// The current stack base pointer
-    stack_base: Cell<ArraySize>,
 }
+// ANCHOR_END: DefThread
 
 impl Thread {
     /// Allocate a new Thread with a minimal stack preallocated but not associated with any
@@ -210,10 +218,10 @@ impl Thread {
         mem.alloc(Thread {
             frames: CellPtr::new_with(frames),
             stack: CellPtr::new_with(stack),
+            stack_base: Cell::new(0),
             upvalues: CellPtr::new_with(upvalues),
             globals: CellPtr::new_with(globals),
             instr: CellPtr::new_with(instr),
-            stack_base: Cell::new(0),
         })
     }
 
