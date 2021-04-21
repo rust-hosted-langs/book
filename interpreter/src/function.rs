@@ -12,6 +12,7 @@ use crate::safeptr::{CellPtr, MutatorScope, ScopedPtr, TaggedCellPtr, TaggedScop
 use crate::taggedptr::Value;
 
 /// A function object type
+// ANCHOR: DefFunction
 #[derive(Clone)]
 pub struct Function {
     /// name could be a Symbol, or nil if it is an anonymous fn
@@ -27,6 +28,7 @@ pub struct Function {
     /// nil
     nonlocal_refs: TaggedCellPtr,
 }
+// ANCHOR_END: DefFunction
 
 impl Function {
     /// Allocate a Function object on the heap.

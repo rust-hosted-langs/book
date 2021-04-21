@@ -1,13 +1,19 @@
 # Virtual Machine: Implementation
 
-This chapter will explain some of the more interesting implementation details
+This chapter will explain some of the more important implementation details
 of our virtual machine.
 
-We'll begin by defining a struct for a thread of execution:
+We'll begin by laying out a struct for a single thread of execution:
 
 ```rust,ignore
 {{#include ../interpreter/src/vm.rs:DefThread}}
 ```
+
+This struct contains every data structure needed to represent global values,
+stack values, closed-over stack values, function call frames and instructions
+to execute.
+
+Let's look at each one of these next.
 
 ## The stack
 
@@ -62,6 +68,15 @@ a nested function call returns:
 
 On every function call, a `CallFrame` instance is pushed on to the `Thread`'s
 frames list. 
+
+### Function objects
+
+Since we've mentioned `Function` objects above, let's have a look at the
+definition.
+
+```rust,ignore
+{{#include ../interpreter/src/function.rs:DefFunction}}
+```
 
 ## Global values
 
