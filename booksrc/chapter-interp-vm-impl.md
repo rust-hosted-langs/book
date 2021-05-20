@@ -73,7 +73,7 @@ a nested function call returns:
 * the stack base index for the function's stack register window
 
 On every function call, a `CallFrame` instance is pushed on to the `Thread`'s
-frames list. 
+frames list.
 
 Directly related to the call frame stack is the current instruction pointer.
 This is the `Thread` member `instr: CellPtr<InstructionStream>`,
@@ -119,20 +119,79 @@ and any nonlocal references.
 Nonlocal references are an optional list of `(relative_stack_frame, register)`
 values provided by the compiler that are needed to locate nonlocal variables on
 the register stack. These are, of course, a key component of implementing
-closures.
+closures. We'll talk about closures shortly, but before we do, we'll extend
+`Function`s with partial application of arguments.
 
 
-## Closures and upvalues
+## Partial functions
+
+A partial function application takes a subset of the arguments required to
+make a function call. These arguments must be stored for later and can be
+added to over multiple partial applications of the same function.
+
+Thus, a `Partial` object references the `Function` to be called and a list
+of arguments to give it when the call happens. Below is the definition
+of `Partial`. Note that it also contains a possible closure environment.
+We'll discuss that in the next section.
+
+```rust,ignore
+{{#include ../interpreter/src/function.rs:DefPartial}}
+```
+
+The `arity` and `used` members indicate how many arguments are expected and how
+many have been given. These are provided directly in this struct rather than
+requiring dereferencing the `arity` on the `Function` object and the length of
+the `args` list. This is for convenience and performance.
+
+Each time more arguments are added to a `Partial`, a new `Partial` instance must
+be allocated and the existing arguments copied over. Essentially, a `Partial`
+object, once created, is immutable.
+
+
+## Closures
+
+Closures and partial applications have, at an abstract level, something in
+common: they both reference values that the function will need when it is
+finally called and need to carry these references around with them.
+
+We can extend the `Partial` definition with a closure environment so that we
+can use the same object type everywhere to represent a function pointer,
+applied arguments and closure environment as needed. This will maximize
+flexibility and simplicity in our language and VM design.
+
+The compiler, because it keeps track of variable names and scopes, knows when a
+`Function` references nonlocal variables. When such a function is going to be
+referenced to be called next or at some later time, the compiler emits a
+`MakeClosure` instruction.
+
+The VM, when it executes `MakeClosure`, creates a new `Partial` object.  It
+then iterates over the list of nonlocal references and allocates an `Upvalue`
+object for each, which are added to the `env` member on the `Partial` object.
+The `Upvalue` struct is defined as:
 
 ```rust,ignore
 {{#include ../interpreter/src/vm.rs:DefUpvalue}}
 ```
 
-## Partial functions
+An `Upvalue` is an object that references a register stack location (that is
+the `location` member.) The initial value of `closed` is `false`.  In this
+state, the location on the stack that contains the variable _must_ be a valid
+location. That is, the stack can not have been unwound yet.  If the closure is
+called, `Upvalue`s in this state are simply an indirection between the function
+and the variable on the register stack.
+
+The compiler is able to keep track of variables and whether they are closed
+over. It emits bytecode instructions to close `Upvalue` objects when
+closed-over variables go out of scope. This instruction, `CloseUpvalues`,
+copies the variable from the register stack to the `value` member of the
+`Upvalue` object and sets `closed` to `true`. From now on, when the closure
+reads or writes to this variable, the value on the `Upvalue` object is modified
+rather than the location on the register stack.
+
 
 ## Global values
 
 
-## Tieing it all together
+## Tying it all together
 
 <include VM code snippets here>

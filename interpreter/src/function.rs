@@ -136,6 +136,7 @@ impl Print for Function {
 }
 
 /// A partial function application object type
+// ANCHOR: DefPartial
 #[derive(Clone)]
 pub struct Partial {
     /// Remaining number of arguments required to activate the function
@@ -149,6 +150,7 @@ pub struct Partial {
     /// Function that will be activated when all arguments are applied
     func: CellPtr<Function>,
 }
+// ANCHOR_END: DefPartial
 
 impl Partial {
     /// Allocate a Partial application of a Function on the heap with the given set of arguments
