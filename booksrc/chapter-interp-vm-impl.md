@@ -126,8 +126,7 @@ closures. We'll talk about closures shortly, but before we do, we'll extend
 ## Partial functions
 
 A partial function application takes a subset of the arguments required to
-make a function call. These arguments must be stored for later and can be
-added to over multiple partial applications of the same function.
+make a function call. These arguments must be stored for later.
 
 Thus, a `Partial` object references the `Function` to be called and a list
 of arguments to give it when the call happens. Below is the definition
@@ -154,15 +153,19 @@ Closures and partial applications have, at an abstract level, something in
 common: they both reference values that the function will need when it is
 finally called and need to carry these references around with them.
 
-We can extend the `Partial` definition with a closure environment so that we
-can use the same object type everywhere to represent a function pointer,
-applied arguments and closure environment as needed. This will maximize
-flexibility and simplicity in our language and VM design.
+It's possible, of course, to have a partially applied closure. We can extend the
+`Partial` definition with a closure environment so that we can use the same
+object type everywhere to represent a function pointer, applied arguments and
+closure environment as needed.
+
+### Compiling a closure
 
 The compiler, because it keeps track of variable names and scopes, knows when a
 `Function` references nonlocal variables. When such a function is going to be
 referenced to be called next or at some later time, the compiler emits a
 `MakeClosure` instruction.
+
+### Referencing the stack with upvalues
 
 The VM, when it executes `MakeClosure`, creates a new `Partial` object.  It
 then iterates over the list of nonlocal references and allocates an `Upvalue`
@@ -190,6 +193,19 @@ rather than the location on the register stack.
 
 
 ## Global values
+
+```rust,ignore
+pub struct Thread {
+    ...
+    globals: CellPtr<Dict>,
+    ...
+}
+```
+
+The outermost scope of a program's values and functions are the global values.
+We can manage these with an instance of a `Dict`. While a `Dict` can use any
+hashable value as a key, internally the VM will only allow `Symbol`s to be
+keys. That is, globals must be named objects.
 
 
 ## Tying it all together
