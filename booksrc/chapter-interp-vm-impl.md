@@ -18,6 +18,18 @@ Here we see every data structure needed to represent:
 - global values
 - bytecode to execute
 
+The VM's primary operation is to iterate through instructions, executing each
+in sequence. The outermost control struture is, therefore, a loop containing
+a `match` expression.
+
+The below `Thread` function is called from within a loop:
+
+```rust,ignore
+{{#include ../interpreter/src/vm.rs:ThreadEvalNextInstr}}
+
+                ...
+```
+
 
 ## The stack
 
@@ -186,7 +198,12 @@ compiler emits a `MakeClosure` instruction.
 The VM, when it executes `MakeClosure`, creates a new `Partial` object.  It
 then iterates over the list of nonlocal references and allocates an `Upvalue`
 object for each, which are added to the `env` member on the `Partial` object.
-The `Upvalue` struct is defined as:
+
+```rust,ignore
+{{#include ../interpreter/src/vm.rs:OpcodeMakeClosure}}
+```
+
+The `Upvalue` struct itself is defined as:
 
 ```rust,ignore
 {{#include ../interpreter/src/vm.rs:DefUpvalue}}
@@ -226,8 +243,3 @@ The outermost scope of a program's values and functions are the global values.
 We can manage these with an instance of a `Dict`. While a `Dict` can use any
 hashable value as a key, internally the VM will only allow `Symbol`s to be
 keys. That is, globals must be named objects.
-
-
-## Tying it all together
-
-<include VM code snippets here>
