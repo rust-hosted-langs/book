@@ -26,7 +26,3 @@
   - [TODO - Tracing](./404.md)
   - [TODO - Sweeping](./404.md)
   - [TODO - Recycling blocks](./404.md)
-- [Advanced garbage collection](./404.md)
-  - [TODO - ?](./404.md)
-- [Full Immix](./404.md)
-  - [TODO - ?](./404.md)

@@ -22,13 +22,23 @@ The VM's primary operation is to iterate through instructions, executing each
 in sequence. The outermost control struture is, therefore, a loop containing
 a `match` expression.
 
-The below `Thread` function is called from within a loop:
+Here is a code extract of the opening lines of this match operation. The
+function shown is a member of the `Thread` struct. It evaluates the next
+instruction and is called in a loop by an outer function. We'll look at several
+extracts from this function in this chapter.
 
 ```rust,ignore
 {{#include ../interpreter/src/vm.rs:ThreadEvalNextInstr}}
 
                 ...
 ```
+
+The function obtains a slice view of the register stack, then narrows that down
+to a 256 register window for the current function.
+
+Then it fetches the next opcode and using `match`, decodes it.
+
+Let's take a closer look at the stack.
 
 
 ## The stack
@@ -115,7 +125,9 @@ from the `CallFrame` at the new stack top; and similarly when a function
 is called _into_ and a new `CallFrame` is pushed on to the stack.
 
 
-## Function objects
+## Functions and function calls
+
+### Function objects
 
 Since we've mentioned `Function` objects above, let's now have a look at the
 definition.
@@ -150,7 +162,7 @@ We'll talk about closures shortly, but before we do, we'll extend `Function`s
 with partial application of arguments.
 
 
-## Partial functions
+### Partial functions
 
 A partial function application takes a subset of the arguments required to
 make a function call. These arguments must be stored for later.
@@ -175,7 +187,7 @@ be allocated and the existing arguments copied over. A `Partial` object, once
 created, is immutable.
 
 
-## Closures
+### Closures
 
 Closures and partial applications have, at an abstract level, something in
 common: they both reference values that the function will need when it is
@@ -187,17 +199,25 @@ We can extend the `Partial` definition with a closure environment so that we can
 use the same object type everywhere to represent a function pointer, applied
 arguments and closure environment as needed.
 
-### Compiling a closure
+#### Compiling a closure
 
 The compiler, because it keeps track of variable names and scopes, knows when a
 `Function` references nonlocal variables. After such a function is defined, the
 compiler emits a `MakeClosure` instruction.
 
-### Referencing the stack with upvalues
+#### Referencing the stack with upvalues
 
 The VM, when it executes `MakeClosure`, creates a new `Partial` object.  It
 then iterates over the list of nonlocal references and allocates an `Upvalue`
 object for each, which are added to the `env` member on the `Partial` object.
+
+The below code extract is from the function `Thread::eval_next_instr()` in
+the `MakeClosure` instruction decode and execution block.
+
+The two operands of the `MakeClosure` operation - `dest` and `function` - are
+registers. `function` points at the `Function` to be given an environment and
+made into a closure `Partial` instance; the pointer to this instance will be
+written to the `dest` register.
 
 ```rust,ignore
 {{#include ../interpreter/src/vm.rs:OpcodeMakeClosure}}
