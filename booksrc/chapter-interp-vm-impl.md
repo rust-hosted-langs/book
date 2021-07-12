@@ -137,7 +137,7 @@ definition.
 ```
 
 Instances of `Function` are produced by the compiler, one for each function
-definition that is compiled.
+definition that is compiled, including nested function definitions.
 
 A `Function` object is a simple collection of values, some of which may be
 `nil`. Any member represented by a `TaggedCellPtr` may, of course, contain
@@ -171,7 +171,7 @@ Thus, a `Partial` object references the `Function` to be called and a list
 of arguments to give it when the call is finally executed.
 
 Below is the definition of `Partial`. Note that it also contains a possible
-closure environment. We'll discuss that in the next section.
+closure environment which, again, we'll arrive at momentarily.
 
 ```rust,ignore
 {{#include ../interpreter/src/function.rs:DefPartial}}

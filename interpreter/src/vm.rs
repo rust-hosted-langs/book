@@ -619,24 +619,30 @@ impl Thread {
                     // 1. iter over function nonlocals
                     //   - calculate absolute stack offset for each
                     //   - find existing or create new Upvalue for each
-                    //   - copy Upvalue ref to Partial applied args on the stack
-                    // 2. create new Partial
+                    //   - create closure environment with list of Upvalues
+                    // 2. create new Partial with environment
                     // 3. set dest to Partial
                     let function_ptr = window[function as usize].get(mem);
                     if let Value::Function(f) = *function_ptr {
                         let nonlocals = f.nonlocals(mem);
+                        // Create an environment array for upvalues
                         let env = List::alloc_with_capacity(mem, nonlocals.length())?;
 
                         // Iter over function nonlocals, calculating absolute stack offset for each
                         nonlocals.access_slice(mem, |nonlocals| -> Result<(), RuntimeError> {
                             for compound in nonlocals {
+                                // extract 8 bit register and call frame values from 16 bit nonlocal
+                                // descriptors
                                 let frame_offset = (*compound >> 8) as ArraySize;
                                 let window_offset = (*compound & 0xff) as ArraySize;
 
-                                // look back frame_offset frames and add the register number
+                                // look back frame_offset frames and add the register number to
+                                // calculate the absolute stack position of the value
                                 let frame = frames.get(mem, frames.length() - frame_offset)?;
                                 let location = frame.base + window_offset;
 
+                                // look up, or create, the Upvalue for the location, and add it to
+                                // the environment
                                 let (_, upvalue) = self.upvalue_lookup_or_alloc(mem, location)?;
                                 StackAnyContainer::push(&*env, mem, upvalue.as_tagged(mem))?;
                             }
