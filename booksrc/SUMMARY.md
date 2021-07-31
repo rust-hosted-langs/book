@@ -21,7 +21,7 @@
   - [Virtual Machine: Design](./chapter-interp-vm-design.md)
   - [Compiler: Design](./chapter-interp-compiler-design.md)
   - [Virtual Machine: Implementation](./chapter-interp-vm-impl.md)
-  - [TODO - Compiler: Implementation](./404.md)
+  - [Compiler: Implementation](./chapter-interp-compiler-impl.md)
 - [Garbage collection](./404.md)
   - [TODO - Tracing](./404.md)
   - [TODO - Sweeping](./404.md)
