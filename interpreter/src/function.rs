@@ -12,6 +12,7 @@ use crate::safeptr::{CellPtr, MutatorScope, ScopedPtr, TaggedCellPtr, TaggedScop
 use crate::taggedptr::Value;
 
 /// A function object type
+// ANCHOR: DefFunction
 #[derive(Clone)]
 pub struct Function {
     /// name could be a Symbol, or nil if it is an anonymous fn
@@ -27,6 +28,7 @@ pub struct Function {
     /// nil
     nonlocal_refs: TaggedCellPtr,
 }
+// ANCHOR_END: DefFunction
 
 impl Function {
     /// Allocate a Function object on the heap.
@@ -134,6 +136,7 @@ impl Print for Function {
 }
 
 /// A partial function application object type
+// ANCHOR: DefPartial
 #[derive(Clone)]
 pub struct Partial {
     /// Remaining number of arguments required to activate the function
@@ -147,6 +150,7 @@ pub struct Partial {
     /// Function that will be activated when all arguments are applied
     func: CellPtr<Function>,
 }
+// ANCHOR_END: DefPartial
 
 impl Partial {
     /// Allocate a Partial application of a Function on the heap with the given set of arguments
