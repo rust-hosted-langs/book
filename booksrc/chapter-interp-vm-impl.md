@@ -263,3 +263,7 @@ The outermost scope of a program's values and functions are the global values.
 We can manage these with an instance of a `Dict`. While a `Dict` can use any
 hashable value as a key, internally the VM will only allow `Symbol`s to be
 keys. That is, globals must be named objects.
+
+# Next...
+
+Let's dive into the compiler!
