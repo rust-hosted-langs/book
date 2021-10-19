@@ -39,7 +39,7 @@ otherwise if it is a compound expression, the arguments are evaluated and then
 the function and arguments are passed to _apply_, which generates appropriate
 function call instructions.
 
-### Implementing Eval
+### Designing an Eval function
 
 _Eval_ looks at the given node and attempts to generate an instruction for it
 that would resolve the node to a value - that is, evaluate it.
@@ -99,7 +99,7 @@ second values from the outermost `Pair` and passes them into apply. In more
 general terms, _eval_ calls _apply_ with the function name and the argument
 list and leaves the rest up to _apply_.
 
-### Implementing Apply
+### Designing an Apply function
 
 _Apply_ takes a function name and a list of arguments. First it recurses into
 _eval_ for each argument expression, then  generates instructions to call the
@@ -113,7 +113,7 @@ library/user-defined functions composed of other functions.
 In every case, the simplified pattern for function calls is:
 
 * allocate a register to write the return value into
-* _eval_ each of the arguments in sequence, allocating their resulting values 
+* _eval_ each of the arguments in sequence, allocating their resulting values
   into consequent registers
 * compile the function call opcode, giving it the number of argument registers
   it should expect
@@ -152,7 +152,7 @@ discarded.
 Let's look at a simple function definition:
 
 ```
-(def is_true (x) 
+(def is_true (x)
   (is? x true))
 ```
 
@@ -212,7 +212,7 @@ of `n` must be carried with it even after the stack scope of the outer function
 is popped and later overwritten with values for other functions.
 
 ```
-(def make_adder (n) 
+(def make_adder (n)
   (lambda (x) (+ x n))
 )
 ```
@@ -233,7 +233,7 @@ objects at runtime when a variable is closed over.
 
 #### Compiling let
 
-Let is the declaration of variables and assigning values: the binding of 
+Let is the declaration of variables and assigning values: the binding of
 values, or the results of expressions, to symbols. Secondly, it provides
 space to evaluate expressions that incorporate those variables.
 
