@@ -66,7 +66,7 @@ impl<T: Sized> RawArray<T> {
             .ok_or(RuntimeError::new(ErrorKind::BadAllocationRequest))?;
 
         Ok(RawArray {
-            capacity: capacity,
+            capacity,
             ptr: NonNull::new(mem.alloc_array(capacity_bytes)?.as_ptr() as *mut T),
         })
     }

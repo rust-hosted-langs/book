@@ -55,7 +55,7 @@ impl Function {
             arity: param_names.length() as u8,
             code: CellPtr::new_with(code),
             param_names: CellPtr::new_with(param_names),
-            nonlocal_refs: nonlocal_refs,
+            nonlocal_refs,
         })
     }
 

@@ -308,10 +308,7 @@ mod test {
             }
         }
 
-        let test = Test {
-            input: input,
-            expect: expect,
-        };
+        let test = Test { input, expect };
         mem.mutate(&test, ()).unwrap();
     }
 

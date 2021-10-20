@@ -37,10 +37,7 @@ pub struct Token {
 
 impl Token {
     fn new(pos: SourcePos, token: TokenType) -> Token {
-        Token {
-            pos: pos,
-            token: token,
-        }
+        Token { pos, token }
     }
 }
 
