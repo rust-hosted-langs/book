@@ -421,11 +421,7 @@ impl StackAnyContainer for Array<TaggedCellPtr> {
         mem: &'guard MutatorView,
         item: TaggedScopedPtr<'guard>,
     ) -> Result<(), RuntimeError> {
-        StackContainer::<TaggedCellPtr>::push(
-            self,
-            mem,
-            TaggedCellPtr::new_with(item),
-        )
+        StackContainer::<TaggedCellPtr>::push(self, mem, TaggedCellPtr::new_with(item))
     }
     // ANCHOR_END: DefStackAnyContainerArrayPush
 
