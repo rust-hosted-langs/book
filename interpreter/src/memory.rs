@@ -153,5 +153,8 @@ pub trait Mutator: Sized {
     type Output;
 
     fn run(&self, mem: &MutatorView, input: Self::Input) -> Result<Self::Output, RuntimeError>;
+
+    // TODO
+    // function to return iterator that iterates over roots
 }
 // ANCHOR_END: DefMutator
