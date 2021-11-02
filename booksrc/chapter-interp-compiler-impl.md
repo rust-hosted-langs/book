@@ -1,6 +1,4 @@
 # Compiler: Implementation
 
-1. eval
-2. apply
-3. compiling functions
-4. compiling closures
+Before we get into eval and apply we'll look at some supporting data structures
+for keeping track of variables and lexical scoping.
