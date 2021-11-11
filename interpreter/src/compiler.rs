@@ -13,6 +13,7 @@ use crate::safeptr::{CellPtr, ScopedPtr, TaggedScopedPtr};
 use crate::taggedptr::Value;
 use crate::vm::FIRST_ARG_REG;
 
+// ANCHOR: DefBinding
 /// A binding can be either local or via an upvalue depending on how a closure refers to it.
 #[derive(Copy, Clone, PartialEq)]
 enum Binding {
@@ -21,12 +22,15 @@ enum Binding {
     /// An Upvalue is an indirection for pointing at a nonlocal variable on the stack
     Upvalue(UpvalueId),
 }
+// ANCHOR_END: DefBinding
 
+// ANCHOR: DefVariable
 /// A variable is a named register. It has compile time metadata about how it is used by closures.
 struct Variable {
     register: Register,
     closed_over: Cell<bool>,
 }
+// ANCHOR_END: DefVariable
 
 impl Variable {
     fn new(register: Register) -> Variable {
