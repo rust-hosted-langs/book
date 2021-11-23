@@ -47,7 +47,7 @@ impl Block {
     /// Instantiate a new block of the given size. Size must be a power of two.
     // ANCHOR: BlockNew
     pub fn new(size: BlockSize) -> Result<Block, BlockError> {
-        if size.is_power_of_two() {
+        if !size.is_power_of_two() {
             return Err(BlockError::BadRequest);
         }
 
