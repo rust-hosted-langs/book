@@ -39,8 +39,8 @@ Our first data structure will define a register based binding:
 {{#include ../interpreter/src/compiler.rs:DefVariable}}
 ```
 
-For every named variable - parameters and `let` definitions, a `Variable`
-instance is created.
+For every named, non-global variable (parameters and `let` definitions) a
+`Variable` instance is created.
 
 The member `closed_over` defaults to `false`. If the compiler detects that the
 variable must escape the stack as part of a closure, this flag will be flipped
@@ -66,6 +66,34 @@ outer scope, an `Upvalue` variant is returned. The compiler will emit instructio
 to copy the value refered to by the upvalue into a function-local temporary
 register.
 
-If the lookup for the variable fails, a global lookup instruction is emitted
-that will copy the result of the lookup into a function-local temporary
+If the lookup for the variable returns nothing, a global lookup instruction is
+emitted that will copy the result of the lookup into a function-local temporary
 register.
+
+### Scope structure
+
+The data structures that manage nesting of scopes and looking up a variable by
+name are defined below.
+
+```rust,ignore
+{{#include ../interpreter/src/compiler.rs:DefScope}}
+
+{{#include ../interpreter/src/compiler.rs:DefNonlocal}}
+
+{{#include ../interpreter/src/compiler.rs:DefVariables}}
+```
+
+For every function defined, the compiler maintains an instance of `Variables`.
+Each function's `Variables` can have one or more `Scope`, each of which has
+it's own set of variable name to register number mappings. Each function's
+`Variables`, when the function refers to outer-scoped variables, builds a
+mapping of nonlocal variable name to relative stack position of
+
+Under these definitions:
+
+- `Scope` manages the mapping of a variable name to the `Variable` register
+  number within a single scope
+- `Variables` maintains all the nested scopes for a function and caches all the
+  nonlocal references. It also keeps a reference to a parent nesting function
+  if there is one, in order to handle lexically scoped lookups.
+- A `Nonlocal` instance maintains an upvalue reference for the function

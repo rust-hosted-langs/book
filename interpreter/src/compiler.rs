@@ -53,11 +53,13 @@ impl Variable {
     }
 }
 
+// ANCHOR: DefScope
 /// A Scope contains a set of local variable to register bindings
 struct Scope {
     /// symbol -> variable mapping
     bindings: HashMap<String, Variable>,
 }
+// ANCHOR_END: DefScope
 
 impl Scope {
     fn new() -> Scope {
@@ -103,6 +105,7 @@ impl Scope {
     }
 }
 
+// ANCHOR: DefNonlocal
 /// A nonlocal reference will turn in to an Upvalue at VM runtime.
 /// This struct stores the non-zero frame offset and register values of a parent function call
 /// frame where a binding will be located.
@@ -111,6 +114,7 @@ struct Nonlocal {
     frame_offset: u8,
     frame_register: u8,
 }
+// ANCHOR_END: DefNonlocal
 
 impl Nonlocal {
     fn new(upvalue_id: UpvalueId, frame_offset: u8, frame_register: Register) -> Nonlocal {
@@ -122,7 +126,9 @@ impl Nonlocal {
     }
 }
 
-/// A Scope instance represents a set of nested variable binding scopes for a single function
+
+// ANCHOR: DefVariables
+/// A Variables instance represents a set of nested variable binding scopes for a single function
 /// definition.
 struct Variables<'parent> {
     /// The parent function's variables.
@@ -136,6 +142,7 @@ struct Variables<'parent> {
     /// The next upvalue index to assign when a new nonlocal is encountered.
     next_upvalue: Cell<u8>,
 }
+// ANCHOR_END: DefVariables
 
 impl<'parent> Variables<'parent> {
     fn new(parent: Option<&'parent Variables<'parent>>) -> Variables<'parent> {
