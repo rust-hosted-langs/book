@@ -73,7 +73,7 @@ register.
 ### Scope structure
 
 The data structures that manage nesting of scopes and looking up a variable by
-name are defined below.
+name are defined here.
 
 ```rust,ignore
 {{#include ../interpreter/src/compiler.rs:DefScope}}
@@ -85,15 +85,21 @@ name are defined below.
 
 For every function defined, the compiler maintains an instance of `Variables`.
 Each function's `Variables` can have one or more `Scope`, each of which has
-it's own set of variable name to register number mappings. Each function's
-`Variables`, when the function refers to outer-scoped variables, builds a
-mapping of nonlocal variable name to relative stack position of
+it's own set of variable name to register number mappings.
 
-Under these definitions:
+The outermost `Scope` contains the mapping function parameters to registers.
+
+A nested function's `Variables`, when the function refers to nesting function
+variables, builds a mapping of nonlocal variable name to relative stack
+position of that variable. This is a `NonLocal` - a relative stack frame offset
+and the register number within that stack frame of the variable.
+
+In summary, under these definitions:
 
 - `Scope` manages the mapping of a variable name to the `Variable` register
   number within a single scope
 - `Variables` maintains all the nested scopes for a function and caches all the
   nonlocal references. It also keeps a reference to a parent nesting function
   if there is one, in order to handle lexically scoped lookups.
-- A `Nonlocal` instance maintains an upvalue reference for the function
+- A `Nonlocal` instance caches a relative stack location of a nonlocal variable
+  for compiling upvalues
