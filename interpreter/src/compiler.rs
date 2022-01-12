@@ -126,7 +126,6 @@ impl Nonlocal {
     }
 }
 
-
 // ANCHOR: DefVariables
 /// A Variables instance represents a set of nested variable binding scopes for a single function
 /// definition.
