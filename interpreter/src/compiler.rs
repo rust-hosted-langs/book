@@ -367,8 +367,11 @@ impl<'parent> Compiler<'parent> {
         ast_node: TaggedScopedPtr<'guard>,
     ) -> Result<Register, RuntimeError> {
         match *ast_node {
+            // ANCHOR: DefCompileEvalPair
             Value::Pair(p) => self.compile_apply(mem, p.first.get(mem), p.second.get(mem)),
+            // ANCHOR_END: DefCompileEvalPair
 
+            // ANCHOR: DefCompileEvalSymbol
             Value::Symbol(s) => {
                 match s.as_str(mem) {
                     "nil" => {
@@ -408,7 +411,7 @@ impl<'parent> Compiler<'parent> {
                     }
                 }
             }
-
+            // ANCHOR_END: DefCompileEvalSymbol
             _ => self.push_load_literal(mem, ast_node),
         }
     }

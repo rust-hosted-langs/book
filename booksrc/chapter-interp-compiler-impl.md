@@ -108,13 +108,25 @@ result of the lookup into a function-local temporary register.
 
 ## Eval/apply
 
-Recall:
+Recall that:
 
-_Eval looks at the given node and attempts to generate an instruction
-for it that would resolve the node to a value - that is, evaluate it._
+_Eval looks at the given node and attempts to generate an instruction for it
+that would resolve the node to a value - that is, evaluate it;_
 
 while:
 
-_Apply takes a function name and a list of arguments. First it recurses into
+_apply takes a function name and a list of arguments. First it recurses into
 eval for each argument expression, then generates instructions to call the
 function with the argument results._
+
+Let's look at some examples of eval.
+
+```rust,ignore
+        match *ast_node {
+            ...
+
+{{#include ../interpreter/src/compiler.rs:DefCompileEvalPair}}
+
+            ...
+        }
+```
