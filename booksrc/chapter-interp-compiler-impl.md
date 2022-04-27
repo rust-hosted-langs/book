@@ -16,7 +16,7 @@ can easily keep track of whether a variable reference is local, nonlocal or
 global.
 
 If a variable wasn't declared as a parameter or in a `let` block, it
-must be global. Global variables are accessed dynamically by name.
+must be global and global variables are accessed dynamically by name.
 
 As far as local and nonlocal variables are concerned, the VM does not care
 about or consider their names. At the VM level, local and nonlocal variables
@@ -39,12 +39,12 @@ Our first data structure will define a register based variable:
 {{#include ../interpreter/src/compiler.rs:DefVariable}}
 ```
 
-For every named, non-global variable (created by defining parameters and `let`
-blocks) a `Variable` instance is created in the compiler.
+For every named, non-global variable (created by defining function parameters
+and `let` blocks) a `Variable` instance is created in the compiler.
 
 The member `closed_over` defaults to `false`. If the compiler detects that the
 variable must escape the stack as part of a closure, this flag will be flipped
-to `true`.
+to `true` (it cannot be set back to `false`.)
 
 ### Scope structure
 
@@ -73,10 +73,10 @@ offset and the register number within that stack frame of the variable.
 
 In summary, under these definitions:
 
+- A `Nonlocal` instance caches a relative stack location of a nonlocal variable
+  for compiling upvalues
 - `Scope` manages the mapping of a variable name to the `Variable` register
   number within a single scope
-- A `Nonlocal` instance references a relative stack location of a nonlocal
-  variable for compiling upvalues
 - `Variables` maintains all the nested scopes for a function during compilation
   and caches all the nonlocal references. It also keeps a reference to a parent
   nesting function if there is one, in order to handle lexically scoped
@@ -85,7 +85,7 @@ In summary, under these definitions:
 ### Retrieving named variables
 
 Whenever a variable is referenced in source code, the mapping to it's register
-must be looked up. The result of a lookup is a `Binding` instance:
+must be looked up. The result of a lookup is `Option<Binding>`.
 
 ```rust,ignore
 {{#include ../interpreter/src/compiler.rs:DefBinding}}
@@ -93,33 +93,42 @@ must be looked up. The result of a lookup is a `Binding` instance:
 
 The lookup process checks the local function scopes first.
 
-If the variable is found to be declared there, the `Local` enum variant is
+If the variable is found to be declared there, `Some(Local)` enum variant is
 returned. In terms of bytecode, this will translate to a direct register
 reference.
 
 Next, any outer function scopes are searched. If the variable is found in any
-outer scope, an `Upvalue` variant is returned. The compiler will emit instructions
-to copy the value refered to by the upvalue into a function-local temporary
-register.
+outer scope, `Some(Upvalue)` variant is returned. The compiler will emit
+instructions to copy the value refered to by the upvalue into a function-local
+temporary register.
 
-If the lookup for the variable returns nothing, a global lookup instruction is
+If the lookup for the variable returns `None`, a global lookup instruction is
 emitted that will, if the name exists as a globally bound value, copy the
 result of the lookup into a function-local temporary register.
 
 ## Eval/apply
 
-Recall that:
+Now we can explore the recursive eval/apply AST traversal process. Recall that:
 
-_Eval looks at the given node and attempts to generate an instruction for it
+_Eval looks at the given AST node and attempts to generate an instruction for it
 that would resolve the node to a value - that is, evaluate it;_
 
-while:
+If _eval_ cannot immediately retrieve a value for a node, the node is likely a
+function call that must be recursed into with _apply_.
+
+Meanwhile,
 
 _apply takes a function name and a list of arguments. First it recurses into
 eval for each argument expression, then generates instructions to call the
 function with the argument results._
 
+### Eval
+
 Let's look at some examples of eval.
+
+```rust,ignore
+{{#include ../interpreter/src/compiler.rs:DefCompileEval}}
+```
 
 ```rust,ignore
         match *ast_node {

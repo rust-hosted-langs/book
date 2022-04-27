@@ -271,6 +271,7 @@ impl<'parent> Variables<'parent> {
 /// follows the expression nesting structure, essentially pushing and popping register locations
 /// from the evaluation tree as expressions are entered and exited. This is super simple but not
 /// the most efficient scheme possible.
+// ANCHOR: DefCompiler
 struct Compiler<'parent> {
     bytecode: CellPtr<ByteCode>,
     /// Next available register slot.
@@ -280,6 +281,7 @@ struct Compiler<'parent> {
     /// Function-local nested scopes bindings list (including parameters at outer level)
     vars: Variables<'parent>,
 }
+// ANCHOR_END: DefCompiler
 
 impl<'parent> Compiler<'parent> {
     /// Instantiate a new nested function-level compiler
@@ -361,6 +363,7 @@ impl<'parent> Compiler<'parent> {
     }
 
     /// Compile an expression - this can be an 'atomic' value or a nested function application
+    // ANCHOR: DefCompileEval
     fn compile_eval<'guard>(
         &mut self,
         mem: &'guard MutatorView,
@@ -370,8 +373,6 @@ impl<'parent> Compiler<'parent> {
             // ANCHOR: DefCompileEvalPair
             Value::Pair(p) => self.compile_apply(mem, p.first.get(mem), p.second.get(mem)),
             // ANCHOR_END: DefCompileEvalPair
-
-            // ANCHOR: DefCompileEvalSymbol
             Value::Symbol(s) => {
                 match s.as_str(mem) {
                     "nil" => {
@@ -411,10 +412,11 @@ impl<'parent> Compiler<'parent> {
                     }
                 }
             }
-            // ANCHOR_END: DefCompileEvalSymbol
+
             _ => self.push_load_literal(mem, ast_node),
         }
     }
+    // ANCHOR_END: DefCompileEval
 
     /// Compile a function or special-form application
     fn compile_apply<'guard>(
