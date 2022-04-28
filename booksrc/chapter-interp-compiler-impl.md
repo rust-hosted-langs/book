@@ -103,8 +103,19 @@ instructions to copy the value refered to by the upvalue into a function-local
 temporary register.
 
 If the lookup for the variable returns `None`, a global lookup instruction is
-emitted that will, if the name exists as a globally bound value, copy the
-result of the lookup into a function-local temporary register.
+emitted that will dynamically look up the variable name in the global namespace
+and copy the result into a function-local temporary register or raise an error
+if the binding does not exist.
+
+### A function compiler data structure
+
+```rust,ignore
+{{#include ../interpreter/src/compiler.rs:DefCompiler}}
+```
+
+### Evaluation
+
+What we've described above is a large part of _eval_
 
 ## Eval/apply
 
@@ -122,9 +133,6 @@ _apply takes a function name and a list of arguments. First it recurses into
 eval for each argument expression, then generates instructions to call the
 function with the argument results._
 
-### Eval
-
-Let's look at some examples of eval.
 
 ```rust,ignore
 {{#include ../interpreter/src/compiler.rs:DefCompileEval}}
