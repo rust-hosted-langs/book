@@ -419,6 +419,7 @@ impl<'parent> Compiler<'parent> {
     // ANCHOR_END: DefCompileEval
 
     /// Compile a function or special-form application
+    // ANCHOR: DefCompileApply
     fn compile_apply<'guard>(
         &mut self,
         mem: &'guard MutatorView,
@@ -455,6 +456,7 @@ impl<'parent> Compiler<'parent> {
             _ => self.compile_apply_call(mem, function, args),
         }
     }
+    // ANCHOR_END: DefCompileApply
 
     /// Compile a 'cond' application
     /// (cond

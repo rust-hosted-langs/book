@@ -107,36 +107,45 @@ emitted that will dynamically look up the variable name in the global namespace
 and copy the result into a function-local temporary register or raise an error
 if the binding does not exist.
 
-### A function compiler data structure
+## Evaluation
+
+We've just largely described _eval_. Let's finish the job.
+
+To put _eval_ in a code context, here is the definition of a function
+compilation data structure:
 
 ```rust,ignore
 {{#include ../interpreter/src/compiler.rs:DefCompiler}}
 ```
 
-### Evaluation
+The two interesting members are
+- `bytecode`, which is an instance of [ByteCode](./chapter-interp-bytecode.md)
+- `vars`, an instance of `Variables` which we've described above
 
-What we've described above is a large part of _eval_
-
-## Eval/apply
-
-Now we can explore the recursive eval/apply AST traversal process. Recall that:
-
-_Eval looks at the given AST node and attempts to generate an instruction for it
-that would resolve the node to a value - that is, evaluate it;_
-
-If _eval_ cannot immediately retrieve a value for a node, the node is likely a
-function call that must be recursed into with _apply_.
-
-Meanwhile,
-
-_apply takes a function name and a list of arguments. First it recurses into
-eval for each argument expression, then generates instructions to call the
-function with the argument results._
-
+The `Compiler` struct implements function `compile_eval()`, the full definition
+of which is below:
 
 ```rust,ignore
 {{#include ../interpreter/src/compiler.rs:DefCompileEval}}
 ```
+
+The first interesting thing to note above is the return type: `Result<Register,
+RuntimeError>`. That is, a successful _eval_ will return a value in a register.
+
+In the function body, the bulk of the function is devoted to retrieving values
+of variables to retrieve the value into a register. As variable names are
+represented by the `Symbol` AST type, they are expected to resolve immediately
+to a value.
+
+So what's in the evaluation of the `Symbol` AST type? Locals, nonlocals and
+globals! Plus some keywords that represent literal values.
+
+In the case of a local, the register is directly returned. In the case of a
+nonlocal, an instruction must be generated to retrievel the value from up the
+stack into a local register. And in the case of a global, an instruction must be
+generated to dynamically look up the value.
+
+## Application
 
 ```rust,ignore
         match *ast_node {
@@ -147,3 +156,22 @@ function with the argument results._
             ...
         }
 ```
+
+And then there's the evaluation of the `Pair` AST type. This represents,
+visually, the opening of a `(` which, of course, is a function call. _Eval_
+cannot tell us the value of a function call, the function must be applied to
+it's arguments first. So into _apply_ we recurse!
+
+The first argument to `compile_apply()` is the function name `Symbol`, the
+second argument is the list of function arguments.
+
+Since we included the full `compile_eval()` function earlier, it wouldn't be
+fair to leave out the definition of `compile_apply()`. Here it is:
+
+```rust,ignore
+{{#include ../interpreter/src/compiler.rs:DefCompileApply}}
+```
+
+
+
+
