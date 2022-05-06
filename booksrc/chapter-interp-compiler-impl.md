@@ -158,9 +158,9 @@ generated to dynamically look up the value.
 ```
 
 And then there's the evaluation of the `Pair` AST type. This represents,
-visually, the opening of a `(` which, of course, is a function call. _Eval_
-cannot tell us the value of a function call, the function must be applied to
-it's arguments first. So into _apply_ we recurse!
+visually, the syntax `(function_name arg1 arg2 argN)` which is, of course, a
+function call. _Eval_ cannot tell us the value of a function call, the function
+must be applied to it's arguments first. So into _apply_ we recurse!
 
 The first argument to `compile_apply()` is the function name `Symbol`, the
 second argument is the list of function arguments.
@@ -172,6 +172,79 @@ fair to leave out the definition of `compile_apply()`. Here it is:
 {{#include ../interpreter/src/compiler.rs:DefCompileApply}}
 ```
 
+The `function` parameter is expected to be a `Symbol`, that is, have a _name_
+represented by a `Symbol`. Thus, the function is `match`ed on the `Symbol`.
 
+### Compiling function compilation: nil?
 
+Let's follow the compilation of a simple function: `nil?`. This is where we'll
+start seeing some of the deeper details of compilation, such as register
+allocation and
 
+```rust,ignore
+                ...
+{{#include ../interpreter/src/compiler.rs:DefCompileApplyIsNil}}
+                ...
+```
+
+The function `nil?` takes a single argument and returns:
+
+- the `Symbol` for `true` if the value of the argument is `nil`
+- `nil` if the argument is _not_ `nil`.
+
+In compiling this function call, a single bytecode opcode will be pushed on to
+the `ByteCode` array. This is done in the `Compiler::push_op2()` function. It is
+named `push_op2` because the opcode takes two operands: an argument register
+and a result destination register. This function is used to compile all simple
+function calls that follow the pattern of one argument, one result value. Here
+is `push_op2()`:
+
+```rust,ignore
+{{#include ../interpreter/src/compiler.rs:DefCompilerPushOp2}}
+```
+
+Let's break this down, line by line:
+
+1. `let result = self.acquire_reg();`
+    - `self.acquire_reg()`: is called to get an unused register. In this case, we
+      need a register to store the result value in. This register acquisition
+      follows a stack approach. Registers are acquired (pushed on to the stack
+      window) as new variables are declared within a scope, and popped when the
+      scope is exited.
+    - The type of `result` is `Register` which is an alias for `u8` - an
+      unsigned int from 0 to 255.
+
+2. `let reg1 = self.compile_eval(mem, value_from_1_pair(mem, params)?)?;`
+    - `value_from_1_pair(mem, params)?`: inspects the argument list and returns
+      the argument if there is a single one, otherwise returns an error.
+    - `self.compile_eval(mem, <arg>)?`: recurses into the argument to compile it
+      down to a something that can be applied to the function call.
+    - `let reg1 = <value>;`: where `reg1` will be the argument register to the
+      opcode.
+
+3. `self.bytecode.get(mem).push(mem, f(result, reg1))?;`
+    - `f(result, reg1)`: calls function `f` that will return the opcode with
+      operands applied in `ByteCode` format.
+    - In the case of calling `nil?`, the argument `f` is:
+        - `|dest, test| Opcode::IsNil { dest, test }`
+    - `self.bytecode.get(mem).push(mem, <opcode>)?;`: gets the `ByteCode`
+      reference and pushes the opcode on to the end of the bytecode array.
+
+4. `Ok(result)`
+    - the result register is returned to the `compile_apply()` function
+
+... and `compile_apply()` itself returns the result register to _it's_ caller.
+
+The pattern for compiling function application, more generally, is this:
+- acquire a result register
+- acquire any temporary intermediate result registers
+- recurse into arguments to compile _them_ first
+- emit bytecode for the function, pushing opcodes on to the bytecode array and
+  putting the final result in the result register
+- release any intermediate registers
+- return the result register number
+
+Compiling `nil?` was hopefully quite simple. Let's look at something much more
+involved, now.
+
+### Compiling function application: [what will it be???]

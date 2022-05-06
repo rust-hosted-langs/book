@@ -430,7 +430,9 @@ impl<'parent> Compiler<'parent> {
             Value::Symbol(s) => match s.as_str(mem) {
                 "quote" => self.push_load_literal(mem, value_from_1_pair(mem, args)?),
                 "atom?" => self.push_op2(mem, args, |dest, test| Opcode::IsAtom { dest, test }),
+                // ANCHOR: DefCompileApplyIsNil
                 "nil?" => self.push_op2(mem, args, |dest, test| Opcode::IsNil { dest, test }),
+                // ANCHOR_END: DefCompileApplyIsNil
                 "car" => self.push_op2(mem, args, |dest, reg| Opcode::FirstOfPair { dest, reg }),
                 "cdr" => self.push_op2(mem, args, |dest, reg| Opcode::SecondOfPair { dest, reg }),
                 "cons" => self.push_op3(mem, args, |dest, reg1, reg2| Opcode::MakePair {
@@ -746,6 +748,7 @@ impl<'parent> Compiler<'parent> {
     }
 
     /// Push an instruction with a result and a single argument to the function bytecode list
+    // ANCHOR: DefCompilerPushOp2
     fn push_op2<'guard, F>(
         &mut self,
         mem: &'guard MutatorView,
@@ -760,6 +763,7 @@ impl<'parent> Compiler<'parent> {
         self.bytecode.get(mem).push(mem, f(result, reg1))?;
         Ok(result)
     }
+    // ANCHOR_END: DefCompilerPushOp2
 
     /// Push an instruction with a result and two arguments to the function bytecode list
     fn push_op3<'guard, F>(
