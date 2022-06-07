@@ -299,6 +299,8 @@ impl<'parent> Compiler<'parent> {
     }
 
     /// Compile an expression that has parameters and possibly a name
+    // ANCHOR: DefCompilerCompileFunctionSig
+    // ANCHOR: DefCompilerCompileFunction
     fn compile_function<'guard>(
         mut self,
         mem: &'guard MutatorView,
@@ -306,6 +308,7 @@ impl<'parent> Compiler<'parent> {
         params: &[TaggedScopedPtr<'guard>],
         exprs: &[TaggedScopedPtr<'guard>],
     ) -> Result<ScopedPtr<'guard, Function>, RuntimeError> {
+        // ANCHOR_END: DefCompilerCompileFunctionSig
         // validate function name
         self.name = match *name {
             Value::Symbol(s) => Some(String::from(s.as_str(mem))),
@@ -361,6 +364,7 @@ impl<'parent> Compiler<'parent> {
             fn_nonlocals,
         )?)
     }
+    // ANCHOR_END: DefCompilerCompileFunction
 
     /// Compile an expression - this can be an 'atomic' value or a nested function application
     // ANCHOR: DefCompileEval
@@ -448,7 +452,9 @@ impl<'parent> Compiler<'parent> {
                 }),
                 "set" => self.compile_apply_assign(mem, args),
                 "def" => self.compile_named_function(mem, args),
+                // ANCHOR: DefCompileApplyLambda
                 "lambda" => self.compile_anonymous_function(mem, args),
+                // ANCHOR_END: DefCompileApplyLambda
                 "\\" => self.compile_anonymous_function(mem, args),
                 "let" => self.compile_apply_let(mem, args),
                 _ => self.compile_apply_call(mem, function, args),
@@ -556,6 +562,7 @@ impl<'parent> Compiler<'parent> {
     /// (lambda (args) (exprs))
     /// OR
     /// (\ (args) (exprs))
+    // ANCHOR: DefCompilerCompileAnonymousFunction
     fn compile_anonymous_function<'guard>(
         &mut self,
         mem: &'guard MutatorView,
@@ -599,6 +606,7 @@ impl<'parent> Compiler<'parent> {
 
         Ok(dest)
     }
+    // ANCHOR_END: DefCompilerCompileAnonymousFunction
 
     /// (def name (args) (expr))
     fn compile_named_function<'guard>(

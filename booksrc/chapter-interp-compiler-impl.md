@@ -122,8 +122,18 @@ The two interesting members are
 - `vars`, an instance of `Variables` which we've described above. This instance
   will be the outermost scope of the `let` or function block being compiled.
 
-The `Compiler` struct implements function `compile_eval()`, the full definition
-of which is below:
+The main entrypoint to this structure is the function `compile_function()`:
+
+```rust,ignore
+{{#include ../interpreter/src/compiler.rs:DefCompilerCompileFunctionSig}}
+        ...
+    }
+```
+
+This function will set up a `Variables` scope with the given parameters and call
+into function `compile_eval()` for each expression in the function. The full
+definition of `compile_eval()` is below, and we'll go into the details of
+`compile_function()` later.
 
 ```rust,ignore
 {{#include ../interpreter/src/compiler.rs:DefCompileEval}}
@@ -178,7 +188,7 @@ fair to leave out the definition of `compile_apply()`. Here it is:
 The `function` parameter is expected to be a `Symbol`, that is, have a _name_
 represented by a `Symbol`. Thus, the function is `match`ed on the `Symbol`.
 
-### Compiling function compilation: nil?
+### Caling nil?
 
 Let's follow the compilation of a simple function: `nil?`. This is where we'll
 start seeing some of the deeper details of compilation, such as register
@@ -206,7 +216,7 @@ is `push_op2()`:
 {{#include ../interpreter/src/compiler.rs:DefCompilerPushOp2}}
 ```
 
-Let's break this down, line by line:
+Let's break the function body down, line by line:
 
 1. `let result = self.acquire_reg();`
     - `self.acquire_reg()`: is called to get an unused register. In this case, we
@@ -250,4 +260,25 @@ The pattern for compiling function application, more generally, is this:
 Compiling `nil?` was hopefully quite simple. Let's look at something much more
 involved, now.
 
-### Compiling function application: [what will it be???]
+### Compiling anonymous functions
+
+Function compilation is also initiated _apply_ as a function is a compound
+expression and cannot be reduced to a value by a single _eval_.
+
+```rust,ignore
+                ...
+{{#include ../interpreter/src/compiler.rs:DefCompileApplyLambda}}
+                ...
+```
+
+```rust,ignore
+{{#include ../interpreter/src/compiler.rs:DefCompilerCompileAnonymousFunction}}
+```
+
+Now we return to the body of `compile_function()`, as promised.
+
+```rust,ignore
+{{#include ../interpreter/src/compiler.rs:DefCompilerCompileFunction}}
+```
+
+
