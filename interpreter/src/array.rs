@@ -90,7 +90,7 @@ impl<T: Sized + Clone> Array<T> {
                 .data
                 .get()
                 .as_ptr()
-                .ok_or(RuntimeError::new(ErrorKind::BoundsError))?;
+                .ok_or_else(|| RuntimeError::new(ErrorKind::BoundsError))?;
 
             let dest_ptr = unsafe { ptr.offset(index as isize) as *mut T };
 
@@ -421,11 +421,7 @@ impl StackAnyContainer for Array<TaggedCellPtr> {
         mem: &'guard MutatorView,
         item: TaggedScopedPtr<'guard>,
     ) -> Result<(), RuntimeError> {
-        Ok(StackContainer::<TaggedCellPtr>::push(
-            self,
-            mem,
-            TaggedCellPtr::new_with(item),
-        )?)
+        StackContainer::<TaggedCellPtr>::push(self, mem, TaggedCellPtr::new_with(item))
     }
     // ANCHOR_END: DefStackAnyContainerArrayPush
 

@@ -13,6 +13,7 @@ use crate::safeptr::{CellPtr, ScopedPtr, TaggedScopedPtr};
 use crate::taggedptr::Value;
 use crate::vm::FIRST_ARG_REG;
 
+// ANCHOR: DefBinding
 /// A binding can be either local or via an upvalue depending on how a closure refers to it.
 #[derive(Copy, Clone, PartialEq)]
 enum Binding {
@@ -21,12 +22,15 @@ enum Binding {
     /// An Upvalue is an indirection for pointing at a nonlocal variable on the stack
     Upvalue(UpvalueId),
 }
+// ANCHOR_END: DefBinding
 
+// ANCHOR: DefVariable
 /// A variable is a named register. It has compile time metadata about how it is used by closures.
 struct Variable {
     register: Register,
     closed_over: Cell<bool>,
 }
+// ANCHOR_END: DefVariable
 
 impl Variable {
     fn new(register: Register) -> Variable {
@@ -49,11 +53,13 @@ impl Variable {
     }
 }
 
+// ANCHOR: DefScope
 /// A Scope contains a set of local variable to register bindings
 struct Scope {
     /// symbol -> variable mapping
     bindings: HashMap<String, Variable>,
 }
+// ANCHOR_END: DefScope
 
 impl Scope {
     fn new() -> Scope {
@@ -99,6 +105,7 @@ impl Scope {
     }
 }
 
+// ANCHOR: DefNonlocal
 /// A nonlocal reference will turn in to an Upvalue at VM runtime.
 /// This struct stores the non-zero frame offset and register values of a parent function call
 /// frame where a binding will be located.
@@ -107,6 +114,7 @@ struct Nonlocal {
     frame_offset: u8,
     frame_register: u8,
 }
+// ANCHOR_END: DefNonlocal
 
 impl Nonlocal {
     fn new(upvalue_id: UpvalueId, frame_offset: u8, frame_register: Register) -> Nonlocal {
@@ -118,7 +126,8 @@ impl Nonlocal {
     }
 }
 
-/// A Scope instance represents a set of nested variable binding scopes for a single function
+// ANCHOR: DefVariables
+/// A Variables instance represents a set of nested variable binding scopes for a single function
 /// definition.
 struct Variables<'parent> {
     /// The parent function's variables.
@@ -132,6 +141,7 @@ struct Variables<'parent> {
     /// The next upvalue index to assign when a new nonlocal is encountered.
     next_upvalue: Cell<u8>,
 }
+// ANCHOR_END: DefVariables
 
 impl<'parent> Variables<'parent> {
     fn new(parent: Option<&'parent Variables<'parent>>) -> Variables<'parent> {
@@ -261,6 +271,7 @@ impl<'parent> Variables<'parent> {
 /// follows the expression nesting structure, essentially pushing and popping register locations
 /// from the evaluation tree as expressions are entered and exited. This is super simple but not
 /// the most efficient scheme possible.
+// ANCHOR: DefCompiler
 struct Compiler<'parent> {
     bytecode: CellPtr<ByteCode>,
     /// Next available register slot.
@@ -270,6 +281,7 @@ struct Compiler<'parent> {
     /// Function-local nested scopes bindings list (including parameters at outer level)
     vars: Variables<'parent>,
 }
+// ANCHOR_END: DefCompiler
 
 impl<'parent> Compiler<'parent> {
     /// Instantiate a new nested function-level compiler
@@ -287,6 +299,8 @@ impl<'parent> Compiler<'parent> {
     }
 
     /// Compile an expression that has parameters and possibly a name
+    // ANCHOR: DefCompilerCompileFunctionSig
+    // ANCHOR: DefCompilerCompileFunction
     fn compile_function<'guard>(
         mut self,
         mem: &'guard MutatorView,
@@ -294,6 +308,7 @@ impl<'parent> Compiler<'parent> {
         params: &[TaggedScopedPtr<'guard>],
         exprs: &[TaggedScopedPtr<'guard>],
     ) -> Result<ScopedPtr<'guard, Function>, RuntimeError> {
+        // ANCHOR_END: DefCompilerCompileFunctionSig
         // validate function name
         self.name = match *name {
             Value::Symbol(s) => Some(String::from(s.as_str(mem))),
@@ -349,16 +364,19 @@ impl<'parent> Compiler<'parent> {
             fn_nonlocals,
         )?)
     }
+    // ANCHOR_END: DefCompilerCompileFunction
 
     /// Compile an expression - this can be an 'atomic' value or a nested function application
+    // ANCHOR: DefCompileEval
     fn compile_eval<'guard>(
         &mut self,
         mem: &'guard MutatorView,
         ast_node: TaggedScopedPtr<'guard>,
     ) -> Result<Register, RuntimeError> {
         match *ast_node {
+            // ANCHOR: DefCompileEvalPair
             Value::Pair(p) => self.compile_apply(mem, p.first.get(mem), p.second.get(mem)),
-
+            // ANCHOR_END: DefCompileEvalPair
             Value::Symbol(s) => {
                 match s.as_str(mem) {
                     "nil" => {
@@ -402,8 +420,10 @@ impl<'parent> Compiler<'parent> {
             _ => self.push_load_literal(mem, ast_node),
         }
     }
+    // ANCHOR_END: DefCompileEval
 
     /// Compile a function or special-form application
+    // ANCHOR: DefCompileApply
     fn compile_apply<'guard>(
         &mut self,
         mem: &'guard MutatorView,
@@ -414,7 +434,9 @@ impl<'parent> Compiler<'parent> {
             Value::Symbol(s) => match s.as_str(mem) {
                 "quote" => self.push_load_literal(mem, value_from_1_pair(mem, args)?),
                 "atom?" => self.push_op2(mem, args, |dest, test| Opcode::IsAtom { dest, test }),
+                // ANCHOR: DefCompileApplyIsNil
                 "nil?" => self.push_op2(mem, args, |dest, test| Opcode::IsNil { dest, test }),
+                // ANCHOR_END: DefCompileApplyIsNil
                 "car" => self.push_op2(mem, args, |dest, reg| Opcode::FirstOfPair { dest, reg }),
                 "cdr" => self.push_op2(mem, args, |dest, reg| Opcode::SecondOfPair { dest, reg }),
                 "cons" => self.push_op3(mem, args, |dest, reg1, reg2| Opcode::MakePair {
@@ -430,7 +452,9 @@ impl<'parent> Compiler<'parent> {
                 }),
                 "set" => self.compile_apply_assign(mem, args),
                 "def" => self.compile_named_function(mem, args),
+                // ANCHOR: DefCompileApplyLambda
                 "lambda" => self.compile_anonymous_function(mem, args),
+                // ANCHOR_END: DefCompileApplyLambda
                 "\\" => self.compile_anonymous_function(mem, args),
                 "let" => self.compile_apply_let(mem, args),
                 _ => self.compile_apply_call(mem, function, args),
@@ -440,6 +464,7 @@ impl<'parent> Compiler<'parent> {
             _ => self.compile_apply_call(mem, function, args),
         }
     }
+    // ANCHOR_END: DefCompileApply
 
     /// Compile a 'cond' application
     /// (cond
@@ -537,11 +562,14 @@ impl<'parent> Compiler<'parent> {
     /// (lambda (args) (exprs))
     /// OR
     /// (\ (args) (exprs))
+    // ANCHOR: DefCompilerCompileAnonymousFunction
+    // ANCHOR: DefCompilerCompileAnonymousFunctionSig
     fn compile_anonymous_function<'guard>(
         &mut self,
         mem: &'guard MutatorView,
         params: TaggedScopedPtr<'guard>,
     ) -> Result<Register, RuntimeError> {
+        // ANCHOR_END: DefCompilerCompileAnonymousFunctionSig
         let items = vec_from_pairs(mem, params)?;
 
         if items.len() < 2 {
@@ -580,6 +608,7 @@ impl<'parent> Compiler<'parent> {
 
         Ok(dest)
     }
+    // ANCHOR_END: DefCompilerCompileAnonymousFunction
 
     /// (def name (args) (expr))
     fn compile_named_function<'guard>(
@@ -729,6 +758,7 @@ impl<'parent> Compiler<'parent> {
     }
 
     /// Push an instruction with a result and a single argument to the function bytecode list
+    // ANCHOR: DefCompilerPushOp2
     fn push_op2<'guard, F>(
         &mut self,
         mem: &'guard MutatorView,
@@ -743,6 +773,7 @@ impl<'parent> Compiler<'parent> {
         self.bytecode.get(mem).push(mem, f(result, reg1))?;
         Ok(result)
     }
+    // ANCHOR_END: DefCompilerPushOp2
 
     /// Push an instruction with a result and two arguments to the function bytecode list
     fn push_op3<'guard, F>(

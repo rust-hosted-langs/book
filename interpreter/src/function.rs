@@ -272,7 +272,7 @@ impl Print for Partial {
 /// A list of arguments to apply to functions
 pub struct CurriedArguments {
     // TODO
-// not sure of the mechanics of this.
-// The ghc runtime would push all these to the stack and then consume the stack with
-// function continuations
+    // not sure of the mechanics of this.
+    // The ghc runtime would push all these to the stack and then consume the stack with
+    // function continuations
 }

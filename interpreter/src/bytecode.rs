@@ -14,7 +14,9 @@ use crate::safeptr::{CellPtr, MutatorScope, ScopedPtr, TaggedScopedPtr};
 use crate::taggedptr::TaggedPtr;
 
 /// A register can be in the range 0..255
+// ANCHOR: DefRegister
 pub type Register = u8;
+// ANCHOR_END: DefRegister
 
 /// A literal integer that can be baked into an opcode can be in the range -32768..32767
 pub type LiteralInteger = i16;
