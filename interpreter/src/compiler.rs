@@ -563,11 +563,13 @@ impl<'parent> Compiler<'parent> {
     /// OR
     /// (\ (args) (exprs))
     // ANCHOR: DefCompilerCompileAnonymousFunction
+    // ANCHOR: DefCompilerCompileAnonymousFunctionSig
     fn compile_anonymous_function<'guard>(
         &mut self,
         mem: &'guard MutatorView,
         params: TaggedScopedPtr<'guard>,
     ) -> Result<Register, RuntimeError> {
+        // ANCHOR_END: DefCompilerCompileAnonymousFunctionSig
         let items = vec_from_pairs(mem, params)?;
 
         if items.len() < 2 {

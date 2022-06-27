@@ -262,8 +262,21 @@ involved, now.
 
 ### Compiling anonymous functions
 
-Function compilation is also initiated _apply_ as a function is a compound
-expression and cannot be reduced to a value by a single _eval_.
+An anonymous function is defined, syntactically, as:
+
+```ignore
+(lambda (param1 param2)
+  (expr1)
+  (expr2)
+  (return-expr))
+```
+
+There are 0 or more parameters and 1 or more expresssions in the body of the
+function. The last expression of the body provides the return value.
+
+Function compilation is initiated by _apply_. This is because a function is a
+compound expression and cannot be reduced to a value by a single _eval_. Here's
+the line in `compile_apply()` that calls anonymous function compilation:
 
 ```rust,ignore
                 ...
@@ -271,14 +284,62 @@ expression and cannot be reduced to a value by a single _eval_.
                 ...
 ```
 
+Let's look at the type signature of `compile_anonymous_function()`:
+
+```rust,ignore
+{{#include ../interpreter/src/compiler.rs:DefCompilerCompileAnonymousFunctionSig}}
+```
+
+The `params` parameter will be expected to be a `Pair` list: firstly, a list of
+parameter names, followed by function body expressions.
+
+The return value from is the same as all the other compilation functions so far:
+`Result<Register>`. The compiled code will return a pointer to the function
+object in a register.
+
+Here is the function in full:
+
 ```rust,ignore
 {{#include ../interpreter/src/compiler.rs:DefCompilerCompileAnonymousFunction}}
 ```
 
-Now we return to the body of `compile_function()`, as promised.
+After converting `Pair` lists to `Vec`s for convenience (wherein parameter names
+and function body expressions are separated) the process calls into function
+`compile_function()`, which brings us full circle to _eval_.
+
+In `compile_function()`, below:
+
+1. a `Scope` is instantiated and the parameters are pushed on to this outermost
+   scope.
+2. the function body expressions are iterated over, _eval_-ing each one
+3. any upvalues that will be closed over as the compiled-function exits and goes
+   out of scope have upvalue instructions generated
+4. a `Function` object is returned with all details necessary to running the
+   function in the VM environment
+
+Here is `compile_function()`:
 
 ```rust,ignore
 {{#include ../interpreter/src/compiler.rs:DefCompilerCompileFunction}}
 ```
 
+Note that in addition to generating upvalue instructions as the
+compiled-function goes out of scope, the calling compiler function
+`compile_anonymous_function()` will issue a `MakeClosure` opcode such that a
+closure object is put in the return register rather than a direct `Function`
+object reference.
 
+In our language, a closure object is represented by the `Partial` data structure
+- a struct that represents a `Function` object pointer plus closed over values
+and/or partially applied arguments. This data structure was described in the
+chapter [Virtual Machine: Implementation](./chapter-interp-vm-impl.md).
+
+Thus ends our tour of our interpreter.
+
+## Concluding remarks
+
+In this section, we've looked at a ground-up compiler and virtual machine
+implementation within a memory-safe allocation system.
+
+There is, of course, much more to explore in the VM and compiler source code.
+The reader is encouraged to experiment with running and modifying the source.
