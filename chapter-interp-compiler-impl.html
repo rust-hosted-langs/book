@@ -1,0 +1,751 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Compiler: Implementation - Writing Interpreters in Rust: a Guide</title>
+        
+
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        
+
+        
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="introduction.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="part-allocators.html"><strong aria-hidden="true">2.</strong> Allocation</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-alignment.html"><strong aria-hidden="true">2.1.</strong> Alignment</a></li><li class="chapter-item expanded "><a href="chapter-blocks.html"><strong aria-hidden="true">2.2.</strong> Obtaining blocks of memory</a></li><li class="chapter-item expanded "><a href="chapter-what-is-alloc.html"><strong aria-hidden="true">2.3.</strong> The type of allocation</a></li></ol></li><li class="chapter-item expanded "><a href="part-stickyimmix.html"><strong aria-hidden="true">3.</strong> An allocator: Sticky Immix</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-simple-bump.html"><strong aria-hidden="true">3.1.</strong> Bump allocation</a></li><li class="chapter-item expanded "><a href="chapter-managing-blocks.html"><strong aria-hidden="true">3.2.</strong> Allocating into multiple blocks</a></li><li class="chapter-item expanded "><a href="chapter-allocation-api.html"><strong aria-hidden="true">3.3.</strong> Defining the allocation API</a></li><li class="chapter-item expanded "><a href="chapter-allocation-impl.html"><strong aria-hidden="true">3.4.</strong> Implementing the API</a></li></ol></li><li class="chapter-item expanded "><a href="part-interpreter.html"><strong aria-hidden="true">4.</strong> An interpreter: Eval-rs</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="chapter-interp-alloc.html"><strong aria-hidden="true">4.1.</strong> Allocating objects and dereferencing safely</a></li><li class="chapter-item expanded "><a href="chapter-interp-tagged-ptrs.html"><strong aria-hidden="true">4.2.</strong> Tagged pointers and object headers</a></li><li class="chapter-item expanded "><a href="chapter-interp-symbols-and-pairs.html"><strong aria-hidden="true">4.3.</strong> Symbols and Pairs</a></li><li class="chapter-item expanded "><a href="chapter-interp-parsing.html"><strong aria-hidden="true">4.4.</strong> Parsing s-expressions</a></li><li class="chapter-item expanded "><a href="chapter-interp-arrays.html"><strong aria-hidden="true">4.5.</strong> Arrays</a></li><li class="chapter-item expanded "><a href="chapter-interp-bytecode.html"><strong aria-hidden="true">4.6.</strong> Bytecode</a></li><li class="chapter-item expanded "><a href="chapter-interp-dicts.html"><strong aria-hidden="true">4.7.</strong> Dicts</a></li><li class="chapter-item expanded "><a href="chapter-interp-vm-design.html"><strong aria-hidden="true">4.8.</strong> Virtual Machine: Design</a></li><li class="chapter-item expanded "><a href="chapter-interp-vm-impl.html"><strong aria-hidden="true">4.9.</strong> Virtual Machine: Implementation</a></li><li class="chapter-item expanded "><a href="chapter-interp-compiler-design.html"><strong aria-hidden="true">4.10.</strong> Compiler: Design</a></li><li class="chapter-item expanded "><a href="chapter-interp-compiler-impl.html" class="active"><strong aria-hidden="true">4.11.</strong> Compiler: Implementation</a></li></ol></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">5.</strong> Garbage collection</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">5.1.</strong> TODO - Tracing</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">5.2.</strong> TODO - Sweeping</a></li><li class="chapter-item expanded "><a href="404.html"><strong aria-hidden="true">5.3.</strong> TODO - Recycling blocks</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                        
+                    </div>
+
+                    <h1 class="menu-title">Writing Interpreters in Rust: a Guide</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        
+                    </div>
+                </div>
+
+                
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" name="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1><a class="header" href="#compiler-implementation" id="compiler-implementation">Compiler: Implementation</a></h1>
+<p>Before we get into eval and apply let's consider how we will support variables
+and lexical scoping.</p>
+<h2><a class="header" href="#variables-and-scopes" id="variables-and-scopes">Variables and Scopes</a></h2>
+<p>As seen in the previous chapter, variable accesses come in three types, as far
+as the compiler and VM are concerned: local, nonlocal and global. Each access
+uses a different bytecode operation, and so the compiler must be able to
+determine what operations to emit at compile time.</p>
+<p>Given that we have named function parameters and <code>let</code>, we have syntax for
+explicit variable declaration within function definitions. This means that we
+can easily keep track of whether a variable reference is local, nonlocal or
+global.</p>
+<p>If a variable wasn't declared as a parameter or in a <code>let</code> block, it
+must be global and global variables are accessed dynamically by name.</p>
+<p>As far as local and nonlocal variables are concerned, the VM does not care
+about or consider their names. At the VM level, local and nonlocal variables
+are numbered registers. That is, each function's local variables are mapped to
+a register numbered between 2 and 255. The compiler must generate the mapping
+from variable names to register numbers.</p>
+<p>For generating and maintaining mappings, we need data structures for keeping
+track of:</p>
+<ul>
+<li>function local variables and their mappings to register numbers</li>
+<li>references to nonlocal variables and their relative stack offsets</li>
+<li>nested scopes within functions</li>
+</ul>
+<h3><a class="header" href="#named-variables" id="named-variables">Named variables</a></h3>
+<p>Our first data structure will define a register based variable:</p>
+<pre><code class="language-rust ignore">/// A variable is a named register. It has compile time metadata about how it is used by closures.
+struct Variable {
+    register: Register,
+    closed_over: Cell&lt;bool&gt;,
+}
+</code></pre>
+<p>For every named, non-global variable (created by defining function parameters
+and <code>let</code> blocks) a <code>Variable</code> instance is created in the compiler.</p>
+<p>The member <code>closed_over</code> defaults to <code>false</code>. If the compiler detects that the
+variable must escape the stack as part of a closure, this flag will be flipped
+to <code>true</code> (it cannot be set back to <code>false</code>.)</p>
+<h3><a class="header" href="#scope-structure" id="scope-structure">Scope structure</a></h3>
+<p>The data structures that manage nesting of scopes and looking up a <code>Variable</code>
+by name are defined here.</p>
+<pre><code class="language-rust ignore">/// A Scope contains a set of local variable to register bindings
+struct Scope {
+    /// symbol -&gt; variable mapping
+    bindings: HashMap&lt;String, Variable&gt;,
+}
+
+/// A nonlocal reference will turn in to an Upvalue at VM runtime.
+/// This struct stores the non-zero frame offset and register values of a parent function call
+/// frame where a binding will be located.
+struct Nonlocal {
+    upvalue_id: u8,
+    frame_offset: u8,
+    frame_register: u8,
+}
+
+/// A Variables instance represents a set of nested variable binding scopes for a single function
+/// definition.
+struct Variables&lt;'parent&gt; {
+    /// The parent function's variables.
+    parent: Option&lt;&amp;'parent Variables&lt;'parent&gt;&gt;,
+    /// Nested scopes, starting with parameters/arguments on the outermost scope and let scopes on
+    /// the inside.
+    scopes: Vec&lt;Scope&gt;,
+    /// Mapping of referenced nonlocal nonglobal variables and their upvalue indexes and where to
+    /// find them on the stack.
+    nonlocals: RefCell&lt;HashMap&lt;String, Nonlocal&gt;&gt;,
+    /// The next upvalue index to assign when a new nonlocal is encountered.
+    next_upvalue: Cell&lt;u8&gt;,
+}
+</code></pre>
+<p>For every function defined, the compiler maintains an instance of the type
+<code>Variables</code>.</p>
+<p>Each function's <code>Variables</code> has a stack of <code>Scope</code> instances, each of which has
+it's own set of name to <code>Variable</code> register number mappings.  The outermost
+<code>Scope</code> contains the mapping of function parameters to registers.</p>
+<p>A nested function's <code>Variables</code>, when the function refers to a nesting
+function's variable, builds a mapping of nonlocal variable name to relative
+stack position of that variable. This is a <code>NonLocal</code> - a relative stack frame
+offset and the register number within that stack frame of the variable.</p>
+<p>In summary, under these definitions:</p>
+<ul>
+<li>A <code>Nonlocal</code> instance caches a relative stack location of a nonlocal variable
+for compiling upvalues</li>
+<li><code>Scope</code> manages the mapping of a variable name to the <code>Variable</code> register
+number within a single scope</li>
+<li><code>Variables</code> maintains all the nested scopes for a function during compilation
+and caches all the nonlocal references. It also keeps a reference to a parent
+nesting function if there is one, in order to handle lexically scoped
+lookups.</li>
+</ul>
+<h3><a class="header" href="#retrieving-named-variables" id="retrieving-named-variables">Retrieving named variables</a></h3>
+<p>Whenever a variable is referenced in source code, the mapping to it's register
+must be looked up. The result of a lookup is <code>Option&lt;Binding&gt;</code>.</p>
+<pre><code class="language-rust ignore">/// A binding can be either local or via an upvalue depending on how a closure refers to it.
+#[derive(Copy, Clone, PartialEq)]
+enum Binding {
+    /// An local variable is local to a function scope
+    Local(Register),
+    /// An Upvalue is an indirection for pointing at a nonlocal variable on the stack
+    Upvalue(UpvalueId),
+}
+</code></pre>
+<p>The lookup process checks the local function scopes first.</p>
+<p>If the variable is found to be declared there, <code>Some(Local)</code> enum variant is
+returned. In terms of bytecode, this will translate to a direct register
+reference.</p>
+<p>Next, any outer function scopes are searched. If the variable is found in any
+outer scope, <code>Some(Upvalue)</code> variant is returned. The compiler will emit
+instructions to copy the value refered to by the upvalue into a function-local
+temporary register.</p>
+<p>If the lookup for the variable returns <code>None</code>, a global lookup instruction is
+emitted that will dynamically look up the variable name in the global namespace
+and copy the result into a function-local temporary register or raise an error
+if the binding does not exist.</p>
+<h2><a class="header" href="#evaluation" id="evaluation">Evaluation</a></h2>
+<p>We've just somewhat described what happens in the lower levels of <em>eval</em>. Let's
+finish the job and put <em>eval</em> in a code context. Here is the definition of a
+function compilation data structure:</p>
+<pre><code class="language-rust ignore">struct Compiler&lt;'parent&gt; {
+    bytecode: CellPtr&lt;ByteCode&gt;,
+    /// Next available register slot.
+    next_reg: Register,
+    /// Optional function name
+    name: Option&lt;String&gt;,
+    /// Function-local nested scopes bindings list (including parameters at outer level)
+    vars: Variables&lt;'parent&gt;,
+}
+</code></pre>
+<p>The two interesting members are</p>
+<ul>
+<li><code>bytecode</code>, which is an instance of <a href="./chapter-interp-bytecode.html">ByteCode</a></li>
+<li><code>vars</code>, an instance of <code>Variables</code> which we've described above. This instance
+will be the outermost scope of the <code>let</code> or function block being compiled.</li>
+</ul>
+<p>The main entrypoint to this structure is the function <code>compile_function()</code>:</p>
+<pre><code class="language-rust ignore">    fn compile_function&lt;'guard&gt;(
+        mut self,
+        mem: &amp;'guard MutatorView,
+        name: TaggedScopedPtr&lt;'guard&gt;,
+        params: &amp;[TaggedScopedPtr&lt;'guard&gt;],
+        exprs: &amp;[TaggedScopedPtr&lt;'guard&gt;],
+    ) -&gt; Result&lt;ScopedPtr&lt;'guard, Function&gt;, RuntimeError&gt; {
+        ...
+    }
+</code></pre>
+<p>This function will set up a <code>Variables</code> scope with the given parameters and call
+into function <code>compile_eval()</code> for each expression in the function. The full
+definition of <code>compile_eval()</code> is below, and we'll go into the details of
+<code>compile_function()</code> later.</p>
+<pre><code class="language-rust ignore">    fn compile_eval&lt;'guard&gt;(
+        &amp;mut self,
+        mem: &amp;'guard MutatorView,
+        ast_node: TaggedScopedPtr&lt;'guard&gt;,
+    ) -&gt; Result&lt;Register, RuntimeError&gt; {
+        match *ast_node {
+            Value::Pair(p) =&gt; self.compile_apply(mem, p.first.get(mem), p.second.get(mem)),
+            Value::Symbol(s) =&gt; {
+                match s.as_str(mem) {
+                    &quot;nil&quot; =&gt; {
+                        let dest = self.acquire_reg();
+                        self.push(mem, Opcode::LoadNil { dest })?;
+                        Ok(dest)
+                    }
+
+                    &quot;true&quot; =&gt; self.push_load_literal(mem, mem.lookup_sym(&quot;true&quot;)),
+
+                    // Search scopes for a binding; if none do a global lookup
+                    _ =&gt; {
+                        match self.vars.lookup_binding(ast_node)? {
+                            Some(Binding::Local(register)) =&gt; Ok(register),
+
+                            Some(Binding::Upvalue(upvalue_id)) =&gt; {
+                                // Retrieve the value via Upvalue indirection
+                                let dest = self.acquire_reg();
+                                self.push(
+                                    mem,
+                                    Opcode::GetUpvalue {
+                                        dest,
+                                        src: upvalue_id,
+                                    },
+                                )?;
+                                Ok(dest)
+                            }
+
+                            None =&gt; {
+                                // Otherwise do a late-binding global lookup
+                                let name = self.push_load_literal(mem, ast_node)?;
+                                let dest = name; // reuse the register
+                                self.push(mem, Opcode::LoadGlobal { dest, name })?;
+                                Ok(dest)
+                            }
+                        }
+                    }
+                }
+            }
+
+            _ =&gt; self.push_load_literal(mem, ast_node),
+        }
+    }
+</code></pre>
+<p>Note that the return type is <code>Result&lt;Register, RuntimeError&gt;</code>. That is, a
+successful <em>eval</em> will return a register where the result will be stored at
+runtime.</p>
+<p>In the function body, the match branches fall into three categories:</p>
+<ul>
+<li>keywords literals (<code>nil</code>, <code>true</code>)</li>
+<li>all other literals</li>
+<li>named variables represented by <code>Symbol</code>s</li>
+</ul>
+<p>What's in the evaluation of the <code>Symbol</code> AST type? Locals, nonlocals and
+globals!</p>
+<p>We can see the generation of special opcodes for retrieving nonlocal and global
+values here, whereas a local will resolve directly to an existing register
+without the need to generate any additional opcodes.</p>
+<h2><a class="header" href="#application" id="application">Application</a></h2>
+<p>To evaluate a function call, we switch over to <em>apply</em>:</p>
+<pre><code class="language-rust ignore">        match *ast_node {
+            ...
+
+            Value::Pair(p) =&gt; self.compile_apply(mem, p.first.get(mem), p.second.get(mem)),
+
+            ...
+        }
+</code></pre>
+<p>This is the evaluation of the <code>Pair</code> AST type. This represents, visually, the
+syntax <code>(function_name arg1 arg2 argN)</code> which is, of course, a function call.
+<em>Eval</em> cannot tell us the value of a function call, the function must be applied
+to it's arguments first. Into <em>apply</em> we recurse.</p>
+<p>The first argument to <code>compile_apply()</code> is the function name <code>Symbol</code>, the
+second argument is the list of function arguments.</p>
+<p>Since we included the full <code>compile_eval()</code> function earlier, it wouldn't be
+fair to leave out the definition of <code>compile_apply()</code>. Here it is:</p>
+<pre><code class="language-rust ignore">    fn compile_apply&lt;'guard&gt;(
+        &amp;mut self,
+        mem: &amp;'guard MutatorView,
+        function: TaggedScopedPtr&lt;'guard&gt;,
+        args: TaggedScopedPtr&lt;'guard&gt;,
+    ) -&gt; Result&lt;Register, RuntimeError&gt; {
+        match *function {
+            Value::Symbol(s) =&gt; match s.as_str(mem) {
+                &quot;quote&quot; =&gt; self.push_load_literal(mem, value_from_1_pair(mem, args)?),
+                &quot;atom?&quot; =&gt; self.push_op2(mem, args, |dest, test| Opcode::IsAtom { dest, test }),
+                &quot;nil?&quot; =&gt; self.push_op2(mem, args, |dest, test| Opcode::IsNil { dest, test }),
+                &quot;car&quot; =&gt; self.push_op2(mem, args, |dest, reg| Opcode::FirstOfPair { dest, reg }),
+                &quot;cdr&quot; =&gt; self.push_op2(mem, args, |dest, reg| Opcode::SecondOfPair { dest, reg }),
+                &quot;cons&quot; =&gt; self.push_op3(mem, args, |dest, reg1, reg2| Opcode::MakePair {
+                    dest,
+                    reg1,
+                    reg2,
+                }),
+                &quot;cond&quot; =&gt; self.compile_apply_cond(mem, args),
+                &quot;is?&quot; =&gt; self.push_op3(mem, args, |dest, test1, test2| Opcode::IsIdentical {
+                    dest,
+                    test1,
+                    test2,
+                }),
+                &quot;set&quot; =&gt; self.compile_apply_assign(mem, args),
+                &quot;def&quot; =&gt; self.compile_named_function(mem, args),
+                &quot;lambda&quot; =&gt; self.compile_anonymous_function(mem, args),
+                &quot;\\&quot; =&gt; self.compile_anonymous_function(mem, args),
+                &quot;let&quot; =&gt; self.compile_apply_let(mem, args),
+                _ =&gt; self.compile_apply_call(mem, function, args),
+            },
+
+            // Here we allow the value in the function position to be evaluated dynamically
+            _ =&gt; self.compile_apply_call(mem, function, args),
+        }
+    }
+</code></pre>
+<p>The <code>function</code> parameter is expected to be a <code>Symbol</code>, that is, have a <em>name</em>
+represented by a <code>Symbol</code>. Thus, the function is <code>match</code>ed on the <code>Symbol</code>.</p>
+<h3><a class="header" href="#caling-nil" id="caling-nil">Caling nil?</a></h3>
+<p>Let's follow the compilation of a simple function: <code>nil?</code>. This is where we'll
+start seeing some of the deeper details of compilation, such as register
+allocation and</p>
+<pre><code class="language-rust ignore">                ...
+                &quot;nil?&quot; =&gt; self.push_op2(mem, args, |dest, test| Opcode::IsNil { dest, test }),
+                ...
+</code></pre>
+<p>The function <code>nil?</code> takes a single argument and returns:</p>
+<ul>
+<li>the <code>Symbol</code> for <code>true</code> if the value of the argument is <code>nil</code></li>
+<li><code>nil</code> if the argument is <em>not</em> <code>nil</code>.</li>
+</ul>
+<p>In compiling this function call, a single bytecode opcode will be pushed on to
+the <code>ByteCode</code> array. This is done in the <code>Compiler::push_op2()</code> function. It is
+named <code>push_op2</code> because the opcode takes two operands: an argument register
+and a result destination register. This function is used to compile all simple
+function calls that follow the pattern of one argument, one result value. Here
+is <code>push_op2()</code>:</p>
+<pre><code class="language-rust ignore">    fn push_op2&lt;'guard, F&gt;(
+        &amp;mut self,
+        mem: &amp;'guard MutatorView,
+        params: TaggedScopedPtr&lt;'guard&gt;,
+        f: F,
+    ) -&gt; Result&lt;Register, RuntimeError&gt;
+    where
+        F: Fn(Register, Register) -&gt; Opcode,
+    {
+        let result = self.acquire_reg();
+        let reg1 = self.compile_eval(mem, value_from_1_pair(mem, params)?)?;
+        self.bytecode.get(mem).push(mem, f(result, reg1))?;
+        Ok(result)
+    }
+</code></pre>
+<p>Let's break the function body down, line by line:</p>
+<ol>
+<li>
+<p><code>let result = self.acquire_reg();</code></p>
+<ul>
+<li><code>self.acquire_reg()</code>: is called to get an unused register. In this case, we
+need a register to store the result value in. This register acquisition
+follows a stack approach. Registers are acquired (pushed on to the stack
+window) as new variables are declared within a scope, and popped when the
+scope is exited.</li>
+<li>The type of <code>result</code> is <code>Register</code> which is an alias for <code>u8</code> - an
+unsigned int from 0 to 255.</li>
+</ul>
+</li>
+<li>
+<p><code>let reg1 = self.compile_eval(mem, value_from_1_pair(mem, params)?)?;</code></p>
+<ul>
+<li><code>value_from_1_pair(mem, params)?</code>: inspects the argument list and returns
+the argument if there is a single one, otherwise returns an error.</li>
+<li><code>self.compile_eval(mem, &lt;arg&gt;)?</code>: recurses into the argument to compile it
+down to a something that can be applied to the function call.</li>
+<li><code>let reg1 = &lt;value&gt;;</code>: where <code>reg1</code> will be the argument register to the
+opcode.</li>
+</ul>
+</li>
+<li>
+<p><code>self.bytecode.get(mem).push(mem, f(result, reg1))?;</code></p>
+<ul>
+<li><code>f(result, reg1)</code>: calls function <code>f</code> that will return the opcode with
+operands applied in <code>ByteCode</code> format.</li>
+<li>In the case of calling <code>nil?</code>, the argument <code>f</code> is:
+<ul>
+<li><code>|dest, test| Opcode::IsNil { dest, test }</code></li>
+</ul>
+</li>
+<li><code>self.bytecode.get(mem).push(mem, &lt;opcode&gt;)?;</code>: gets the <code>ByteCode</code>
+reference and pushes the opcode on to the end of the bytecode array.</li>
+</ul>
+</li>
+<li>
+<p><code>Ok(result)</code></p>
+<ul>
+<li>the result register is returned to the <code>compile_apply()</code> function</li>
+</ul>
+</li>
+</ol>
+<p>... and <code>compile_apply()</code> itself returns the result register to <em>it's</em> caller.</p>
+<p>The pattern for compiling function application, more generally, is this:</p>
+<ul>
+<li>acquire a result register</li>
+<li>acquire any temporary intermediate result registers</li>
+<li>recurse into arguments to compile <em>them</em> first</li>
+<li>emit bytecode for the function, pushing opcodes on to the bytecode array and
+putting the final result in the result register</li>
+<li>release any intermediate registers</li>
+<li>return the result register number</li>
+</ul>
+<p>Compiling <code>nil?</code> was hopefully quite simple. Let's look at something much more
+involved, now.</p>
+<h3><a class="header" href="#compiling-anonymous-functions" id="compiling-anonymous-functions">Compiling anonymous functions</a></h3>
+<p>An anonymous function is defined, syntactically, as:</p>
+<pre><code class="language-ignore">(lambda (param1 param2)
+  (expr1)
+  (expr2)
+  (return-expr))
+</code></pre>
+<p>There are 0 or more parameters and 1 or more expresssions in the body of the
+function. The last expression of the body provides the return value.</p>
+<p>Function compilation is initiated by <em>apply</em>. This is because a function is a
+compound expression and cannot be reduced to a value by a single <em>eval</em>. Here's
+the line in <code>compile_apply()</code> that calls anonymous function compilation:</p>
+<pre><code class="language-rust ignore">                ...
+                &quot;lambda&quot; =&gt; self.compile_anonymous_function(mem, args),
+                ...
+</code></pre>
+<p>Let's look at the type signature of <code>compile_anonymous_function()</code>:</p>
+<pre><code class="language-rust ignore">    fn compile_anonymous_function&lt;'guard&gt;(
+        &amp;mut self,
+        mem: &amp;'guard MutatorView,
+        params: TaggedScopedPtr&lt;'guard&gt;,
+    ) -&gt; Result&lt;Register, RuntimeError&gt; {
+</code></pre>
+<p>The <code>params</code> parameter will be expected to be a <code>Pair</code> list: firstly, a list of
+parameter names, followed by function body expressions.</p>
+<p>The return value from is the same as all the other compilation functions so far:
+<code>Result&lt;Register&gt;</code>. The compiled code will return a pointer to the function
+object in a register.</p>
+<p>Here is the function in full:</p>
+<pre><code class="language-rust ignore">    fn compile_anonymous_function&lt;'guard&gt;(
+        &amp;mut self,
+        mem: &amp;'guard MutatorView,
+        params: TaggedScopedPtr&lt;'guard&gt;,
+    ) -&gt; Result&lt;Register, RuntimeError&gt; {
+        let items = vec_from_pairs(mem, params)?;
+
+        if items.len() &lt; 2 {
+            return Err(err_eval(
+                &quot;An anonymous function definition must have at least (lambda (params) expr)&quot;,
+            ));
+        }
+
+        // a function consists of (name (params) expr1 .. exprn)
+        let fn_params = vec_from_pairs(mem, items[0])?;
+        let fn_exprs = &amp;items[1..];
+
+        // compile the function to a Function object
+        let fn_object = compile_function(mem, Some(&amp;self.vars), mem.nil(), &amp;fn_params, fn_exprs)?;
+
+        // load the function object as a literal
+        let dest = self.push_load_literal(mem, fn_object)?;
+
+        // if fn_object has nonlocal refs, compile a MakeClosure instruction in addition, replacing
+        // the Function register with a Partial with a closure environment
+        match *fn_object {
+            Value::Function(f) =&gt; {
+                if f.is_closure() {
+                    self.push(
+                        mem,
+                        Opcode::MakeClosure {
+                            function: dest,
+                            dest,
+                        },
+                    )?;
+                }
+            }
+            // 's gotta be a function
+            _ =&gt; unreachable!(),
+        }
+
+        Ok(dest)
+    }
+</code></pre>
+<p>After converting <code>Pair</code> lists to <code>Vec</code>s for convenience (wherein parameter names
+and function body expressions are separated) the process calls into function
+<code>compile_function()</code>, which brings us full circle to <em>eval</em>.</p>
+<p>In <code>compile_function()</code>, below:</p>
+<ol>
+<li>a <code>Scope</code> is instantiated and the parameters are pushed on to this outermost
+scope.</li>
+<li>the function body expressions are iterated over, <em>eval</em>-ing each one</li>
+<li>any upvalues that will be closed over as the compiled-function exits and goes
+out of scope have upvalue instructions generated</li>
+<li>a <code>Function</code> object is returned with all details necessary to running the
+function in the VM environment</li>
+</ol>
+<p>Here is <code>compile_function()</code>:</p>
+<pre><code class="language-rust ignore">    fn compile_function&lt;'guard&gt;(
+        mut self,
+        mem: &amp;'guard MutatorView,
+        name: TaggedScopedPtr&lt;'guard&gt;,
+        params: &amp;[TaggedScopedPtr&lt;'guard&gt;],
+        exprs: &amp;[TaggedScopedPtr&lt;'guard&gt;],
+    ) -&gt; Result&lt;ScopedPtr&lt;'guard, Function&gt;, RuntimeError&gt; {
+        // validate function name
+        self.name = match *name {
+            Value::Symbol(s) =&gt; Some(String::from(s.as_str(mem))),
+            Value::Nil =&gt; None,
+            _ =&gt; {
+                return Err(err_eval(
+                    &quot;A function name may be nil (anonymous) or a symbol (named)&quot;,
+                ))
+            }
+        };
+        let fn_name = name;
+
+        // validate arity
+        if params.len() &gt; 254 {
+            return Err(err_eval(&quot;A function cannot have more than 254 parameters&quot;));
+        }
+        // put params into a list for the Function object
+        let fn_params = List::from_slice(mem, params)?;
+
+        // also assign params to the first level function scope and give each one a register
+        let mut param_scope = Scope::new();
+        self.next_reg = param_scope.push_bindings(params, self.next_reg)?;
+        self.vars.scopes.push(param_scope);
+
+        // validate expression list
+        if exprs.len() == 0 {
+            return Err(err_eval(&quot;A function must have at least one expression&quot;));
+        }
+
+        // compile expressions
+        let mut result_reg = 0;
+        for expr in exprs.iter() {
+            result_reg = self.compile_eval(mem, *expr)?;
+        }
+
+        // pop parameter scope
+        let closing_instructions = self.vars.pop_scope();
+        for opcode in &amp;closing_instructions {
+            self.push(mem, *opcode)?;
+        }
+
+        // finish with a return
+        let fn_bytecode = self.bytecode.get(mem);
+        fn_bytecode.push(mem, Opcode::Return { reg: result_reg })?;
+
+        let fn_nonlocals = self.vars.get_nonlocals(mem)?;
+
+        Ok(Function::alloc(
+            mem,
+            fn_name,
+            fn_params,
+            fn_bytecode,
+            fn_nonlocals,
+        )?)
+    }
+</code></pre>
+<p>Note that in addition to generating upvalue instructions as the
+compiled-function goes out of scope, the calling compiler function
+<code>compile_anonymous_function()</code> will issue a <code>MakeClosure</code> opcode such that a
+closure object is put in the return register rather than a direct <code>Function</code>
+object reference.</p>
+<p>In our language, a closure object is represented by the <code>Partial</code> data structure</p>
+<ul>
+<li>a struct that represents a <code>Function</code> object pointer plus closed over values
+and/or partially applied arguments. This data structure was described in the
+chapter <a href="./chapter-interp-vm-impl.html">Virtual Machine: Implementation</a>.</li>
+</ul>
+<p>Thus ends our tour of our interpreter.</p>
+<h2><a class="header" href="#concluding-remarks" id="concluding-remarks">Concluding remarks</a></h2>
+<p>In this section, we've looked at a ground-up compiler and virtual machine
+implementation within a memory-safe allocation system.</p>
+<p>There is, of course, much more to explore in the VM and compiler source code.
+The reader is encouraged to experiment with running and modifying the source.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                        
+                            <a rel="prev" href="chapter-interp-compiler-design.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                        
+
+                        
+                            <a rel="next" href="404.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                
+                    <a rel="prev" href="chapter-interp-compiler-design.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a rel="next" href="404.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+            </nav>
+
+        </div>
+
+        
+
+        
+
+        
+        
+        
+        <script type="text/javascript">
+            window.playpen_copyable = true;
+        </script>
+        
+
+        
+
+        
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+        
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+        
+
+        
+
+    </body>
+</html>
