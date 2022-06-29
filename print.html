@@ -1963,10 +1963,10 @@ in a later chapter.</p>
 </blockquote>
 <p>The tags and masks are defined as:</p>
 <pre><code class="language-rust ignore">const TAG_MASK: usize = 0x3;
-pub const TAG_NUMBER: usize = 0x0;
-pub const TAG_SYMBOL: usize = 0x1;
-pub const TAG_PAIR: usize = 0x2;
-pub const TAG_OBJECT: usize = 0x3;
+pub const TAG_SYMBOL: usize = 0x0;
+pub const TAG_PAIR: usize = 0x1;
+pub const TAG_OBJECT: usize = 0x2;
+pub const TAG_NUMBER: usize = 0x3;
 const PTR_MASK: usize = !0x3;
 </code></pre>
 <p>Thus you can see from the choice of embedded tag values, we've optimized for
