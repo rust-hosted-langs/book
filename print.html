@@ -1077,15 +1077,15 @@ enum MyTypeId {
     Array,
 }
 
-impl AllocTypeId for TestTypeId {}
+impl AllocTypeId for MyTypeId {}
 </code></pre>
 <p>A hypothetical numeric type for our interpreter with the type identifier as
 associated constant:</p>
-<pre><code class="language-rust ignore">struct Number {
+<pre><code class="language-rust ignore">struct BigNumber {
     value: i64
 }
 
-impl AllocObject&lt;TestTypeId&gt; for Big {
+impl AllocObject&lt;MyTypeId&gt; for BigNumber {
     const TYPE_ID: MyTypeId = MyTypeId::Number;
 }
 </code></pre>
