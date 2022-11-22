@@ -223,7 +223,7 @@ Finally, if the whole loop terminates without returning a new
 has no usable holes to allocate into.
 
 We'll return to the `BumpBlock::inner_alloc()` function now to make use of
-`BlockMeta` and it's hole finding operation.
+`BlockMeta` and its hole finding operation.
 
 The `BumpBlock` struct contains two more members: `limit` and `meta`. These
 should now be obvious - `limit` is the known byte offset limit into which
