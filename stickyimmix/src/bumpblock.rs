@@ -26,7 +26,7 @@ pub struct BumpBlock {
     cursor: usize,
     limit: usize,
     block: Block,
-    meta: Box<BlockMeta>,
+    meta: BlockMeta,
 }
 // ANCHOR_END: DefBumpBlock
 
@@ -34,15 +34,15 @@ impl BumpBlock {
     /// Create a new block of heap space and it's metadata, placing a
     /// pointer to the metadata in the first word of the block.
     pub fn new() -> Result<BumpBlock, AllocError> {
-        let mut block = BumpBlock {
-            cursor: constants::FIRST_OBJECT_OFFSET,
-            limit: constants::BLOCK_SIZE,
-            block: Block::new(constants::BLOCK_SIZE)?,
-            meta: BlockMeta::new_boxed(),
-        };
+        let inner_block = Block::new(constants::BLOCK_SIZE)?;
+        let block_ptr = inner_block.as_ptr();
 
-        let meta_ptr: *const BlockMeta = &*block.meta;
-        unsafe { block.write(meta_ptr, 0) };
+        let block = BumpBlock {
+            cursor: constants::FIRST_OBJECT_OFFSET,
+            limit: constants::BLOCK_CAPACITY,
+            block: inner_block,
+            meta: BlockMeta::new(block_ptr),
+        };
 
         Ok(block)
     }
@@ -62,7 +62,7 @@ impl BumpBlock {
         let next_bump = self.cursor + alloc_size;
 
         if next_bump > self.limit {
-            if self.limit < constants::BLOCK_SIZE {
+            if self.limit < constants::BLOCK_CAPACITY {
                 if let Some((cursor, limit)) = self.meta.find_next_available_hole(self.limit) {
                     self.cursor = cursor;
                     self.limit = limit;
@@ -101,7 +101,7 @@ mod tests {
         let mut index = 0;
 
         loop {
-            println!("cursor={}, limit={}", b.cursor, b.limit);
+            //println!("cursor={}, limit={}", b.cursor, b.limit);
             if let Some(ptr) = b.inner_alloc(TEST_UNIT_SIZE) {
                 let u32ptr = ptr as *mut u32;
 
@@ -130,7 +130,7 @@ mod tests {
         let mut b = BumpBlock::new().unwrap();
 
         let count = loop_check_allocate(&mut b);
-        let expect = (constants::BLOCK_SIZE - constants::FIRST_OBJECT_OFFSET) / TEST_UNIT_SIZE;
+        let expect = constants::BLOCK_CAPACITY / TEST_UNIT_SIZE;
 
         println!("expect={}, count={}", expect, count);
         assert!(count == expect);
@@ -144,11 +144,12 @@ mod tests {
         for i in 0..(constants::LINE_COUNT / 2) {
             b.meta.mark_line(i);
         }
+        let occupied_bytes = (constants::LINE_COUNT / 2) * constants::LINE_SIZE;
 
         b.limit = b.cursor; // block is recycled
 
         let count = loop_check_allocate(&mut b);
-        let expect = (((constants::LINE_COUNT / 2) - 1) * constants::LINE_SIZE) / TEST_UNIT_SIZE;
+        let expect = (constants::BLOCK_CAPACITY - constants::LINE_SIZE - occupied_bytes) / TEST_UNIT_SIZE;
 
         println!("expect={}, count={}", expect, count);
         assert!(count == expect);

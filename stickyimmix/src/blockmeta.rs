@@ -1,45 +1,58 @@
 use crate::constants;
 
-/// Block marking metadata
+/// Block marking metadata. This metadata is stored at the end of a Block.
 // ANCHOR: DefBlockMeta
 pub struct BlockMeta {
-    line_mark: [bool; constants::LINE_COUNT],
-    block_mark: bool,
+    lines: *mut u8,
 }
 // ANCHOR_END: DefBlockMeta
 
 impl BlockMeta {
     /// Heap allocate a metadata instance so that it doesn't move so we can store pointers
     /// to it.
-    pub fn new_boxed() -> Box<BlockMeta> {
-        Box::new(BlockMeta {
-            line_mark: [false; constants::LINE_COUNT],
-            block_mark: false,
-        })
+    pub fn new(block_ptr: *const u8) -> BlockMeta {
+        let mut meta = BlockMeta {
+            lines: unsafe { block_ptr.add(constants::LINE_MARK_START) as *mut u8 },
+        };
+
+        meta.reset();
+
+        meta
+    }
+
+    unsafe fn as_block_mark(&mut self) -> &mut u8 {
+        // Use the last byte of the block because no object will occupy the line
+        // associated with this: it's the mark bits.
+        &mut *self.lines.add(constants::LINE_COUNT - 1)
+    }
+
+    unsafe fn as_line_mark(&mut self, line: usize) -> &mut u8 {
+        &mut *self.lines.add(line)
     }
 
     /// Mark the indexed line
     pub fn mark_line(&mut self, index: usize) {
-        self.line_mark[index] = true;
+        unsafe { *self.as_line_mark(index) = 1 };
     }
 
     /// Indicate the entire block as marked
     pub fn mark_block(&mut self) {
-        self.block_mark = true;
+        unsafe { *self.as_block_mark() = 1 }
     }
 
     /// Reset all mark flags to unmarked.
     pub fn reset(&mut self) {
-        for bit in self.line_mark.iter_mut() {
-            *bit = false
+        unsafe {
+            for i in 0..constants::LINE_COUNT {
+                *self.lines.add(i) = 0;
+            }
         }
-        self.block_mark = false;
     }
 
     /// Return an iterator over all the line mark flags
-    pub fn line_iter(&self) -> impl Iterator<Item = &'_ bool> {
-        self.line_mark.iter()
-    }
+    //pub fn line_iter(&self) -> impl Iterator<Item = &'_ bool> {
+    //    self.line_mark.iter()
+    //}
 
     /// Given a byte index into a block (the `starting_at` parameter) find the next available
     /// hole in which bump allocation can occur, or `None` if no hole can be found in this
@@ -53,11 +66,13 @@ impl BlockMeta {
 
         let starting_line = starting_at / constants::LINE_SIZE;
 
-        for (index, marked) in self.line_mark[starting_line..].iter().enumerate() {
+        for index in starting_line..constants::LINE_COUNT {
             let abs_index = starting_line + index;
 
+            let marked = unsafe { *self.lines.add(index) };
+
             // count unmarked lines
-            if !*marked {
+            if marked == 0 {
                 count += 1;
 
                 // if this is the first line in a hole (and not the zeroth line), consider it
@@ -77,7 +92,7 @@ impl BlockMeta {
 
             // if we reached a marked line or the end of the block, see if we have
             // a valid hole to work with
-            if count > 0 && (*marked || stop >= constants::LINE_COUNT) {
+            if count > 0 && (marked > 0 || stop >= constants::LINE_MARK_COUNT) {
                 if let Some(start) = start {
                     let cursor = start * constants::LINE_SIZE;
                     let limit = stop * constants::LINE_SIZE;
@@ -88,7 +103,7 @@ impl BlockMeta {
 
             // if this line is marked and we didn't return a new cursor/limit pair by now,
             // reset the hole state
-            if *marked {
+            if marked > 0 {
                 count = 0;
                 start = None;
             }
@@ -103,13 +118,15 @@ impl BlockMeta {
 mod tests {
 
     use super::*;
+    use crate::blockalloc::Block;
 
     #[test]
     fn test_find_next_hole() {
         // A set of marked lines with a couple holes.
         // The first hole should be seen as conservatively marked.
         // The second hole should be the one selected.
-        let mut meta = BlockMeta::new_boxed();
+        let block = Block::new(constants::BLOCK_SIZE).unwrap();
+        let mut meta = BlockMeta::new(block.as_ptr());
 
         meta.mark_line(0);
         meta.mark_line(1);
@@ -117,6 +134,7 @@ mod tests {
         meta.mark_line(4);
         meta.mark_line(10);
 
+        // line 5 should be conservatively marked
         let expect = Some((6 * constants::LINE_SIZE, 10 * constants::LINE_SIZE));
 
         let got = meta.find_next_available_hole(0);
@@ -129,7 +147,8 @@ mod tests {
     #[test]
     fn test_find_next_hole_at_line_zero() {
         // Should find the hole starting at the beginning of the block
-        let mut meta = BlockMeta::new_boxed();
+        let block = Block::new(constants::BLOCK_SIZE).unwrap();
+        let mut meta = BlockMeta::new(block.as_ptr());
 
         meta.mark_line(3);
         meta.mark_line(4);
@@ -151,7 +170,8 @@ mod tests {
     fn test_find_next_hole_at_block_end() {
         // The first half of the block is marked.
         // The second half of the block should be identified as a hole.
-        let mut meta = BlockMeta::new_boxed();
+        let block = Block::new(constants::BLOCK_SIZE).unwrap();
+        let mut meta = BlockMeta::new(block.as_ptr());
 
         let halfway = constants::LINE_COUNT / 2;
 
@@ -159,7 +179,11 @@ mod tests {
             meta.mark_line(i);
         }
 
-        let expect = Some(((halfway + 1) * constants::LINE_SIZE, constants::BLOCK_SIZE));
+        // because halfway line should be conservatively marked
+        let expect = Some((
+            (halfway + 1) * constants::LINE_SIZE,
+            constants::BLOCK_CAPACITY,
+        ));
 
         let got = meta.find_next_available_hole(0);
 
@@ -175,7 +199,8 @@ mod tests {
     fn test_find_hole_all_conservatively_marked() {
         // Every other line is marked.
         // No hole should be found.
-        let mut meta = BlockMeta::new_boxed();
+        let block = Block::new(constants::BLOCK_SIZE).unwrap();
+        let mut meta = BlockMeta::new(block.as_ptr());
 
         for i in 0..constants::LINE_COUNT {
             if i % 2 == 0 {
@@ -197,9 +222,10 @@ mod tests {
     #[test]
     fn test_find_entire_block() {
         // No marked lines. Entire block is available.
-        let meta = BlockMeta::new_boxed();
+        let block = Block::new(constants::BLOCK_SIZE).unwrap();
+        let meta = BlockMeta::new(block.as_ptr());
 
-        let expect = Some((0, constants::BLOCK_SIZE));
+        let expect = Some((0, constants::BLOCK_CAPACITY));
         let got = meta.find_next_available_hole(0);
 
         println!("test_find_entire_block got {:?} expected {:?}", got, expect);
