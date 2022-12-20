@@ -3,7 +3,7 @@
 ## Welcome!
 
 In this book we will walk through the basics of interpreted language
-implementation in Rust with a focus on the challenges that are specifc
+implementation in Rust with a focus on the challenges that are specific
 to using Rust.
 
 At a glance, these are:
