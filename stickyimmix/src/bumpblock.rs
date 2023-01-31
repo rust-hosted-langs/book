@@ -23,8 +23,8 @@ impl From<BlockError> for AllocError {
 /// offset 0 but after this `meta` pointer.
 // ANCHOR: DefBumpBlock
 pub struct BumpBlock {
-    cursor: usize,
-    limit: usize,
+    cursor: *const u8,
+    limit: *const u8,
     block: Block,
     meta: BlockMeta,
 }
@@ -38,8 +38,8 @@ impl BumpBlock {
         let block_ptr = inner_block.as_ptr();
 
         let block = BumpBlock {
-            cursor: constants::FIRST_OBJECT_OFFSET,
-            limit: constants::BLOCK_CAPACITY,
+            cursor: unsafe { block_ptr.add(constants::BLOCK_CAPACITY) },
+            limit: block_ptr,
             block: inner_block,
             meta: BlockMeta::new(block_ptr),
         };
@@ -59,29 +59,36 @@ impl BumpBlock {
     /// None if this block doesn't have a big enough hole.
     // ANCHOR: DefBumpBlockAlloc
     pub fn inner_alloc(&mut self, alloc_size: usize) -> Option<*const u8> {
-        let next_bump = self.cursor + alloc_size;
+        let ptr = self.cursor as usize;
+        let limit = self.limit as usize;
 
-        if next_bump > self.limit {
-            if self.limit < constants::BLOCK_CAPACITY {
-                if let Some((cursor, limit)) = self.meta.find_next_available_hole(self.limit) {
-                    self.cursor = cursor;
-                    self.limit = limit;
+        let next_ptr = ptr.checked_sub(alloc_size)? & constants::ALLOC_ALIGN_MASK;
+
+        if next_ptr < limit {
+            let block_relative_limit = unsafe { self.limit.sub(self.block.as_ptr() as usize) } as usize;
+
+            if block_relative_limit > 0 {
+                if let Some((cursor, limit)) = self.meta.find_next_available_hole(block_relative_limit) {
+                    // TODO this state mechanism isn't necessarily the most correct:
+                    //  if the next hole is still not big enough, we've still updated the bump
+                    //  pointer. Maybe we _don't_ want to do that?
+                    self.cursor = unsafe { self.block.as_ptr().add(cursor) };
+                    self.limit = unsafe { self.block.as_ptr().add(limit) };
                     return self.inner_alloc(alloc_size);
                 }
             }
 
             None
         } else {
-            let offset = self.cursor;
-            self.cursor = next_bump;
-            unsafe { Some(self.block.as_ptr().add(offset) as *const u8) }
+            self.cursor = next_ptr as *const u8;
+            Some(self.cursor)
         }
     }
     // ANCHOR_END: DefBumpBlockAlloc
 
     /// Return the size of the hole we're positioned at
     pub fn current_hole_size(&self) -> usize {
-        self.limit - self.cursor
+        self.cursor as usize - self.limit as usize
     }
 }
 
