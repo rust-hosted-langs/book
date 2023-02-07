@@ -59,7 +59,7 @@ impl BlockMeta {
     /// block.
     /// Takes into account conservative marking of the first unmarked line in a hole.
     // ANCHOR: DefFindNextHole
-    pub fn find_next_available_hole(&self, starting_at: usize) -> Option<(usize, usize)> {
+    pub fn __find_next_available_hole(&self, starting_at: usize) -> Option<(usize, usize)> {
         let mut count = 0;
         let mut start: Option<usize> = None;
         let mut stop: usize = 0;
@@ -112,7 +112,55 @@ impl BlockMeta {
         None
     }
     // ANCHOR_END: DefFindNextHole
-}
+
+    /// When it comes to finding allocatable holes, we bump-allocate downward.
+    pub fn find_next_available_hole(&self, starting_at: usize, alloc_size: usize) -> Option<(usize, usize)> {
+        // The count of consecutive avaliable holes. Must take into account a conservatively marked
+        // hole at the beginning of the sequence.
+        let mut count = 0;
+        let starting_line = starting_at / constants::LINE_SIZE;
+        // Counting down from the given search start index
+        let mut end = starting_line;
+        let mut start: Option<usize> = None;
+
+        for index in (0..starting_line).rev() {
+            let marked = unsafe { *self.lines.add(index) };
+
+            if marked == 0 {
+                // count unmarked lines
+                count += 1;
+                // record the starting hole index
+                start = Some(index);
+            }
+
+            // if we reached a marked line or the start of the block, see if we have
+            // a valid hole to work with
+            if count > 1 && marked > 0 {
+                if let Some(start) = start {
+                    let limit = (start + 1) * constants::LINE_SIZE;
+                    let cursor = end * constants::LINE_SIZE;
+                    return Some((cursor, limit));
+                }
+            } else if count > 0 && index == 0 {
+                if let Some(start) = start {
+                    let limit = start * constants::LINE_SIZE;
+                    let cursor = end * constants::LINE_SIZE;
+                    return Some((cursor, limit));
+                }
+            }
+
+            // if this line is marked and we didn't return a new cursor/limit pair by now,
+            // reset the hole search state
+            if marked > 0 {
+                count = 0;
+                end = index;
+                start = None;
+            }
+        }
+
+        None
+    }
+ }
 
 #[cfg(test)]
 mod tests {
@@ -135,9 +183,9 @@ mod tests {
         meta.mark_line(10);
 
         // line 5 should be conservatively marked
-        let expect = Some((6 * constants::LINE_SIZE, 10 * constants::LINE_SIZE));
+        let expect = Some((10 * constants::LINE_SIZE, 6 * constants::LINE_SIZE));
 
-        let got = meta.find_next_available_hole(0);
+        let got = meta.find_next_available_hole(10 * constants::LINE_SIZE, constants::LINE_SIZE);
 
         println!("test_find_next_hole got {:?} expected {:?}", got, expect);
 
@@ -154,9 +202,9 @@ mod tests {
         meta.mark_line(4);
         meta.mark_line(5);
 
-        let expect = Some((0, 3 * constants::LINE_SIZE));
+        let expect = Some((3 * constants::LINE_SIZE, 0));
 
-        let got = meta.find_next_available_hole(0);
+        let got = meta.find_next_available_hole(3 * constants::LINE_SIZE, constants::LINE_SIZE);
 
         println!(
             "test_find_next_hole_at_line_zero got {:?} expected {:?}",
@@ -175,17 +223,14 @@ mod tests {
 
         let halfway = constants::LINE_COUNT / 2;
 
-        for i in 0..halfway {
+        for i in halfway..constants::LINE_COUNT {
             meta.mark_line(i);
         }
 
         // because halfway line should be conservatively marked
-        let expect = Some((
-            (halfway + 1) * constants::LINE_SIZE,
-            constants::BLOCK_CAPACITY,
-        ));
+        let expect = Some((halfway * constants::LINE_SIZE, 0));
 
-        let got = meta.find_next_available_hole(0);
+        let got = meta.find_next_available_hole(constants::BLOCK_CAPACITY, constants::LINE_SIZE);
 
         println!(
             "test_find_next_hole_at_block_end got {:?} expected {:?}",
@@ -209,7 +254,7 @@ mod tests {
             }
         }
 
-        let got = meta.find_next_available_hole(0);
+        let got = meta.find_next_available_hole(constants::BLOCK_CAPACITY, constants::LINE_SIZE);
 
         println!(
             "test_find_hole_all_conservatively_marked got {:?} expected None",
@@ -225,8 +270,8 @@ mod tests {
         let block = Block::new(constants::BLOCK_SIZE).unwrap();
         let meta = BlockMeta::new(block.as_ptr());
 
-        let expect = Some((0, constants::BLOCK_CAPACITY));
-        let got = meta.find_next_available_hole(0);
+        let expect = Some((constants::BLOCK_CAPACITY, 0));
+        let got = meta.find_next_available_hole(constants::BLOCK_CAPACITY, constants::LINE_SIZE);
 
         println!("test_find_entire_block got {:?} expected {:?}", got, expect);
 
