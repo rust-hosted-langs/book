@@ -114,7 +114,11 @@ impl BlockMeta {
     // ANCHOR_END: DefFindNextHole
 
     /// When it comes to finding allocatable holes, we bump-allocate downward.
-    pub fn find_next_available_hole(&self, starting_at: usize, alloc_size: usize) -> Option<(usize, usize)> {
+    pub fn find_next_available_hole(
+        &self,
+        starting_at: usize,
+        alloc_size: usize,
+    ) -> Option<(usize, usize)> {
         // The count of consecutive avaliable holes. Must take into account a conservatively marked
         // hole at the beginning of the sequence.
         let mut count = 0;
@@ -160,7 +164,7 @@ impl BlockMeta {
 
         None
     }
- }
+}
 
 #[cfg(test)]
 mod tests {

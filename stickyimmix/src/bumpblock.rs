@@ -65,10 +65,14 @@ impl BumpBlock {
         let next_ptr = ptr.checked_sub(alloc_size)? & constants::ALLOC_ALIGN_MASK;
 
         if next_ptr < limit {
-            let block_relative_limit = unsafe { self.limit.sub(self.block.as_ptr() as usize) } as usize;
+            let block_relative_limit =
+                unsafe { self.limit.sub(self.block.as_ptr() as usize) } as usize;
 
             if block_relative_limit > 0 {
-                if let Some((cursor, limit)) = self.meta.find_next_available_hole(block_relative_limit, alloc_size) {
+                if let Some((cursor, limit)) = self
+                    .meta
+                    .find_next_available_hole(block_relative_limit, alloc_size)
+                {
                     // TODO this state mechanism isn't necessarily the most correct:
                     //  if the next hole is still not big enough, we've still updated the bump
                     //  pointer. Maybe we _don't_ want to do that?
