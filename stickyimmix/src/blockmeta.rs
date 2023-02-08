@@ -54,65 +54,7 @@ impl BlockMeta {
     //    self.line_mark.iter()
     //}
 
-    /// Given a byte index into a block (the `starting_at` parameter) find the next available
-    /// hole in which bump allocation can occur, or `None` if no hole can be found in this
-    /// block.
-    /// Takes into account conservative marking of the first unmarked line in a hole.
     // ANCHOR: DefFindNextHole
-    pub fn __find_next_available_hole(&self, starting_at: usize) -> Option<(usize, usize)> {
-        let mut count = 0;
-        let mut start: Option<usize> = None;
-        let mut stop: usize = 0;
-
-        let starting_line = starting_at / constants::LINE_SIZE;
-
-        for index in starting_line..constants::LINE_COUNT {
-            let abs_index = starting_line + index;
-
-            let marked = unsafe { *self.lines.add(index) };
-
-            // count unmarked lines
-            if marked == 0 {
-                count += 1;
-
-                // if this is the first line in a hole (and not the zeroth line), consider it
-                // conservatively marked and skip to the next line
-                if count == 1 && abs_index > 0 {
-                    continue;
-                }
-
-                // record the first hole index
-                if start.is_none() {
-                    start = Some(abs_index);
-                }
-
-                // stop is now at the end of this line
-                stop = abs_index + 1;
-            }
-
-            // if we reached a marked line or the end of the block, see if we have
-            // a valid hole to work with
-            if count > 0 && (marked > 0 || stop >= constants::LINE_MARK_COUNT) {
-                if let Some(start) = start {
-                    let cursor = start * constants::LINE_SIZE;
-                    let limit = stop * constants::LINE_SIZE;
-
-                    return Some((cursor, limit));
-                }
-            }
-
-            // if this line is marked and we didn't return a new cursor/limit pair by now,
-            // reset the hole state
-            if marked > 0 {
-                count = 0;
-                start = None;
-            }
-        }
-
-        None
-    }
-    // ANCHOR_END: DefFindNextHole
-
     /// When it comes to finding allocatable holes, we bump-allocate downward.
     pub fn find_next_available_hole(
         &self,
@@ -123,9 +65,9 @@ impl BlockMeta {
         // hole at the beginning of the sequence.
         let mut count = 0;
         let starting_line = starting_at / constants::LINE_SIZE;
+        let lines_required = (alloc_size + constants::LINE_SIZE - 1) / constants::LINE_SIZE;
         // Counting down from the given search start index
         let mut end = starting_line;
-        let mut start: Option<usize> = None;
 
         for index in (0..starting_line).rev() {
             let marked = unsafe { *self.lines.add(index) };
@@ -133,37 +75,32 @@ impl BlockMeta {
             if marked == 0 {
                 // count unmarked lines
                 count += 1;
-                // record the starting hole index
-                start = Some(index);
-            }
 
-            // if we reached a marked line or the start of the block, see if we have
-            // a valid hole to work with
-            if count > 1 && marked > 0 {
-                if let Some(start) = start {
-                    let limit = (start + 1) * constants::LINE_SIZE;
+                if index == 0 && count >= lines_required {
+                    let limit = index * constants::LINE_SIZE;
                     let cursor = end * constants::LINE_SIZE;
                     return Some((cursor, limit));
                 }
-            } else if count > 0 && index == 0 {
-                if let Some(start) = start {
-                    let limit = start * constants::LINE_SIZE;
+            } else {
+                // This block is marked
+                if count > lines_required {
+                    // But at least 2 previous blocks were not marked. Return the hole, considering the
+                    // immediately preceding block as conservatively marked
+                    let limit = (index + 2) * constants::LINE_SIZE;
                     let cursor = end * constants::LINE_SIZE;
                     return Some((cursor, limit));
                 }
-            }
 
-            // if this line is marked and we didn't return a new cursor/limit pair by now,
-            // reset the hole search state
-            if marked > 0 {
+                // If this line is marked and we didn't return a new cursor/limit pair by now,
+                // reset the hole search state
                 count = 0;
                 end = index;
-                start = None;
             }
         }
 
         None
     }
+    // ANCHOR_END: DefFindNextHole
 }
 
 #[cfg(test)]

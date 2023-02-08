@@ -73,9 +73,6 @@ impl BumpBlock {
                     .meta
                     .find_next_available_hole(block_relative_limit, alloc_size)
                 {
-                    // TODO this state mechanism isn't necessarily the most correct:
-                    //  if the next hole is still not big enough, we've still updated the bump
-                    //  pointer. Maybe we _don't_ want to do that?
                     self.cursor = unsafe { self.block.as_ptr().add(cursor) };
                     self.limit = unsafe { self.block.as_ptr().add(limit) };
                     return self.inner_alloc(alloc_size);
