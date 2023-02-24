@@ -268,10 +268,10 @@ mod tests {
     use std::slice::from_raw_parts;
 
     struct TestHeader {
-        size_class: SizeClass,
-        mark: Mark,
+        _size_class: SizeClass,
+        _mark: Mark,
         type_id: TestTypeId,
-        size_bytes: u32,
+        _size_bytes: u32,
     }
 
     #[derive(PartialEq, Copy, Clone)]
@@ -289,19 +289,19 @@ mod tests {
 
         fn new<O: AllocObject<Self::TypeId>>(size: u32, size_class: SizeClass, mark: Mark) -> Self {
             TestHeader {
-                size_class,
-                mark,
+                _size_class: size_class,
+                _mark: mark,
                 type_id: O::TYPE_ID,
-                size_bytes: size,
+                _size_bytes: size,
             }
         }
 
         fn new_array(size: u32, size_class: SizeClass, mark: Mark) -> Self {
             TestHeader {
-                size_class,
-                mark,
+                _size_class: size_class,
+                _mark: mark,
                 type_id: TestTypeId::Array,
-                size_bytes: size,
+                _size_bytes: size,
             }
         }
 

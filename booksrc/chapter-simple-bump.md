@@ -5,7 +5,10 @@ simplest way to do this is to write objects into a block one after the other
 in consecutive order. This is bump allocation - we have a pointer, the bump
 pointer, which points at the space in the block after the last object that
 was written. When the next object is written, the bump pointer is incremented
-to point to the space after _that_ object [^1].
+to point to the space after _that_ object.
+
+In a twist of mathematical convenience, though, it is [more efficient][2] to
+bump allocate from a high memory location _downwards_. We will do that.
 
 We will used a fixed power-of-two block size. The benefit of this is that
 given a pointer to an object, by zeroing the bits of the pointer that represent
@@ -20,8 +23,8 @@ different use cases may show different optimal sizes.
 {{#include ../stickyimmix/src/constants.rs:ConstBlockSize}}
 ```
 
-Next, we'll define a struct that wraps the block with a bump pointer and other
-metadata.
+Next, we'll define a struct that wraps the block with a bump pointer and garbage
+collection metadata.
 
 ```rust,ignore
 {{#include ../stickyimmix/src/bumpblock.rs:DefBumpBlock}}
@@ -34,33 +37,43 @@ for this section. The other two, `limit` and `meta`, will be discussed in the
 next section.
 
 * `cursor`: this is the bump pointer. In our implementation it is the index
-  into the block where the next object can be written.
+  into the block where the last object was written.
 * `block`: this is the `Block` itself in which objects will be written.
 
 For this bump allocation function, the `alloc_size` parameter should be a number
-of bytes of memory requested. We'll assume that the value provided is equivalent
-to an exact number of words so that we don't end up with badly aligned object
-placement.
+of bytes of memory requested.
+
+The value of `alloc_size` may produce an unaligned pointer at which to write the
+object. Fortunately, by bump allocating downward we can apply a simple mask to the
+pointer to align it down to the nearest word.
 
 ```rust,ignore
 impl BumpBlock {
     pub fn inner_alloc(&mut self, alloc_size: usize) -> Option<*const u8> {
-        let next_bump = self.cursor + alloc_size;
+        let block_start_ptr = self.block.as_ptr() as usize;
+        let cursor_ptr = self.cursor as usize;
 
-        if next_bump > constants::BLOCK_SIZE {
+        // align to word boundary
+        let align_mask = usize = !(size_of::<usize>() - 1);
+
+        let next_ptr = cursor_ptr.checked_sub(alloc_size)? & align_mask;
+
+        if next_ptr < block_start_ptr {
+            // allocation would start lower than block beginning, which means
+            // there isn't space in the block for this allocation
             None
         } else {
-            let offset = self.cursor;
-            self.cursor = next_bump;
-            unsafe { Some(self.block.as_ptr().add(offset) as *const u8) }
+            self.cursor = next_ptr as *const u8;
+            Some(next_ptr)
         }
     }
 }
 ```
 
 In this overly simplistic initial implementation, allocation will simply return
-`None` if the block is full. If there _is_ space, it will be returned as a
-`Some(*const u8)` pointer.
+`None` if the block does not have enough capacity for the requested
+`alloc_size`. If there _is_ space, it will be returned as a `Some(*const u8)`
+pointer.
 
 Note that this function does not _write_ the object to memory, it merely
 returns a pointer to an available space.  Writing the object will simply
@@ -88,9 +101,15 @@ a block is divided into lines. When objects are marked as live, so are the
 lines that an object occupies. Therefore, only lines that are _not_ marked
 as live are usable for allocation into.
 
+In our implementation we will use the high bytes of the `Block` to represent
+these line mark bits, where each line is represented by a single byte.
+
 We'll need a data structure to represent this. we'll call it `BlockMeta`,
-but first some constants that we need in order to know how big a line is
-and how many are in a block:
+but first some constants that we need in order to know
+
+- how big a line is
+- how many lines are in a block
+- how many bytes remain in the `Block` for allocating into
 
 ```rust,ignore
 {{#include ../stickyimmix/src/constants.rs:ConstLineSize}}
@@ -102,13 +121,13 @@ And now the definition of `BlockMeta`:
 {{#include ../stickyimmix/src/blockmeta.rs:DefBlockMeta}}
 ```
 
-* `line_mark` is an array of boolean flags, one for each line in a
-block, to indicate whether it has been marked or not.
-* `block_mark` simply says whether the entire block has
-marked objects in it. If this is ever `false`, the entire block can be
-deallocated.
+This struct contains one member: a pointer to the start of the line mark area.
 
-This struct contains one function we will study:
+The final byte in the line mark area will be used for an entire-block mark bit.
+
+_TODO diagram of block layout_
+
+The struct `BlockMeta` contains one function we will study:
 
 ```rust,ignore
 {{#include ../stickyimmix/src/blockmeta.rs:DefFindNextHole}}
@@ -116,13 +135,13 @@ This struct contains one function we will study:
 
 * The input to this function, `starting_at`, is the offset into the block at
 which we are looking for a large enough consecutive set of unmarked lines
-to write an object into. The value passed in will be the bump pointer, of
-course, since that is where we last successfully wrote to the block at.
+to write an object into. The value passed in will be the bump pointer since that
+is where we last successfully wrote to the block at.
 * The return value is `None` if no unmarked lines are found.
-* If there _are_ unmarked lines after the `starting_at` point, the return
-value will be a pair of numbers - `(cursor, limit)` - where `cursor` will
-be the new bump pointer value and `limit` will be the upper bound of the
-available hole.
+* If there _are_ unmarked lines _before_ (bump allocating downwards, remember)
+the `starting_at` point, the return value will be a pair of numbers - `(cursor,
+limit)` - where `cursor` will be the new bump pointer value and `limit` will be
+the lower bound of the available hole.
 
 The first thing this function does is convert from block byte offset math
 to line count math:
@@ -268,8 +287,5 @@ allocating objects after one block is full.
 
 ----
 
-[^1]: Note that objects can be written from the end of the block down to the beginning
-too, decrementing the bump pointer. This is usually [slightly simpler and more
-efficient to implement](https://fitzgeraldnick.com/2019/11/01/always-bump-downwards.html).
-
 [1]: http://www.cs.utexas.edu/users/speedway/DaCapo/papers/immix-pldi-2008.pdf
+[2]: https://fitzgeraldnick.com/2019/11/01/always-bump-downwards.html

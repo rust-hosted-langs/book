@@ -98,7 +98,7 @@ mod tests {
 
     use super::*;
 
-    const TEST_UNIT_SIZE: usize = 8;
+    const TEST_UNIT_SIZE: usize = constants::ALLOC_ALIGN_BYTES;
 
     // Helper function: given the Block, fill all holes with u32 values
     // and return the number of values allocated.

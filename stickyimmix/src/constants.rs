@@ -1,5 +1,3 @@
-use std::mem::size_of;
-
 // ANCHOR: ConstBlockSize
 pub const BLOCK_SIZE_BITS: usize = 15;
 pub const BLOCK_SIZE: usize = 1 << BLOCK_SIZE_BITS;
@@ -16,20 +14,17 @@ pub const LINE_COUNT: usize = BLOCK_SIZE / LINE_SIZE;
 // We need LINE_COUNT number of bytes for marking lines, so the capacity of a block
 // is reduced by that number of bytes.
 pub const BLOCK_CAPACITY: usize = BLOCK_SIZE - LINE_COUNT;
+// ANCHOR_END: ConstLineSize
 
 // The first line-mark offset into the block is here.
 pub const LINE_MARK_START: usize = BLOCK_CAPACITY;
-// How many bytes do we actually need for marking lines, given that the last bytes of
-// the block are not for objects but for marking lines. This _should_ divide cleanly.
-pub const LINE_MARK_COUNT: usize = BLOCK_CAPACITY / LINE_SIZE;
-// ANCHOR_END: ConstLineSize
 
-pub const OBJECT_LIMIT: usize = 0;
+// Allocation alignment
+pub const ALLOC_ALIGN_BYTES: usize = 16;
+pub const ALLOC_ALIGN_MASK: usize = !(ALLOC_ALIGN_BYTES - 1);
 
+// Object size ranges
 pub const MAX_ALLOC_SIZE: usize = std::u32::MAX as usize;
-pub const ALLOC_ALIGN_MASK: usize = !(size_of::<usize>() - 1);
-
-/// Object size ranges
 pub const SMALL_OBJECT_MIN: usize = 1;
 pub const SMALL_OBJECT_MAX: usize = LINE_SIZE;
 pub const MEDIUM_OBJECT_MIN: usize = SMALL_OBJECT_MAX + 1;
