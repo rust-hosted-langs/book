@@ -23,10 +23,14 @@ Each block is divided into lines. In the original paper, blocks are sized at 32k
 and lines at 128 bytes.  Objects are allocated into blocks using bump allocation.
 Objects can cross line boundaries.
 
+![StickyImmix Block](img/stickyimmix_block.png)
+
 During tracing to discover live objects, objects are marked as live, but the
 line, or lines, that each object occupies are also marked as live. This can mean, of
 course, that a line may contain a dead object and a live object but the whole
 line is marked as live.
+
+![StickyImmix Block](img/stickyimmix_marking_object.png)
 
 During collection, only lines not marked as live are considered available for
 re-use. Inevitably then, there is acceptance of some amount of fragementation

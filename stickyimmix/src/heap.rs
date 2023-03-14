@@ -174,6 +174,9 @@ impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
         let total_size = header_size + object_size;
 
         // round the size to the next word boundary to keep objects aligned and get the size class
+        // TODO BUG? should this be done separately for header and object?
+        //  If the base allocation address is where the header gets placed, perhaps
+        //  this breaks the double-word alignment object alignment desire?
         let alloc_size = alloc_size_of(total_size);
         let size_class = SizeClass::get_for_size(alloc_size)?;
 

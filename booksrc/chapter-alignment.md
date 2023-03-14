@@ -26,6 +26,8 @@ aligned to 16 byte boundaries for optimal code generation and performance.
 Unaligned loads and stores may be allowed but normally these incur
 performance penalties.
 
+// TODO DIAGRAM alignment
+
 While Intel allows unaligned access, the
 [recommended](https://software.intel.com/sites/default/files/managed/9e/bc/64-ia-32-architectures-optimization-manual.pdf?wapkw=248966)
 (see section 3.6.4) alignment for objects larger than 64 bits is to 16 byte

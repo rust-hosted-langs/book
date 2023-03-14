@@ -122,10 +122,11 @@ And now the definition of `BlockMeta`:
 ```
 
 This struct contains one member: a pointer to the start of the line mark area.
+This could be easily calculated, of course, so this is just a handy shortcut.
 
 The final byte in the line mark area will be used for an entire-block mark bit.
 
-_TODO diagram of block layout_
+// TODO DIAGRAM of block layout
 
 The struct `BlockMeta` contains one function we will study:
 
@@ -150,8 +151,8 @@ to line count math:
          let starting_line = starting_at / constants::LINE_SIZE;
 ```
 
-And then iterate over the lines starting with the line that the requested
-byte offset starting point corresponds with:
+Then iterate over the lines starting with the line that the requested byte
+offset starting point corresponds with:
 
 ```rust,ignore
          for (index, marked) in self.line_mark[starting_line..].iter().enumerate() {
