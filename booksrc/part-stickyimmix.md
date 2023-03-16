@@ -20,8 +20,8 @@ Quickly, some terminology:
 
 Immix is a memory management scheme that considers blocks of fixed size at a time.
 Each block is divided into lines. In the original paper, blocks are sized at 32k
-and lines at 128 bytes.  Objects are allocated into blocks using bump allocation.
-Objects can cross line boundaries.
+and lines at 128 bytes.  Objects are allocated into blocks using bump allocation
+and objects can cross line boundaries.
 
 ![StickyImmix Block](img/stickyimmix_block.png)
 
@@ -30,10 +30,13 @@ line, or lines, that each object occupies are also marked as live. This can mean
 course, that a line may contain a dead object and a live object but the whole
 line is marked as live.
 
-![StickyImmix Block](img/stickyimmix_marking_object.png)
+To mark lines as live, a portion of the block is set aside for line mark bits,
+usually one byte per mark bit. If _any_ line is marked as live, the whole block
+is also marked as live. There must also, therefore, be a bit that indicates
+block liveness.
 
 During collection, only lines not marked as live are considered available for
-re-use. Inevitably then, there is acceptance of some amount of fragementation
+re-use. Inevitably then, there is acceptance of some amount of fragmentation
 at this point.
 
 _Full_ Immix implements evacuating objects out of the most fragmented blocks
