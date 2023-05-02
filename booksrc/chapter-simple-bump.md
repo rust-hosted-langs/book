@@ -16,15 +16,15 @@ the block size, the result points to the beginning of the block. This will
 be useful later when implementing garbage collection.
 
 Our block size will be 32k, a reasonably optimal size arrived at in the
-original [Immix][1] paper. This size can be any power of two though and
+original [Immix paper][1]. This size can be any power of two though and
 different use cases may show different optimal sizes.
 
 ```rust,ignore
 {{#include ../stickyimmix/src/constants.rs:ConstBlockSize}}
 ```
 
-Next, we'll define a struct that wraps the block with a bump pointer and garbage
-collection metadata.
+Now we'll define a struct that wraps the block with a bump pointer and garbage
+collection metadata:
 
 ```rust,ignore
 {{#include ../stickyimmix/src/bumpblock.rs:DefBumpBlock}}
@@ -33,19 +33,14 @@ collection metadata.
 ## Bump allocation basics
 
 In this struct definition, there are two members that we are interested in
-for this section. The other two, `limit` and `meta`, will be discussed in the
+to begin with. The other two, `limit` and `meta`, will be discussed in the
 next section.
 
 * `cursor`: this is the bump pointer. In our implementation it is the index
   into the block where the last object was written.
 * `block`: this is the `Block` itself in which objects will be written.
 
-For this bump allocation function, the `alloc_size` parameter should be a number
-of bytes of memory requested.
-
-The value of `alloc_size` may produce an unaligned pointer at which to write the
-object. Fortunately, by bump allocating downward we can apply a simple mask to the
-pointer to align it down to the nearest word.
+Below is a start to a bump allocation function:
 
 ```rust,ignore
 impl BumpBlock {
@@ -70,15 +65,25 @@ impl BumpBlock {
 }
 ```
 
-In this overly simplistic initial implementation, allocation will simply return
-`None` if the block does not have enough capacity for the requested
-`alloc_size`. If there _is_ space, it will be returned as a `Some(*const u8)`
-pointer.
+In our function, the `alloc_size` parameter should be a number of bytes of
+memory requested.
+
+The value of `alloc_size` may produce an unaligned pointer at which to write the
+object. Fortunately, by bump allocating downward we can apply a simple mask to the
+pointer to align it down to the nearest word:
+
+```rust,ignore
+        let align_mask = usize = !(size_of::<usize>() - 1);
+```
+
+In initial implementation, allocation will simply return `None` if the block
+does not have enough capacity for the requested `alloc_size`. If there _is_
+space, it will be returned as a `Some(*const u8)` pointer.
 
 Note that this function does not _write_ the object to memory, it merely
-returns a pointer to an available space.  Writing the object will simply
-require invoking the `std::ptr::write` function. We will do that in a separate
-module but for completeness of this chapter, this might look something like:
+returns a pointer to an available space.  Writing the object will require
+invoking the `std::ptr::write` function. We will do that in a separate module
+but for completeness of this chapter, this might look something like:
 
 ```rust,ignore
 use std::ptr::write;
@@ -96,10 +101,11 @@ block that can be reused. The above bump allocation algorithm is unaware of
 these gaps so we'll have to modify it before it can allocate into fragmented
 blocks.
 
-Remember that in Immix, only whole lines are considered for reuse. To recap,
-a block is divided into lines. When objects are marked as live, so are the
-lines that an object occupies. Therefore, only lines that are _not_ marked
-as live are usable for allocation into.
+To recap, in Immix, a block is divided into lines and only whole lines are
+considered for reuse. When objects are marked as live, so are the lines that an
+object occupies. Therefore, only lines that are _not_ marked as live are usable
+for allocation into. Even if a line is only partially allocated into, it is not
+a candidate for further allocation.
 
 In our implementation we will use the high bytes of the `Block` to represent
 these line mark bits, where each line is represented by a single byte.
@@ -115,18 +121,35 @@ but first some constants that we need in order to know
 {{#include ../stickyimmix/src/constants.rs:ConstLineSize}}
 ```
 
-And now the definition of `BlockMeta`:
+For clarity, let's put some numbers to the definitions we've made so far:
+- A block size is 32Kbytes
+- A line is 128 bytes long
+- The number of lines within a 32Kbyte `Block` is 256
+
+Therefore the top 256 bytes of a `Block` are used for line mark bits. Since
+these line mark bits do not need to be marked themselves, the last _two bytes_
+of the `Block` are not needed to mark lines.
+
+This leaves one last thing to mark: the entire `Block`. If _any_ line in the
+`Block` is marked, then the `Block` is considered to be live and must be marked
+as such.
+
+We use the final byte of the `Block` to store the `Block` mark bit.
+
+The definition of `BumpBlock` contains member `meta` which is of type
+`BlockMeta`. We can now introduce the definition of `BlockMeta` which we simply
+need to represent a pointer to the line mark section at the end of the `Block`:
 
 ```rust,ignore
 {{#include ../stickyimmix/src/blockmeta.rs:DefBlockMeta}}
 ```
 
-This struct contains one member: a pointer to the start of the line mark area.
-This could be easily calculated, of course, so this is just a handy shortcut.
+This pointer could be easily calculated, of course, so this is just a handy
+shortcut.
 
-The final byte in the line mark area will be used for an entire-block mark bit.
+### Allocating into a fragmented Block
 
-// TODO DIAGRAM of block layout
+![StickyImmix Fragmented Block](img/fragmented_block.png)
 
 The struct `BlockMeta` contains one function we will study:
 
@@ -134,10 +157,13 @@ The struct `BlockMeta` contains one function we will study:
 {{#include ../stickyimmix/src/blockmeta.rs:DefFindNextHole}}
 ```
 
+The purpose of this function is to locate a gap of unmarked lines of sufficient
+size to allocate an object into.
+
 * The input to this function, `starting_at`, is the offset into the block at
-which we are looking for a large enough consecutive set of unmarked lines
-to write an object into. The value passed in will be the bump pointer since that
-is where we last successfully wrote to the block at.
+which we are looking for a consecutive set of unmarked lines to write the object
+into. The value passed in will be the bump pointer since that is where we last
+successfully wrote to the block at.
 * The return value is `None` if no unmarked lines are found.
 * If there _are_ unmarked lines _before_ (bump allocating downwards, remember)
 the `starting_at` point, the return value will be a pair of numbers - `(cursor,
