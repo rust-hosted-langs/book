@@ -174,6 +174,9 @@ impl<H: AllocHeader> AllocRaw for StickyImmixHeap<H> {
         let total_size = header_size + object_size;
 
         // round the size to the next word boundary to keep objects aligned and get the size class
+        // TODO BUG? should this be done separately for header and object?
+        //  If the base allocation address is where the header gets placed, perhaps
+        //  this breaks the double-word alignment object alignment desire?
         let alloc_size = alloc_size_of(total_size);
         let size_class = SizeClass::get_for_size(alloc_size)?;
 
@@ -268,10 +271,10 @@ mod tests {
     use std::slice::from_raw_parts;
 
     struct TestHeader {
-        size_class: SizeClass,
-        mark: Mark,
+        _size_class: SizeClass,
+        _mark: Mark,
         type_id: TestTypeId,
-        size_bytes: u32,
+        _size_bytes: u32,
     }
 
     #[derive(PartialEq, Copy, Clone)]
@@ -289,19 +292,19 @@ mod tests {
 
         fn new<O: AllocObject<Self::TypeId>>(size: u32, size_class: SizeClass, mark: Mark) -> Self {
             TestHeader {
-                size_class,
-                mark,
+                _size_class: size_class,
+                _mark: mark,
                 type_id: O::TYPE_ID,
-                size_bytes: size,
+                _size_bytes: size,
             }
         }
 
         fn new_array(size: u32, size_class: SizeClass, mark: Mark) -> Self {
             TestHeader {
-                size_class,
-                mark,
+                _size_class: size_class,
+                _mark: mark,
                 type_id: TestTypeId::Array,
-                size_bytes: size,
+                _size_bytes: size,
             }
         }
 

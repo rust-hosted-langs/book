@@ -14,22 +14,42 @@ Quickly, some terminology:
   too small for most objects but that add up to a measurable percentage of
   wasted space.
 * Evacuation: when the collector _moves_ live objects to another block of memory
-  so that the originating block can be _de_fragmented
+  so that the originating block can be _de_fragmented_
 
 ## About Immix
 
 Immix is a memory management scheme that considers blocks of fixed size at a time.
 Each block is divided into lines. In the original paper, blocks are sized at 32k
-and lines at 128 bytes.  Objects are allocated into blocks using bump allocation.
-Objects can cross line boundaries.
+and lines at 128 bytes.  Objects are allocated into blocks using bump allocation
+and objects can cross line boundaries.
+
+![StickyImmix Block](img/stickyimmix_block.png)
 
 During tracing to discover live objects, objects are marked as live, but the
 line, or lines, that each object occupies are also marked as live. This can mean, of
 course, that a line may contain a dead object and a live object but the whole
 line is marked as live.
 
+To mark lines as live, a portion of the block is set aside for line mark bits,
+usually one byte per mark bit. If _any_ line is marked as live, the whole block
+is also marked as live. There must also, therefore, be a bit that indicates
+block liveness.
+
+### Conservative marking
+
+The Immix authors found that marking _every_ line that contains a live object
+could be expensive. For example, many small objects might cross line boundaries,
+requiring two lines to be marked as live. This would require looking up the
+object size and calculating whether the object crosses the boundary into the
+next line. To save CPU cycles, they simplified the algorithm by saying that
+any object that fits in a line _might_ cross into the next line so we will
+conservatively _consider_ the next line marked just in case. This sped up
+marking at little fragmentation expense.
+
+### Collection
+
 During collection, only lines not marked as live are considered available for
-re-use. Inevitably then, there is acceptance of some amount of fragementation
+re-use. Inevitably then, there is acceptance of some amount of fragmentation
 at this point.
 
 _Full_ Immix implements evacuating objects out of the most fragmented blocks
