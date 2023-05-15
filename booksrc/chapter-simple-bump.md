@@ -158,115 +158,113 @@ The struct `BlockMeta` contains one function we will study:
 ```
 
 The purpose of this function is to locate a gap of unmarked lines of sufficient
-size to allocate an object into.
+size to allocate an object of size `alloc_size` into.
 
-* The input to this function, `starting_at`, is the offset into the block at
-which we are looking for a consecutive set of unmarked lines to write the object
-into. The value passed in will be the bump pointer since that is where we last
-successfully wrote to the block at.
-* The return value is `None` if no unmarked lines are found.
-* If there _are_ unmarked lines _before_ (bump allocating downwards, remember)
-the `starting_at` point, the return value will be a pair of numbers - `(cursor,
-limit)` - where `cursor` will be the new bump pointer value and `limit` will be
-the lower bound of the available hole.
+The input to this function, `starting_at`, is the offset into the block to start
+looking for a hole.
 
-The first thing this function does is convert from block byte offset math
-to line count math:
+If no suitable hole is found, the return value is `None`.
+
+If there are unmarked lines lower in memory than the `starting_at` point (bump
+allocating downwards), the return value will be a pair of numbers: `(cursor,
+limit)` where:
+
+- `cursor` will be the new bump pointer value
+- `limit` will be the lower bound of the available hole.
+
+#### A deeper dive
+
+Our first variable is a counter of consecutive available lines. This count will
+always assume that the first line in the sequence is conservatively marked and
+won't count toward the total, unless it is line 0.
+
+```rust,ignore
+        let mut count = 0;
+```
+
+Next, the `starting_at` and `alloc_size` arguments have units of bytes but we
+want to use line count math, so conversion must be done.
 
 ```rust,ignore
          let starting_line = starting_at / constants::LINE_SIZE;
+         let lines_required = (alloc_size + constants::LINE_SIZE - 1) / constants::LINE_SIZE;
 ```
 
-Then iterate over the lines starting with the line that the requested byte
-offset starting point corresponds with:
+Our final variable will be the end line that, together with `starting_line`,
+will mark the boundary of the hole we hope to find.
 
 ```rust,ignore
-         for (index, marked) in self.line_mark[starting_line..].iter().enumerate() {
-             let abs_index = starting_line + index;
+        let mut end = starting_line;
 ```
 
-We're looking for unmarked lines to allocate into, so we'll count how many
-we get so we can later calculate the start and end offsets of a hole:
+Now for the loop that identifies holes and ends the function if either:
+- a large enough hole is found
+- no suitable hole is found
+
+We iterate over lines in decreasing order from `starting_line` down to line zero
+and fetch the mark bit into variable `marked`.
 
 ```rust,ignore
-            // count unmarked lines
-            if !*marked {
+        for index in (0..starting_line).rev() {
+            let marked = unsafe { *self.lines.add(index) };
+```
+
+If the line is unmarked, we increment our consecutive-unmarked-lines counter.
+
+Then we reach the first termination condition: we reached line zero and we have
+a large enough hole for our object. The hole extents can be returned, converting
+back to byte offsets.
+
+```rust,ignore
+            if marked == 0 {
                 count += 1;
-```
 
-Up next are a couple lines of code that need longer explanation:
-
-```rust,ignore
-                if count == 1 && abs_index > 0 {
-                    continue;
-                }
-```
-
-The Immix authors found that marking _every_ line that contains a live object
-could be expensive. For example, many small objects might cross line boundaries,
-requiring two lines to be marked as live. This would require looking up the
-object size and calculating whether the object crosses the boundary into the
-next line. To save CPU cycles, they simplified the algorithm by saying that
-any object that fits in a line _might_ cross into the next line so we will
-conservatively _consider_ the next line marked just in case. This sped up
-marking at little fragmentation expense.
-
-So the three lines of code above simply say: if we've so-far only found one
-unmarked block, consider that it might be a conservatively-marked line and
-ignore it.
-
-Once that condition has passed and we're clear of any conservatively-marked
-line, we can consider the next unmarked line as totally available. Here we
-save the index of this line in the variable `start`:
-
-```rust,ignore
-                if start.is_none() {
-                    start = Some(abs_index);
-                }
-```
-
-Now we have a starting line for the overall hole between marked objects. Next
-we'll close the `if *marked` scope by setting the end of the hole:
-
-```rust,ignore
-                stop = abs_index + 1;
-            }
-```
-
-The loop will continue and while there are consecutive unmarked lines, `stop`
-will continue to be updated to a later line boundary.
-
-As soon as we hit a marked line or the end of the block, and we have a nonzero
-number of unmarked lines, we'll test whether we have a valid hole to allocate
-into:
-
-```rust,ignore
-            if count > 0 && (*marked || stop >= constants::LINE_COUNT) {
-                if let Some(start) = start {
-                    let cursor = start * constants::LINE_SIZE;
-                    let limit = stop * constants::LINE_SIZE;
-
+                if index == 0 && count >= lines_required {
+                    let limit = index * constants::LINE_SIZE;
+                    let cursor = end * constants::LINE_SIZE;
                     return Some((cursor, limit));
                 }
-            }
+            } else {
 ```
 
-Here we convert line-based math back into block byte-offset values and return
-the new bump-pointer and upper limit.
+Otherwise if the line is marked, we've reached the end of the current hole (if
+we were even over one.)
 
-Otherwise, if the above conditions failed but we've still reached a marked
-line, reset the state:
+Here, we have the second possible termination condition: we have a large enough
+hole for our object. The hole extents can be returned, taking the last line as
+conservatively marked.
+
+This is seen in adding 2 to `index`:
+- 1 for walking back from the current marked line
+- plus 1 for walking back from the previous conservatively marked line
+
+If this condition isn't met, our search is reset - `count` is back to zero and
+we keep iterating.
 
 ```rust,ignore
-            if *marked {
+            } else {
+                if count > lines_required {
+                    let limit = (index + 2) * constants::LINE_SIZE;
+                    let cursor = end * constants::LINE_SIZE;
+                    return Some((cursor, limit));
+                }
+
                 count = 0;
-                start = None;
+                end = index;
             }
 ```
 
-Finally, if the whole loop terminates without returning a new
-`Some((cursor, limit))` pair, return `None` as our way of saying this block
-has no usable holes to allocate into.
+Finally, if iterating over lines reached line zero without finding a hole, we
+return `None` to indicate failure.
+
+```rust,ignore
+        }
+
+        None
+    }
+```
+
+#### Making use of the hole finder
 
 We'll return to the `BumpBlock::inner_alloc()` function now to make use of
 `BlockMeta` and it's hole finding operation.
@@ -298,21 +296,19 @@ and as you can see, this implementation is recursive.
 
 ## Wrapping this up
 
-At the beginning of this chapter I stated that given a pointer to an object,
-by zeroing the bits of the pointer that represent the block size, the result
-points to the beginning of the block.
+At the beginning of this chapter we stated that given a pointer to an object, by
+zeroing the bits of the pointer that represent the block size, the result points
+to the beginning of the block.
 
 We'll make use of that now.
 
-During the mark phase of garbage collection, we will need to know which line
-or lines to mark, in addition to marking the object itself. We will make a
-copy of the `BlockMeta` instance pointer in the 0th word of the memory block
-so that given any object pointer, we can obtain the `BlockMeta` instance.
+During the mark phase of garbage collection, we will need to know which line or
+lines to mark, in addition to marking the object itself. We will make a copy of
+the `BlockMeta` instance pointer in the 0th word of the memory block so that
+given any object pointer, we can obtain the `BlockMeta` instance.
 
 In the next chapter we'll handle multiple `BumpBlock`s so that we can keep
 allocating objects after one block is full.
-
-----
 
 [1]: http://www.cs.utexas.edu/users/speedway/DaCapo/papers/immix-pldi-2008.pdf
 [2]: https://fitzgeraldnick.com/2019/11/01/always-bump-downwards.html
