@@ -7,22 +7,36 @@
         
         <meta name="robots" content="noindex" />
         
+        
+
+
+        <!-- Custom HTML head -->
+        
+
 
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
 
+        
+        <link rel="icon" href="favicon.svg">
+        
+        
         <link rel="shortcut icon" href="favicon.png">
+        
         <link rel="stylesheet" href="css/variables.css">
         <link rel="stylesheet" href="css/general.css">
         <link rel="stylesheet" href="css/chrome.css">
+        
         <link rel="stylesheet" href="css/print.css" media="print">
+        
 
         <!-- Fonts -->
         <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
-        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
-        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+        
+        <link rel="stylesheet" href="fonts/fonts.css">
+        
 
         <!-- Highlight.js Stylesheets -->
         <link rel="stylesheet" href="highlight.css">
@@ -38,7 +52,7 @@
         <!-- Provide site root to javascript -->
         <script type="text/javascript">
             var path_to_root = "";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "light";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
 
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
@@ -118,9 +132,11 @@
                     <h1 class="menu-title">Writing Interpreters in Rust: a Guide</h1>
 
                     <div class="right-buttons">
+                        
                         <a href="print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
                         </a>
+                        
                         
                     </div>
                 </div>
@@ -216,7 +232,9 @@ boundaries.</p>
 aligned to 16 byte boundaries for optimal code generation and performance.
 Unaligned loads and stores may be allowed but normally these incur
 performance penalties.</p>
-<p>While Intel allows unaligned access, the
+<p><img src="img/alignment.png" alt="Common alignments" /></p>
+<p>While Intel allows unaligned access (that is, alignment on any byte boundary),
+the
 <a href="https://software.intel.com/sites/default/files/managed/9e/bc/64-ia-32-architectures-optimization-manual.pdf?wapkw=248966">recommended</a>
 (see section 3.6.4) alignment for objects larger than 64 bits is to 16 byte
 boundaries.</p>
@@ -412,19 +430,34 @@ freeing many objects, gaps of unused memory appear between objects that are
 too small for most objects but that add up to a measurable percentage of
 wasted space.</li>
 <li>Evacuation: when the collector <em>moves</em> live objects to another block of memory
-so that the originating block can be _de_fragmented</li>
+so that the originating block can be <em>de_fragmented</em></li>
 </ul>
 <h2><a class="header" href="#about-immix" id="about-immix">About Immix</a></h2>
 <p>Immix is a memory management scheme that considers blocks of fixed size at a time.
 Each block is divided into lines. In the original paper, blocks are sized at 32k
-and lines at 128 bytes.  Objects are allocated into blocks using bump allocation.
-Objects can cross line boundaries.</p>
+and lines at 128 bytes.  Objects are allocated into blocks using bump allocation
+and objects can cross line boundaries.</p>
+<p><img src="img/stickyimmix_block.png" alt="StickyImmix Block" /></p>
 <p>During tracing to discover live objects, objects are marked as live, but the
 line, or lines, that each object occupies are also marked as live. This can mean, of
 course, that a line may contain a dead object and a live object but the whole
 line is marked as live.</p>
+<p>To mark lines as live, a portion of the block is set aside for line mark bits,
+usually one byte per mark bit. If <em>any</em> line is marked as live, the whole block
+is also marked as live. There must also, therefore, be a bit that indicates
+block liveness.</p>
+<h3><a class="header" href="#conservative-marking" id="conservative-marking">Conservative marking</a></h3>
+<p>The Immix authors found that marking <em>every</em> line that contains a live object
+could be expensive. For example, many small objects might cross line boundaries,
+requiring two lines to be marked as live. This would require looking up the
+object size and calculating whether the object crosses the boundary into the
+next line. To save CPU cycles, they simplified the algorithm by saying that
+any object that fits in a line <em>might</em> cross into the next line so we will
+conservatively <em>consider</em> the next line marked just in case. This sped up
+marking at little fragmentation expense.</p>
+<h3><a class="header" href="#collection" id="collection">Collection</a></h3>
 <p>During collection, only lines not marked as live are considered available for
-re-use. Inevitably then, there is acceptance of some amount of fragementation
+re-use. Inevitably then, there is acceptance of some amount of fragmentation
 at this point.</p>
 <p><em>Full</em> Immix implements evacuating objects out of the most fragmented blocks
 into fresh, empty blocks, for defragmentation.</p>
@@ -447,60 +480,73 @@ simplest way to do this is to write objects into a block one after the other
 in consecutive order. This is bump allocation - we have a pointer, the bump
 pointer, which points at the space in the block after the last object that
 was written. When the next object is written, the bump pointer is incremented
-to point to the space after <em>that</em> object <sup class="footnote-reference"><a href="#1">1</a></sup>.</p>
+to point to the space after <em>that</em> object.</p>
+<p>In a twist of mathematical convenience, though, it is <a href="https://fitzgeraldnick.com/2019/11/01/always-bump-downwards.html">more efficient</a> to
+bump allocate from a high memory location <em>downwards</em>. We will do that.</p>
 <p>We will used a fixed power-of-two block size. The benefit of this is that
 given a pointer to an object, by zeroing the bits of the pointer that represent
 the block size, the result points to the beginning of the block. This will
 be useful later when implementing garbage collection.</p>
 <p>Our block size will be 32k, a reasonably optimal size arrived at in the
-original <a href="http://www.cs.utexas.edu/users/speedway/DaCapo/papers/immix-pldi-2008.pdf">Immix</a> paper. This size can be any power of two though and
+original <a href="http://www.cs.utexas.edu/users/speedway/DaCapo/papers/immix-pldi-2008.pdf">Immix paper</a>. This size can be any power of two though and
 different use cases may show different optimal sizes.</p>
 <pre><code class="language-rust ignore">pub const BLOCK_SIZE_BITS: usize = 15;
 pub const BLOCK_SIZE: usize = 1 &lt;&lt; BLOCK_SIZE_BITS;
 </code></pre>
-<p>Next, we'll define a struct that wraps the block with a bump pointer and other
-metadata.</p>
+<p>Now we'll define a struct that wraps the block with a bump pointer and garbage
+collection metadata:</p>
 <pre><code class="language-rust ignore">pub struct BumpBlock {
-    cursor: usize,
-    limit: usize,
+    cursor: *const u8,
+    limit: *const u8,
     block: Block,
-    meta: Box&lt;BlockMeta&gt;,
+    meta: BlockMeta,
 }
 </code></pre>
 <h2><a class="header" href="#bump-allocation-basics" id="bump-allocation-basics">Bump allocation basics</a></h2>
 <p>In this struct definition, there are two members that we are interested in
-for this section. The other two, <code>limit</code> and <code>meta</code>, will be discussed in the
+to begin with. The other two, <code>limit</code> and <code>meta</code>, will be discussed in the
 next section.</p>
 <ul>
 <li><code>cursor</code>: this is the bump pointer. In our implementation it is the index
-into the block where the next object can be written.</li>
+into the block where the last object was written.</li>
 <li><code>block</code>: this is the <code>Block</code> itself in which objects will be written.</li>
 </ul>
-<p>For this bump allocation function, the <code>alloc_size</code> parameter should be a number
-of bytes of memory requested. We'll assume that the value provided is equivalent
-to an exact number of words so that we don't end up with badly aligned object
-placement.</p>
+<p>Below is a start to a bump allocation function:</p>
 <pre><code class="language-rust ignore">impl BumpBlock {
     pub fn inner_alloc(&amp;mut self, alloc_size: usize) -&gt; Option&lt;*const u8&gt; {
-        let next_bump = self.cursor + alloc_size;
+        let block_start_ptr = self.block.as_ptr() as usize;
+        let cursor_ptr = self.cursor as usize;
 
-        if next_bump &gt; constants::BLOCK_SIZE {
+        // align to word boundary
+        let align_mask = usize = !(size_of::&lt;usize&gt;() - 1);
+
+        let next_ptr = cursor_ptr.checked_sub(alloc_size)? &amp; align_mask;
+
+        if next_ptr &lt; block_start_ptr {
+            // allocation would start lower than block beginning, which means
+            // there isn't space in the block for this allocation
             None
         } else {
-            let offset = self.cursor;
-            self.cursor = next_bump;
-            unsafe { Some(self.block.as_ptr().add(offset) as *const u8) }
+            self.cursor = next_ptr as *const u8;
+            Some(next_ptr)
         }
     }
 }
 </code></pre>
-<p>In this overly simplistic initial implementation, allocation will simply return
-<code>None</code> if the block is full. If there <em>is</em> space, it will be returned as a
-<code>Some(*const u8)</code> pointer.</p>
+<p>In our function, the <code>alloc_size</code> parameter should be a number of bytes of
+memory requested.</p>
+<p>The value of <code>alloc_size</code> may produce an unaligned pointer at which to write the
+object. Fortunately, by bump allocating downward we can apply a simple mask to the
+pointer to align it down to the nearest word:</p>
+<pre><code class="language-rust ignore">        let align_mask = usize = !(size_of::&lt;usize&gt;() - 1);
+</code></pre>
+<p>In initial implementation, allocation will simply return <code>None</code> if the block
+does not have enough capacity for the requested <code>alloc_size</code>. If there <em>is</em>
+space, it will be returned as a <code>Some(*const u8)</code> pointer.</p>
 <p>Note that this function does not <em>write</em> the object to memory, it merely
-returns a pointer to an available space.  Writing the object will simply
-require invoking the <code>std::ptr::write</code> function. We will do that in a separate
-module but for completeness of this chapter, this might look something like:</p>
+returns a pointer to an available space.  Writing the object will require
+invoking the <code>std::ptr::write</code> function. We will do that in a separate module
+but for completeness of this chapter, this might look something like:</p>
 <pre><code class="language-rust ignore">use std::ptr::write;
 
 unsafe fn write&lt;T&gt;(dest: *const u8, object: T) {
@@ -512,162 +558,182 @@ unsafe fn write&lt;T&gt;(dest: *const u8, object: T) {
 block that can be reused. The above bump allocation algorithm is unaware of
 these gaps so we'll have to modify it before it can allocate into fragmented
 blocks.</p>
-<p>Remember that in Immix, only whole lines are considered for reuse. To recap,
-a block is divided into lines. When objects are marked as live, so are the
-lines that an object occupies. Therefore, only lines that are <em>not</em> marked
-as live are usable for allocation into.</p>
+<p>To recap, in Immix, a block is divided into lines and only whole lines are
+considered for reuse. When objects are marked as live, so are the lines that an
+object occupies. Therefore, only lines that are <em>not</em> marked as live are usable
+for allocation into. Even if a line is only partially allocated into, it is not
+a candidate for further allocation.</p>
+<p>In our implementation we will use the high bytes of the <code>Block</code> to represent
+these line mark bits, where each line is represented by a single byte.</p>
 <p>We'll need a data structure to represent this. we'll call it <code>BlockMeta</code>,
-but first some constants that we need in order to know how big a line is
-and how many are in a block:</p>
+but first some constants that we need in order to know</p>
+<ul>
+<li>how big a line is</li>
+<li>how many lines are in a block</li>
+<li>how many bytes remain in the <code>Block</code> for allocating into</li>
+</ul>
 <pre><code class="language-rust ignore">pub const LINE_SIZE_BITS: usize = 7;
 pub const LINE_SIZE: usize = 1 &lt;&lt; LINE_SIZE_BITS;
+
+// How many total lines are in a block
 pub const LINE_COUNT: usize = BLOCK_SIZE / LINE_SIZE;
+
+// We need LINE_COUNT number of bytes for marking lines, so the capacity of a block
+// is reduced by that number of bytes.
+pub const BLOCK_CAPACITY: usize = BLOCK_SIZE - LINE_COUNT;
 </code></pre>
-<p>And now the definition of <code>BlockMeta</code>:</p>
+<p>For clarity, let's put some numbers to the definitions we've made so far:</p>
+<ul>
+<li>A block size is 32Kbytes</li>
+<li>A line is 128 bytes long</li>
+<li>The number of lines within a 32Kbyte <code>Block</code> is 256</li>
+</ul>
+<p>Therefore the top 256 bytes of a <code>Block</code> are used for line mark bits. Since
+these line mark bits do not need to be marked themselves, the last <em>two bytes</em>
+of the <code>Block</code> are not needed to mark lines.</p>
+<p>This leaves one last thing to mark: the entire <code>Block</code>. If <em>any</em> line in the
+<code>Block</code> is marked, then the <code>Block</code> is considered to be live and must be marked
+as such.</p>
+<p>We use the final byte of the <code>Block</code> to store the <code>Block</code> mark bit.</p>
+<p>The definition of <code>BumpBlock</code> contains member <code>meta</code> which is of type
+<code>BlockMeta</code>. We can now introduce the definition of <code>BlockMeta</code> which we simply
+need to represent a pointer to the line mark section at the end of the <code>Block</code>:</p>
 <pre><code class="language-rust ignore">pub struct BlockMeta {
-    line_mark: [bool; constants::LINE_COUNT],
-    block_mark: bool,
+    lines: *mut u8,
 }
 </code></pre>
-<ul>
-<li><code>line_mark</code> is an array of boolean flags, one for each line in a
-block, to indicate whether it has been marked or not.</li>
-<li><code>block_mark</code> simply says whether the entire block has
-marked objects in it. If this is ever <code>false</code>, the entire block can be
-deallocated.</li>
-</ul>
-<p>This struct contains one function we will study:</p>
-<pre><code class="language-rust ignore">    pub fn find_next_available_hole(&amp;self, starting_at: usize) -&gt; Option&lt;(usize, usize)&gt; {
+<p>This pointer could be easily calculated, of course, so this is just a handy
+shortcut.</p>
+<h3><a class="header" href="#allocating-into-a-fragmented-block" id="allocating-into-a-fragmented-block">Allocating into a fragmented Block</a></h3>
+<p><img src="img/fragmented_block.png" alt="StickyImmix Fragmented Block" /></p>
+<p>The struct <code>BlockMeta</code> contains one function we will study:</p>
+<pre><code class="language-rust ignore">    /// When it comes to finding allocatable holes, we bump-allocate downward.
+    pub fn find_next_available_hole(
+        &amp;self,
+        starting_at: usize,
+        alloc_size: usize,
+    ) -&gt; Option&lt;(usize, usize)&gt; {
+        // The count of consecutive avaliable holes. Must take into account a conservatively marked
+        // hole at the beginning of the sequence.
         let mut count = 0;
-        let mut start: Option&lt;usize&gt; = None;
-        let mut stop: usize = 0;
-
         let starting_line = starting_at / constants::LINE_SIZE;
+        let lines_required = (alloc_size + constants::LINE_SIZE - 1) / constants::LINE_SIZE;
+        // Counting down from the given search start index
+        let mut end = starting_line;
 
-        for (index, marked) in self.line_mark[starting_line..].iter().enumerate() {
-            let abs_index = starting_line + index;
+        for index in (0..starting_line).rev() {
+            let marked = unsafe { *self.lines.add(index) };
 
-            // count unmarked lines
-            if !*marked {
+            if marked == 0 {
+                // count unmarked lines
                 count += 1;
 
-                // if this is the first line in a hole (and not the zeroth line), consider it
-                // conservatively marked and skip to the next line
-                if count == 1 &amp;&amp; abs_index &gt; 0 {
-                    continue;
-                }
-
-                // record the first hole index
-                if start.is_none() {
-                    start = Some(abs_index);
-                }
-
-                // stop is now at the end of this line
-                stop = abs_index + 1;
-            }
-
-            // if we reached a marked line or the end of the block, see if we have
-            // a valid hole to work with
-            if count &gt; 0 &amp;&amp; (*marked || stop &gt;= constants::LINE_COUNT) {
-                if let Some(start) = start {
-                    let cursor = start * constants::LINE_SIZE;
-                    let limit = stop * constants::LINE_SIZE;
-
+                if index == 0 &amp;&amp; count &gt;= lines_required {
+                    let limit = index * constants::LINE_SIZE;
+                    let cursor = end * constants::LINE_SIZE;
                     return Some((cursor, limit));
                 }
-            }
+            } else {
+                // This block is marked
+                if count &gt; lines_required {
+                    // But at least 2 previous blocks were not marked. Return the hole, considering the
+                    // immediately preceding block as conservatively marked
+                    let limit = (index + 2) * constants::LINE_SIZE;
+                    let cursor = end * constants::LINE_SIZE;
+                    return Some((cursor, limit));
+                }
 
-            // if this line is marked and we didn't return a new cursor/limit pair by now,
-            // reset the hole state
-            if *marked {
+                // If this line is marked and we didn't return a new cursor/limit pair by now,
+                // reset the hole search state
                 count = 0;
-                start = None;
+                end = index;
             }
         }
 
         None
     }
 </code></pre>
+<p>The purpose of this function is to locate a gap of unmarked lines of sufficient
+size to allocate an object of size <code>alloc_size</code> into.</p>
+<p>The input to this function, <code>starting_at</code>, is the offset into the block to start
+looking for a hole.</p>
+<p>If no suitable hole is found, the return value is <code>None</code>.</p>
+<p>If there are unmarked lines lower in memory than the <code>starting_at</code> point (bump
+allocating downwards), the return value will be a pair of numbers: <code>(cursor, limit)</code> where:</p>
 <ul>
-<li>The input to this function, <code>starting_at</code>, is the offset into the block at
-which we are looking for a large enough consecutive set of unmarked lines
-to write an object into. The value passed in will be the bump pointer, of
-course, since that is where we last successfully wrote to the block at.</li>
-<li>The return value is <code>None</code> if no unmarked lines are found.</li>
-<li>If there <em>are</em> unmarked lines after the <code>starting_at</code> point, the return
-value will be a pair of numbers - <code>(cursor, limit)</code> - where <code>cursor</code> will
-be the new bump pointer value and <code>limit</code> will be the upper bound of the
-available hole.</li>
+<li><code>cursor</code> will be the new bump pointer value</li>
+<li><code>limit</code> will be the lower bound of the available hole.</li>
 </ul>
-<p>The first thing this function does is convert from block byte offset math
-to line count math:</p>
+<h4><a class="header" href="#a-deeper-dive" id="a-deeper-dive">A deeper dive</a></h4>
+<p>Our first variable is a counter of consecutive available lines. This count will
+always assume that the first line in the sequence is conservatively marked and
+won't count toward the total, unless it is line 0.</p>
+<pre><code class="language-rust ignore">        let mut count = 0;
+</code></pre>
+<p>Next, the <code>starting_at</code> and <code>alloc_size</code> arguments have units of bytes but we
+want to use line count math, so conversion must be done.</p>
 <pre><code class="language-rust ignore">         let starting_line = starting_at / constants::LINE_SIZE;
+         let lines_required = (alloc_size + constants::LINE_SIZE - 1) / constants::LINE_SIZE;
 </code></pre>
-<p>And then iterate over the lines starting with the line that the requested
-byte offset starting point corresponds with:</p>
-<pre><code class="language-rust ignore">         for (index, marked) in self.line_mark[starting_line..].iter().enumerate() {
-             let abs_index = starting_line + index;
+<p>Our final variable will be the end line that, together with <code>starting_line</code>,
+will mark the boundary of the hole we hope to find.</p>
+<pre><code class="language-rust ignore">        let mut end = starting_line;
 </code></pre>
-<p>We're looking for unmarked lines to allocate into, so we'll count how many
-we get so we can later calculate the start and end offsets of a hole:</p>
-<pre><code class="language-rust ignore">            // count unmarked lines
-            if !*marked {
+<p>Now for the loop that identifies holes and ends the function if either:</p>
+<ul>
+<li>a large enough hole is found</li>
+<li>no suitable hole is found</li>
+</ul>
+<p>We iterate over lines in decreasing order from <code>starting_line</code> down to line zero
+and fetch the mark bit into variable <code>marked</code>.</p>
+<pre><code class="language-rust ignore">        for index in (0..starting_line).rev() {
+            let marked = unsafe { *self.lines.add(index) };
+</code></pre>
+<p>If the line is unmarked, we increment our consecutive-unmarked-lines counter.</p>
+<p>Then we reach the first termination condition: we reached line zero and we have
+a large enough hole for our object. The hole extents can be returned, converting
+back to byte offsets.</p>
+<pre><code class="language-rust ignore">            if marked == 0 {
                 count += 1;
-</code></pre>
-<p>Up next are a couple lines of code that need longer explanation:</p>
-<pre><code class="language-rust ignore">                if count == 1 &amp;&amp; abs_index &gt; 0 {
-                    continue;
-                }
-</code></pre>
-<p>The Immix authors found that marking <em>every</em> line that contains a live object
-could be expensive. For example, many small objects might cross line boundaries,
-requiring two lines to be marked as live. This would require looking up the
-object size and calculating whether the object crosses the boundary into the
-next line. To save CPU cycles, they simplified the algorithm by saying that
-any object that fits in a line <em>might</em> cross into the next line so we will
-conservatively <em>consider</em> the next line marked just in case. This sped up
-marking at little fragmentation expense.</p>
-<p>So the three lines of code above simply say: if we've so-far only found one
-unmarked block, consider that it might be a conservatively-marked line and
-ignore it.</p>
-<p>Once that condition has passed and we're clear of any conservatively-marked
-line, we can consider the next unmarked line as totally available. Here we
-save the index of this line in the variable <code>start</code>:</p>
-<pre><code class="language-rust ignore">                if start.is_none() {
-                    start = Some(abs_index);
-                }
-</code></pre>
-<p>Now we have a starting line for the overall hole between marked objects. Next
-we'll close the <code>if *marked</code> scope by setting the end of the hole:</p>
-<pre><code class="language-rust ignore">                stop = abs_index + 1;
-            }
-</code></pre>
-<p>The loop will continue and while there are consecutive unmarked lines, <code>stop</code>
-will continue to be updated to a later line boundary.</p>
-<p>As soon as we hit a marked line or the end of the block, and we have a nonzero
-number of unmarked lines, we'll test whether we have a valid hole to allocate
-into:</p>
-<pre><code class="language-rust ignore">            if count &gt; 0 &amp;&amp; (*marked || stop &gt;= constants::LINE_COUNT) {
-                if let Some(start) = start {
-                    let cursor = start * constants::LINE_SIZE;
-                    let limit = stop * constants::LINE_SIZE;
 
+                if index == 0 &amp;&amp; count &gt;= lines_required {
+                    let limit = index * constants::LINE_SIZE;
+                    let cursor = end * constants::LINE_SIZE;
                     return Some((cursor, limit));
                 }
-            }
+            } else {
 </code></pre>
-<p>Here we convert line-based math back into block byte-offset values and return
-the new bump-pointer and upper limit.</p>
-<p>Otherwise, if the above conditions failed but we've still reached a marked
-line, reset the state:</p>
-<pre><code class="language-rust ignore">            if *marked {
+<p>Otherwise if the line is marked, we've reached the end of the current hole (if
+we were even over one.)</p>
+<p>Here, we have the second possible termination condition: we have a large enough
+hole for our object. The hole extents can be returned, taking the last line as
+conservatively marked.</p>
+<p>This is seen in adding 2 to <code>index</code>:</p>
+<ul>
+<li>1 for walking back from the current marked line</li>
+<li>plus 1 for walking back from the previous conservatively marked line</li>
+</ul>
+<p>If this condition isn't met, our search is reset - <code>count</code> is back to zero and
+we keep iterating.</p>
+<pre><code class="language-rust ignore">            } else {
+                if count &gt; lines_required {
+                    let limit = (index + 2) * constants::LINE_SIZE;
+                    let cursor = end * constants::LINE_SIZE;
+                    return Some((cursor, limit));
+                }
+
                 count = 0;
-                start = None;
+                end = index;
             }
 </code></pre>
-<p>Finally, if the whole loop terminates without returning a new
-<code>Some((cursor, limit))</code> pair, return <code>None</code> as our way of saying this block
-has no usable holes to allocate into.</p>
+<p>Finally, if iterating over lines reached line zero without finding a hole, we
+return <code>None</code> to indicate failure.</p>
+<pre><code class="language-rust ignore">        }
+
+        None
+    }
+</code></pre>
+<h4><a class="header" href="#making-use-of-the-hole-finder" id="making-use-of-the-hole-finder">Making use of the hole finder</a></h4>
 <p>We'll return to the <code>BumpBlock::inner_alloc()</code> function now to make use of
 <code>BlockMeta</code> and its hole finding operation.</p>
 <p>The <code>BumpBlock</code> struct contains two more members: <code>limit</code> and <code>meta</code>. These
@@ -685,43 +751,45 @@ to try, and repeat that until we've either <em>found</em> a big enough hole or
 reached the end of the block, exhausting our options.</p>
 <p>The new definition of <code>BumpBlock::inner_alloc()</code> reads as follows:</p>
 <pre><code class="language-rust ignore">    pub fn inner_alloc(&amp;mut self, alloc_size: usize) -&gt; Option&lt;*const u8&gt; {
-        let next_bump = self.cursor + alloc_size;
+        let ptr = self.cursor as usize;
+        let limit = self.limit as usize;
 
-        if next_bump &gt; self.limit {
-            if self.limit &lt; constants::BLOCK_SIZE {
-                if let Some((cursor, limit)) = self.meta.find_next_available_hole(self.limit) {
-                    self.cursor = cursor;
-                    self.limit = limit;
+        let next_ptr = ptr.checked_sub(alloc_size)? &amp; constants::ALLOC_ALIGN_MASK;
+
+        if next_ptr &lt; limit {
+            let block_relative_limit =
+                unsafe { self.limit.sub(self.block.as_ptr() as usize) } as usize;
+
+            if block_relative_limit &gt; 0 {
+                if let Some((cursor, limit)) = self
+                    .meta
+                    .find_next_available_hole(block_relative_limit, alloc_size)
+                {
+                    self.cursor = unsafe { self.block.as_ptr().add(cursor) };
+                    self.limit = unsafe { self.block.as_ptr().add(limit) };
                     return self.inner_alloc(alloc_size);
                 }
             }
 
             None
         } else {
-            let offset = self.cursor;
-            self.cursor = next_bump;
-            unsafe { Some(self.block.as_ptr().add(offset) as *const u8) }
+            self.cursor = next_ptr as *const u8;
+            Some(self.cursor)
         }
     }
 </code></pre>
 <p>and as you can see, this implementation is recursive.</p>
 <h2><a class="header" href="#wrapping-this-up" id="wrapping-this-up">Wrapping this up</a></h2>
-<p>At the beginning of this chapter I stated that given a pointer to an object,
-by zeroing the bits of the pointer that represent the block size, the result
-points to the beginning of the block.</p>
+<p>At the beginning of this chapter we stated that given a pointer to an object, by
+zeroing the bits of the pointer that represent the block size, the result points
+to the beginning of the block.</p>
 <p>We'll make use of that now.</p>
-<p>During the mark phase of garbage collection, we will need to know which line
-or lines to mark, in addition to marking the object itself. We will make a
-copy of the <code>BlockMeta</code> instance pointer in the 0th word of the memory block
-so that given any object pointer, we can obtain the <code>BlockMeta</code> instance.</p>
+<p>During the mark phase of garbage collection, we will need to know which line or
+lines to mark, in addition to marking the object itself. We will make a copy of
+the <code>BlockMeta</code> instance pointer in the 0th word of the memory block so that
+given any object pointer, we can obtain the <code>BlockMeta</code> instance.</p>
 <p>In the next chapter we'll handle multiple <code>BumpBlock</code>s so that we can keep
 allocating objects after one block is full.</p>
-<hr />
-<div class="footnote-definition" id="1"><sup class="footnote-definition-label">1</sup>
-<p>Note that objects can be written from the end of the block down to the beginning
-too, decrementing the bump pointer. This is usually <a href="https://fitzgeraldnick.com/2019/11/01/always-bump-downwards.html">slightly simpler and more
-efficient to implement</a>.</p>
-</div>
 <h1><a class="header" href="#allocating-into-multiple-blocks" id="allocating-into-multiple-blocks">Allocating into Multiple Blocks</a></h1>
 <p>Let's now zoom out of the fractal code soup one level and begin arranging multiple
 blocks so we can allocate - in theory - indefinitely.</p>
@@ -1305,6 +1373,9 @@ up to the interpreter to define.</p>
         let total_size = header_size + object_size;
 
         // round the size to the next word boundary to keep objects aligned and get the size class
+        // TODO BUG? should this be done separately for header and object?
+        //  If the base allocation address is where the header gets placed, perhaps
+        //  this breaks the double-word alignment object alignment desire?
         let alloc_size = alloc_size_of(total_size);
         let size_class = SizeClass::get_for_size(alloc_size)?;
 
@@ -1697,6 +1768,9 @@ a trait.</p>
     type Output;
 
     fn run(&amp;self, mem: &amp;MutatorView, input: Self::Input) -&gt; Result&lt;Self::Output, RuntimeError&gt;;
+
+    // TODO
+    // function to return iterator that iterates over roots
 }
 </code></pre>
 <p>If a piece of code wants to access the heap, it <em>must</em> implement this trait!</p>
@@ -2663,7 +2737,7 @@ it safely. Here's <code>with_capcity()</code>, now:</p>
             .ok_or(RuntimeError::new(ErrorKind::BadAllocationRequest))?;
 
         Ok(RawArray {
-            capacity: capacity,
+            capacity,
             ptr: NonNull::new(mem.alloc_array(capacity_bytes)?.as_ptr() as *mut T),
         })
     }
@@ -4667,10 +4741,10 @@ The reader is encouraged to experiment with running and modifying the source.</p
         
 
         
-        
+
         
         <script type="text/javascript">
-            window.playpen_copyable = true;
+            window.playground_copyable = true;
         </script>
         
 
