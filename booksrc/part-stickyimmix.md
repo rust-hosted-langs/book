@@ -74,4 +74,4 @@ _What this is not: custom memory management to replace the global Rust
 allocator! The APIs we arrive at will be substantially incompatible with the
 global Rust allocator._
 
-[1]: http://www.cs.utexas.edu/users/speedway/DaCapo/papers/immix-pldi-2008.pdf
+[1]: http://users.cecs.anu.edu.au/~steveb/pubs/papers/immix-pldi-2008.pdf
