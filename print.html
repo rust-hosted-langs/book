@@ -199,7 +199,7 @@ additional complexity, optimizations and discussions of Rust's safe vs unsafe.</
 <ul>
 <li>Richard Jones, Anthony Hosking, Elliot Moss - <a href="http://gchandbook.org/">The Garbage Collection Handbook</a></li>
 <li>Stephen M. Blackburn &amp; Kathryn S. McKinley -
-<a href="http://www.cs.utexas.edu/users/speedway/DaCapo/papers/immix-pldi-2008.pdf">Immix: A Mark-Region Garbage Collector with Space Efficiency, Fast Collection, and Mutator Performance</a></li>
+<a href="http://users.cecs.anu.edu.au/%7Esteveb/pubs/papers/immix-pldi-2008.pdf">Immix: A Mark-Region Garbage Collector with Space Efficiency, Fast Collection, and Mutator Performance</a></li>
 <li>Felix S Klock II - <a href="http://blog.pnkfx.org/blog/2015/10/27/gc-and-rust-part-0-how-does-gc-work/">GC and Rust Part 0: Garbage Collection Background</a></li>
 <li>Felix S Klock II - <a href="http://blog.pnkfx.org/blog/2015/11/10/gc-and-rust-part-1-specing-the-problem/">GC and Rust Part 1: Specifying the Problem</a></li>
 <li>Felix S Klock II - <a href="http://blog.pnkfx.org/blog/2016/01/01/gc-and-rust-part-2-roots-of-the-problem/">GC and Rust Part 2: The Roots of the Problem</a></li>
@@ -465,7 +465,7 @@ into fresh, empty blocks, for defragmentation.</p>
 in this guide. This is called <em>Sticky</em> Immix.</p>
 <p>We'll also stick to a single thread for the mutator and collector to avoid the
 complexity overhead of a multi-threaded implementation for now.</p>
-<p>Recommended reading: <a href="http://www.cs.utexas.edu/users/speedway/DaCapo/papers/immix-pldi-2008.pdf">Stephen M. Blackburn &amp; Kathryn S. McKinley - Immix: A Mark-Region Garbage Collector with Space Efficiency, Fast Collection, and Mutator Performance</a></p>
+<p>Recommended reading: <a href="http://users.cecs.anu.edu.au/%7Esteveb/pubs/papers/immix-pldi-2008.pdf">Stephen M. Blackburn &amp; Kathryn S. McKinley - Immix: A Mark-Region Garbage Collector with Space Efficiency, Fast Collection, and Mutator Performance</a></p>
 <h2><a class="header" href="#about-this-part-of-the-book" id="about-this-part-of-the-book">About this part of the book</a></h2>
 <p>This section will describe a Rust crate that implements a Sticky Immix heap.
 As part of this implementation we will dive into the crate API details to
