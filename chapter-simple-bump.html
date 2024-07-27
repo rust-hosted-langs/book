@@ -207,7 +207,7 @@ into the block where the last object was written.</li>
         let cursor_ptr = self.cursor as usize;
 
         // align to word boundary
-        let align_mask = usize = !(size_of::&lt;usize&gt;() - 1);
+        let align_mask: usize = !(size_of::&lt;usize&gt;() - 1);
 
         let next_ptr = cursor_ptr.checked_sub(alloc_size)? &amp; align_mask;
 
@@ -227,7 +227,7 @@ memory requested.</p>
 <p>The value of <code>alloc_size</code> may produce an unaligned pointer at which to write the
 object. Fortunately, by bump allocating downward we can apply a simple mask to the
 pointer to align it down to the nearest word:</p>
-<pre><code class="language-rust ignore">        let align_mask = usize = !(size_of::&lt;usize&gt;() - 1);
+<pre><code class="language-rust ignore">        let align_mask: usize = !(size_of::&lt;usize&gt;() - 1);
 </code></pre>
 <p>In initial implementation, allocation will simply return <code>None</code> if the block
 does not have enough capacity for the requested <code>alloc_size</code>. If there <em>is</em>
