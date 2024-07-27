@@ -49,7 +49,7 @@ impl BumpBlock {
         let cursor_ptr = self.cursor as usize;
 
         // align to word boundary
-        let align_mask = usize = !(size_of::<usize>() - 1);
+        let align_mask: usize = !(size_of::<usize>() - 1);
 
         let next_ptr = cursor_ptr.checked_sub(alloc_size)? & align_mask;
 
@@ -73,7 +73,7 @@ object. Fortunately, by bump allocating downward we can apply a simple mask to t
 pointer to align it down to the nearest word:
 
 ```rust,ignore
-        let align_mask = usize = !(size_of::<usize>() - 1);
+        let align_mask: usize = !(size_of::<usize>() - 1);
 ```
 
 In initial implementation, allocation will simply return `None` if the block
