@@ -59,7 +59,7 @@ impl BumpBlock {
             None
         } else {
             self.cursor = next_ptr as *const u8;
-            Some(next_ptr)
+            Some(next_ptr as *const u8)
         }
     }
 }
