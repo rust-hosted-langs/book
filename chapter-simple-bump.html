@@ -217,7 +217,7 @@ into the block where the last object was written.</li>
             None
         } else {
             self.cursor = next_ptr as *const u8;
-            Some(next_ptr)
+            Some(next_ptr as *const u8)
         }
     }
 }
