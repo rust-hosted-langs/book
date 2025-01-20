@@ -10,7 +10,7 @@ to point to the space after _that_ object.
 In a twist of mathematical convenience, though, it is [more efficient][2] to
 bump allocate from a high memory location _downwards_. We will do that.
 
-We will used a fixed power-of-two block size. The benefit of this is that
+We will use a fixed power-of-two block size. The benefit of this is that
 given a pointer to an object, by zeroing the bits of the pointer that represent
 the block size, the result points to the beginning of the block. This will
 be useful later when implementing garbage collection.
