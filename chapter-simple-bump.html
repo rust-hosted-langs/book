@@ -172,7 +172,7 @@ was written. When the next object is written, the bump pointer is incremented
 to point to the space after <em>that</em> object.</p>
 <p>In a twist of mathematical convenience, though, it is <a href="https://fitzgeraldnick.com/2019/11/01/always-bump-downwards.html">more efficient</a> to
 bump allocate from a high memory location <em>downwards</em>. We will do that.</p>
-<p>We will used a fixed power-of-two block size. The benefit of this is that
+<p>We will use a fixed power-of-two block size. The benefit of this is that
 given a pointer to an object, by zeroing the bits of the pointer that represent
 the block size, the result points to the beginning of the block. This will
 be useful later when implementing garbage collection.</p>
